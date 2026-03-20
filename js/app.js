@@ -1,5 +1,5 @@
 /**
- * app.js — Application Bootstrap (Entry Point)
+ * app.js — Application Bootstrap (Entry Point) 
  * PHẢI LOAD CUỐI CÙNG. Không chứa business logic.
  * @requires TẤT CẢ các module khác
  */
