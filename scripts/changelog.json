@@ -1,0 +1,65 @@
+[
+  {
+    "id": "v4.3.1",
+    "version": "4.3.1",
+    "prev_version": "4.3.0",
+    "type": "patch",
+    "description": "Sửa toàn bộ lỗi ID mismatch (#output, #theory-panel), auth-pending CSS, sidebar layout, exam-banner",
+    "timestamp": "2026-03-20T11:48:33.156Z",
+    "synced": false
+  },
+  {
+    "id": "v4.3.0",
+    "version": "4.3.0",
+    "prev_version": "4.2.0",
+    "type": "minor",
+    "description": "Import 1735 học sinh, tách sheet Admin riêng",
+    "timestamp": "2026-03-20T11:29:12.095Z",
+    "synced": false
+  },
+  {
+    "id": "v4.2.0",
+    "version": "4.2.0",
+    "prev_version": "4.1.3",
+    "type": "minor",
+    "description": "Thêm thanh tiến trình sync bài tập theo batch",
+    "timestamp": "2026-03-20T11:29:11.987Z",
+    "synced": false
+  },
+  {
+    "id": "v4.1.3",
+    "version": "4.1.3",
+    "prev_version": "4.1.2",
+    "type": "patch",
+    "description": "Sửa lỗi sync bài tập deleteRows Google Sheets",
+    "timestamp": "2026-03-20T11:29:11.864Z",
+    "synced": false
+  },
+  {
+    "id": "v4.1.2",
+    "version": "4.1.2",
+    "prev_version": "4.1.1",
+    "type": "patch",
+    "description": "Sửa lỗi đăng nhập admin màn hình đen sau F5 (auth-pending)",
+    "timestamp": "2026-03-20T11:29:11.730Z",
+    "synced": false
+  },
+  {
+    "id": "v4.1.1",
+    "version": "4.1.1",
+    "prev_version": "4.1.0",
+    "type": "patch",
+    "description": "Sửa lỗi dropdown chủ đề/bài tập bị khoá (ID mismatch chap/chapter)",
+    "timestamp": "2026-03-20T11:29:11.625Z",
+    "synced": false
+  },
+  {
+    "id": "v4.1.0",
+    "version": "4.1.0",
+    "prev_version": "4.0.0",
+    "type": "minor",
+    "description": "Sidebar Canvas LMS, quản lý admin/GV/HS, bảng điểm, 8 themes, đăng nhập tự động nhận diện",
+    "timestamp": "2026-03-20T11:29:03.256Z",
+    "synced": false
+  }
+]
