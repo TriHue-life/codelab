@@ -29,10 +29,10 @@ CL.define('Data.Http', () => {
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     try {
       const res  = await fetch(url, {
-        method:  'POST',
+        method:   'POST',
         redirect: 'follow',
-        body:    JSON.stringify(body),
-        signal:  ctrl.signal,
+        body:     JSON.stringify(body),
+        signal:   ctrl.signal,
       });
       return _parseResponse(res);
     } catch (err) {
@@ -65,9 +65,9 @@ CL.define('Data.Http', () => {
   function postAsync(url, body) {
     if (!url) return;
     fetch(url, {
-      method:  'POST',
+      method:   'POST',
       redirect: 'follow',
-      body:    JSON.stringify(body),
+      body:     JSON.stringify(body),
     }).catch(() => {}); // silent fail
   }
 
