@@ -285,7 +285,8 @@ const DB_IDS = { TAIKHOAN:'', BAITAP:'', ... };</pre>
       const url = API.getUrl();
       if (!url) throw new Error('Chưa có URL');
       const res = await fetch(url, {
-        method:'POST', headers:{'Content-Type':'application/json'},
+        method:'POST',
+        redirect: 'follow',
         body: JSON.stringify({ action, ...body }),
         signal: AbortSignal.timeout(60000),  // 60s for setup
       });
