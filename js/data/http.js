@@ -30,7 +30,7 @@ CL.define('Data.Http', () => {
     try {
       const res  = await fetch(url, {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        redirect: 'follow',
         body:    JSON.stringify(body),
         signal:  ctrl.signal,
       });
@@ -66,8 +66,7 @@ CL.define('Data.Http', () => {
     if (!url) return;
     fetch(url, {
       method:  'POST',
-      mode:    'no-cors',
-      headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow',
       body:    JSON.stringify(body),
     }).catch(() => {}); // silent fail
   }
