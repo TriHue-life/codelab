@@ -30,7 +30,15 @@
   });
 
   Events.on('auth:login', ({ user }) => {
-    if (user.role === 'student') { CL.Features.ModeManager?.init(); _loadActiveExam(user); }
+    if (user.role === 'student') {
+      CL.Features.ModeManager?.init();
+      _loadActiveExam(user);
+    }
+    if (user.role === 'teacher' || user.role === 'admin') {
+      // Giáo viên/Admin: hiện workspace với dropdown bài tập
+      const ws = document.getElementById('workspace');
+      if (ws) ws.style.display = '';
+    }
     Toast.success('Xin chào, ' + user.name + '!', 2500);
     CL.API.logAccess('login', user.role);
   });
