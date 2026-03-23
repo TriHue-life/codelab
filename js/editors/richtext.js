@@ -205,8 +205,6 @@ CL.define('Editors.RichText', () => {
     // Save
     const doSave = async () => {
       const html = getHtml(containerId);
-      const btn  = document.getElementById(`rte-save-${containerId}`);
-      if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu...'; }
       try {
         if (onSave) await onSave(html);
         // Update display
@@ -215,7 +213,6 @@ CL.define('Editors.RichText', () => {
         _renderMath(container);
       } catch(e) {
         alert('Lỗi lưu: ' + e.message);
-        if (btn) { btn.disabled = false; btn.textContent = '💾 Lưu'; }
         return;
       }
       unmount(containerId);

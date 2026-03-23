@@ -322,8 +322,7 @@ CL.define('Teacher.ExEditor', () => {
     const progBox   = _showProgress(container);
     progBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-    const btn = document.querySelector('[id="sync-all-btn"]');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang sync...'; }
+    // Button reference removed
 
     try {
       for (const { tab, label } of TABS) {
@@ -346,7 +345,7 @@ CL.define('Teacher.ExEditor', () => {
       _finishProgress(false);
       Toast.error('❌ Sync lỗi: ' + e.message);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '🔄 Sync lên Sheets'; }
+      // Button update removed
     }
   }
 
@@ -411,5 +410,5 @@ CL.define('Teacher.ExEditor', () => {
     return match ? match[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&') : '';
   }
 
-  return { render, loadChap, loadList, edit, switchTab, saveField, closeForm, syncAll };
+  return { render, loadChap, loadList, edit, switchTab, saveField, closeForm };
 });
