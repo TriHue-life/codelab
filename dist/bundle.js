@@ -15302,6 +15302,13 @@ CL.define('Features.Sidebar', () => {
 
     const section = item.section;
 
+    // ── FIX: Ẩn tất cả sections trước khi hiển thị section mới ──
+    // Ngăn chồng lấn giữa các sections
+    const wv = document.getElementById('workspace-view');
+    const pv = document.getElementById('panel-view');
+    if (wv) wv.style.display = 'none';
+    if (pv) pv.style.display = 'none';
+
     if (section === 'editor') {
       _showSection('workspace-view');
     } else if (section === 'profile') {
