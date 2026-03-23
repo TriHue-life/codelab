@@ -87,7 +87,10 @@ Tải lại trang để về giao diện luyện tập?`)) {
     if (shell) shell.style.removeProperty('display');
 
     // Init sidebar navigation (Canvas-style)
-    CL.Features.Sidebar?.init(user.role);
+    // Guard: chỉ init nếu chưa được init (tránh double-init)
+    if (!document.querySelector('.sb-group')) {
+      CL.Features.Sidebar?.init(user.role);
+    }
 
     // Update user badge in topbar
     const area = document.getElementById('user-badge-area');
