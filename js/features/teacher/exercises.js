@@ -1,30 +1,15 @@
-/**
- * features/teacher/exercises.js — Ngân hàng bài tập (Teacher/Admin)
- * ═══════════════════════════════════════════════════════════════
- * Tabs: Đề bài (RichText) | Lý thuyết (RichText) | Code mẫu (textarea)
- * Tiêu chí & Hướng dẫn lỗi: xử lý tự động bởi Python grader
- *
- * @requires core/*, CL.API, exercises/registry.js, CL.Editors.RichText
- */
-'use strict';
-
-CL.define('Teacher.ExEditor', () => {
-  const Utils    = CL.require('Utils');
-  const Registry = CL.require('Exercises.Registry');
-  const Toast    = CL.require('UI.Toast');
-
-  // Theo dõi instance RichText đang mở
+CL.define('CL.Teacher.ExEditor', function() {
   let _currentId = null;
   let _hasUnsavedChanges = false;
 
   // ══════════════════════════════════════════════════════════════
-  //  RENDER: danh sách bài tập
+  //  RENDER
   // ══════════════════════════════════════════════════════════════
 
-  async function render(el) {
+  function render(el) {
     console.log('[ExEditor] render called, el:', el);
     const allExs = Registry.getAll();
-    const grades = [...new Set(allExs.map(e => e.bo ? `${e.g}-${e.bo}` : e.g))];
+    const grades = [...new Set(allExs.map(e => e.g))];
 
     el.innerHTML = `
       <div class="tp-edit-container">
@@ -41,6 +26,12 @@ CL.define('Teacher.ExEditor', () => {
           </div>
           <select id="ed-ex" style="flex:1;margin-top:8px;padding:8px;">
             <option value="">— Chọn bài tập —</option>
+          </select>
+          <select id="ed-bloom" style="flex:1;margin-top:8px;padding:8px;display:none;">
+            <option value="">— Chọn mức Bloom —</option>
+          </select>
+          <select id="ed-sub" style="flex:1;margin-top:8px;padding:8px;display:none;">
+            <option value="">— Chọn bài tập con —</option>
           </select>
         </div>
         <div class="tp-edit-content">
@@ -60,6 +51,20 @@ CL.define('Teacher.ExEditor', () => {
     const edEx = document.getElementById('ed-ex');
     if (edEx) edEx.addEventListener('change', (e) => {
       if (e.target.value) {
+        loadBloomLevels(e.target.value);
+      }
+    });
+    
+    const edBloom = document.getElementById('ed-bloom');
+    if (edBloom) edBloom.addEventListener('change', (e) => {
+      if (e.target.value) {
+        loadSubExercises(e.target.value);
+      }
+    });
+    
+    const edSub = document.getElementById('ed-sub');
+    if (edSub) edSub.addEventListener('change', (e) => {
+      if (e.target.value) {
         edit(e.target.value);
       }
     });
@@ -68,176 +73,266 @@ CL.define('Teacher.ExEditor', () => {
     if (toggleBtn && sidebar) {
       toggleBtn.addEventListener('click', () => {
         sidebar.classList.toggle('collapsed');
-        toggleBtn.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
-        localStorage.setItem('ed-sidebar-collapsed', sidebar.classList.contains('collapsed'));
       });
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  LOAD CHAPTERS
+  // ══════════════════════════════════════════════════════════════
+
+  function loadChap(e) {
+    const grade = e.target.value;
+    const allExs = Registry.getAll();
+    const filtered = allExs.filter(ex => ex.g === grade);
+    
+    const chapters = [...new Set(filtered.map(ex => ex.ch))];
+    const edCh = document.getElementById('ed-ch');
+    if (edCh) {
+      edCh.innerHTML = '<option value="">— Chọn chủ đề —</option>' +
+        chapters.map(ch => `<option>${ch}</option>`).join('');
+    }
+    
+    // Clear exercise list
+    const edEx = document.getElementById('ed-ex');
+    if (edEx) edEx.innerHTML = '<option value="">— Chọn bài tập —</option>';
+    
+    // Hide Bloom and sub-exercise dropdowns
+    const edBloom = document.getElementById('ed-bloom');
+    const edSub = document.getElementById('ed-sub');
+    if (edBloom) edBloom.style.display = 'none';
+    if (edSub) edSub.style.display = 'none';
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  LOAD EXERCISE LIST
+  // ══════════════════════════════════════════════════════════════
+
+  function loadList(e) {
+    const chapter = e.target.value;
+    const grade = document.getElementById('ed-g').value;
+    const allExs = Registry.getAll();
+    
+    const filtered = allExs.filter(ex => ex.g === grade && ex.ch === chapter);
+    
+    const edEx = document.getElementById('ed-ex');
+    if (edEx) {
+      edEx.innerHTML = '<option value="">— Chọn bài tập —</option>' +
+        filtered.map(ex => `<option value="${ex.id}">${ex.title}</option>`).join('');
+    }
+    
+    // Hide Bloom and sub-exercise dropdowns
+    const edBloom = document.getElementById('ed-bloom');
+    const edSub = document.getElementById('ed-sub');
+    if (edBloom) edBloom.style.display = 'none';
+    if (edSub) edSub.style.display = 'none';
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  LOAD BLOOM LEVELS
+  // ══════════════════════════════════════════════════════════════
+
+  function loadBloomLevels(exerciseId) {
+    const allExs = Registry.getAll();
+    const exercise = allExs.find(e => e.id === exerciseId);
+    const edBloom = document.getElementById('ed-bloom');
+    
+    if (!edBloom) return;
+    
+    // Clear Bloom dropdown
+    edBloom.innerHTML = '<option value="">— Chọn mức Bloom —</option>';
+    
+    // Get all sub-exercises (bài tập con) for this exercise
+    // Sub-exercises are identified by having the same chapter and title prefix
+    const subExercises = allExs.filter(ex => 
+      ex.g === exercise.g && 
+      ex.ch === exercise.ch &&
+      ex.title && exercise.title &&
+      ex.title.includes(exercise.title.split(':')[0])
+    );
+    
+    if (subExercises && subExercises.length > 0) {
+      // Get unique Bloom levels from sub-exercises
+      const bloomLevels = [...new Set(subExercises.map(ex => ex.bo))].sort();
       
-      // Restore collapsed state
-      if (localStorage.getItem('ed-sidebar-collapsed') === 'true') {
-        sidebar.classList.add('collapsed');
-        toggleBtn.textContent = '▶';
+      if (bloomLevels.length > 0) {
+        bloomLevels.forEach(bloom => {
+          const option = document.createElement('option');
+          option.value = bloom;
+          option.textContent = bloom;
+          edBloom.appendChild(option);
+        });
+        edBloom.style.display = 'block';
+      } else {
+        edBloom.style.display = 'none';
+        edit(exerciseId);
       }
+    } else {
+      edBloom.style.display = 'none';
+      edit(exerciseId);
+    }
+    
+    // Hide sub-exercise dropdown
+    const edSub = document.getElementById('ed-sub');
+    if (edSub) edSub.style.display = 'none';
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  LOAD SUB-EXERCISES
+  // ══════════════════════════════════════════════════════════════
+
+  function loadSubExercises(bloomLevel) {
+    const allExs = Registry.getAll();
+    const edEx = document.getElementById('ed-ex');
+    const exerciseId = edEx ? edEx.value : '';
+    const exercise = allExs.find(e => e.id === exerciseId);
+    const edSub = document.getElementById('ed-sub');
+    
+    if (!edSub || !exercise) return;
+    
+    // Clear sub-exercise dropdown
+    edSub.innerHTML = '<option value="">— Chọn bài tập con —</option>';
+    
+    // Get all sub-exercises with matching grade, chapter, and Bloom level
+    const subExercises = allExs.filter(ex => 
+      ex.g === exercise.g && 
+      ex.ch === exercise.ch &&
+      ex.bo === bloomLevel &&
+      ex.title && exercise.title &&
+      ex.title.includes(exercise.title.split(':')[0])
+    );
+    
+    if (subExercises && subExercises.length > 0) {
+      subExercises.forEach((subEx, idx) => {
+        const option = document.createElement('option');
+        option.value = subEx.id;
+        option.textContent = subEx.title || `Bài ${idx + 1}`;
+        edSub.appendChild(option);
+      });
+      edSub.style.display = 'block';
+    } else {
+      edSub.style.display = 'none';
     }
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  LOAD CHAPTERS: tải danh sách chủ đề theo lớp
+  //  EDIT EXERCISE
   // ══════════════════════════════════════════════════════════════
 
-  function loadChap() {
-    console.log('[ExEditor] loadChap called');
-    const gk = document.getElementById('ed-g')?.value;
-    if (!gk) return;
-    
-    const chapters = Registry.getChapters(gk);
-    const chDropdown = document.getElementById('ed-ch');
-    if (!chDropdown) return;
-    
-    chDropdown.innerHTML = `
-      <option value="">— Chọn chủ đề —</option>
-      ${chapters.map(ch => `<option value="${Utils.escHtml(ch)}">${Utils.escHtml(ch)}</option>`).join('')}
-    `;
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  LOAD LIST: tải danh sách bài tập theo chủ đề
-  // ══════════════════════════════════════════════════════════════
-
-  function loadList() {
-    console.log('[ExEditor] loadList called');
-    const gk  = document.getElementById('ed-g')?.value;
-    const ch  = document.getElementById('ed-ch')?.value;
-    const exs = Registry.getByChapter(gk, ch);
-    const dropdown = document.getElementById('ed-ex');
-    if (!dropdown) return;
-    
-    dropdown.innerHTML = `
-      <option value="">— Chọn bài tập —</option>
-      ${exs.map(e => `<option value="${Utils.escHtml(e.id)}">${Utils.escHtml(e.num)} - ${Utils.escHtml(e.title)}</option>`).join('')}
-    `;
-    
-    const form = document.getElementById('ed-form');
-    if (form) form.style.display = 'none';
-    _unmountAll();
-  }
-  // ══════════════════════════════════════════════════════════════
-  //  EDIT: mở form chỉnh sửa bài tập
-  // ══════════════════════════════════════════════════════════════
-
-  async function edit(id) {
-    // Cảnh báo nếu chưa lưu thay đổi
-    if (_hasUnsavedChanges) {
-      const confirmed = await Toast.confirm('Bạn chưa lưu thay đổi. Tiếp tục?');
-      if (!confirmed) return;
-    }
-
-    const ex = Registry.findById(id);
-    if (!ex) return;
-
-    // Unmount previous rich editors
-    _unmountAll();
+  function edit(id) {
     _currentId = id;
     _hasUnsavedChanges = false;
-
-    // Load saved override from Sheets (if any)
-    let detail = { ly_thuyet: '', code_mau: [] };
-    if (CL.API?.isReady?.()) {
-      try { detail = await CL.API.getExerciseDetail(id); } catch {}
+    
+    const allExs = Registry.getAll();
+    const ex = allExs.find(e => e.id === id);
+    if (!ex) {
+      console.error('[ExEditor] Exercise not found:', id);
+      return;
     }
 
-    // Load saved desc/theory from NoiDung sheet (via localStorage cache or API)
-    const savedDesc   = localStorage.getItem(`cl_content_${id}_desc`);
-    const savedTheory = localStorage.getItem(`cl_content_${id}_theory`);
-
+    console.log('[ExEditor] Editing:', ex);
+    
     const form = document.getElementById('ed-form');
     if (!form) return;
-    form.style.display = 'block';
+    
     form.innerHTML = `
-      <div class="ed-form-header">
-        <div class="ed-form-title">
-          <span class="ed-form-type-badge ${ex.type || 'python'}">${(ex.type||'python').toUpperCase()}</span>
-          ✏️ ${Utils.escHtml(ex.num)} – ${Utils.escHtml(ex.title)}
-        </div>
-        <button class="ed-close-btn" onclick="CL.Teacher.ExEditor.closeForm()">✕</button>
+      <div class="ed-header">
+        <h2>${ex.title}</h2>
+        <button class="ed-close-btn" id="ed-close">✕</button>
       </div>
       <div class="ed-tabs">
-        <button class="ed-tab-btn active" data-tab="desc">📋 Đề bài</button>
-        <button class="ed-tab-btn" data-tab="theory">📖 Lý thuyết</button>
-        <button class="ed-tab-btn" data-tab="code">💻 Code mẫu</button>
+        <button class="ed-tab-btn active" data-tab="desc">Mô tả</button>
+        <button class="ed-tab-btn" data-tab="theory">Lý thuyết</button>
+        <button class="ed-tab-btn" data-tab="code">Code mẫu</button>
       </div>
-      <div class="ed-tab-content">
-        <div class="ed-tab-pane active" data-tab="desc">
-          <div id="ed-desc-container" class="ed-rte-container"></div>
-        </div>
-        <div class="ed-tab-pane" data-tab="theory">
-          <div id="ed-theory-container" class="ed-rte-container"></div>
-        </div>
-        <div class="ed-tab-pane" data-tab="code">
-          <textarea id="ed-code" class="ed-code-textarea" placeholder="Python code mẫu...">${Utils.escHtml(detail.code_mau?.[0] || '')}</textarea>
-          <button class="ed-save-btn" onclick="CL.Teacher.ExEditor.saveField('${Utils.escHtml(id)}', 'code')">💾 Lưu code mẫu</button>
-        </div>
+      <div class="ed-tab-content" data-tab="desc" style="display:block"></div>
+      <div class="ed-tab-content" data-tab="theory" style="display:none"></div>
+      <div class="ed-tab-content" data-tab="code" style="display:none"></div>
+      <div class="ed-actions">
+        <button id="ed-save-desc" class="ed-save-btn">💾 Lưu Mô tả</button>
+        <button id="ed-save-theory" class="ed-save-btn">💾 Lưu Lý thuyết</button>
+        <button id="ed-save-code" class="ed-save-btn">💾 Lưu Code mẫu</button>
       </div>`;
-
-    // Tab switching
-    form.querySelectorAll('.ed-tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-    });
-
+    
+    form.style.display = 'block';
+    
     // Mount RichText editors
-    const descContainer = document.getElementById('ed-desc-container');
-    const theoryContainer = document.getElementById('ed-theory-container');
+    const descContainer = form.querySelector('[data-tab="desc"]');
+    const theoryContainer = form.querySelector('[data-tab="theory"]');
+    const codeContainer = form.querySelector('[data-tab="code"]');
     
-    if (descContainer) {
-      await CL.Editors.RichText.mount('ed-desc', savedDesc || ex.desc || '', async (html) => {
-        await saveField(id, 'desc', html);
+    if (CL.Editors?.RichText) {
+      const descContent = localStorage.getItem(`cl_content_${id}_desc`) || ex.desc || '';
+      const theoryContent = localStorage.getItem(`cl_content_${id}_theory`) || ex.ly_thuyet || '';
+      const codeContent = localStorage.getItem(`cl_content_${id}_code`) || ex.code_mau || '';
+      
+      CL.Editors.RichText.mount(descContainer, descContent, () => {
+        _hasUnsavedChanges = true;
       });
-    }
-    
-    if (theoryContainer) {
-      await CL.Editors.RichText.mount('ed-theory', savedTheory || detail.ly_thuyet || '', async (html) => {
-        await saveField(id, 'theory', html);
+      CL.Editors.RichText.mount(theoryContainer, theoryContent, () => {
+        _hasUnsavedChanges = true;
       });
-    }
-
-    // Code textarea change tracking
-    const codeTextarea = document.getElementById('ed-code');
-    if (codeTextarea) {
-      codeTextarea.addEventListener('change', () => {
+      CL.Editors.RichText.mount(codeContainer, codeContent, () => {
         _hasUnsavedChanges = true;
       });
     }
+    
+    // Tab switching
+    form.querySelectorAll('.ed-tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
+    });
+    
+    // Close button
+    form.querySelector('.ed-close-btn').addEventListener('click', closeForm);
+    
+    // Save buttons
+    form.querySelector('#ed-save-desc').addEventListener('click', () => saveField(id, 'desc'));
+    form.querySelector('#ed-save-theory').addEventListener('click', () => saveField(id, 'theory'));
+    form.querySelector('#ed-save-code').addEventListener('click', () => saveField(id, 'code'));
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  TAB SWITCHING
+  //  SWITCH TAB
   // ══════════════════════════════════════════════════════════════
 
   function switchTab(tabName) {
     const form = document.getElementById('ed-form');
     if (!form) return;
     
-    form.querySelectorAll('.ed-tab-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tab === tabName);
+    // Hide all tabs
+    form.querySelectorAll('.ed-tab-content').forEach(tab => {
+      tab.style.display = 'none';
     });
     
-    form.querySelectorAll('.ed-tab-pane').forEach(pane => {
-      pane.classList.toggle('active', pane.dataset.tab === tabName);
+    // Deactivate all buttons
+    form.querySelectorAll('.ed-tab-btn').forEach(btn => {
+      btn.classList.remove('active');
     });
+    
+    // Show selected tab
+    const selectedTab = form.querySelector(`[data-tab="${tabName}"]`);
+    if (selectedTab) selectedTab.style.display = 'block';
+    
+    // Activate button
+    const selectedBtn = form.querySelector(`[data-tab="${tabName}"]`).previousElementSibling;
+    if (selectedBtn) selectedBtn.classList.add('active');
   }
 
   // ══════════════════════════════════════════════════════════════
   //  SAVE FIELD
   // ══════════════════════════════════════════════════════════════
 
-  async function saveField(id, field, html) {
-    console.log('[ExEditor] saveField:', field);
-    if (!html) {
-      Toast.warn('Nội dung trống');
-      return;
-    }
-    
+  async function saveField(id, field) {
     try {
-      // Save to localStorage first (for offline support)
+      const editor = document.querySelector(`[data-tab="${field}"] .ProseMirror`);
+      if (!editor) {
+        Toast.error(`❌ Không tìm thấy editor cho ${field}`);
+        return;
+      }
+      
+      const html = editor.innerHTML;
+      
+      // First save to localStorage
       localStorage.setItem(`cl_content_${id}_${field}`, html);
       
       // Then sync to backend
