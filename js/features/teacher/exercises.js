@@ -10,26 +10,20 @@ CL.define('CL.Teacher.ExEditor', function() {
   //  RENDER
   // ══════════════════════════════════════════════════════════════
 
-  function render(el) {
+  async function render(el) {
     console.log('[ExEditor] render called, el:', el);
     el.innerHTML = '<div style="padding:20px;text-align:center">⏳ Đang tải dữ liệu bài tập...</div>';
     
-    // Load exercises from API
-    const token = localStorage.getItem('token');
-    if (!token) {
-      el.innerHTML = '<div style="padding:20px;color:red">❌ Chưa đăng nhập</div>';
-      return;
-    }
-    
-    CL.API.post('getExercises', { token }, (res) => {
-      if (!res.success) {
-        el.innerHTML = `<div style="padding:20px;color:red">❌ Lỗi: ${res.text}</div>`;
+    try {
+      // Load exercises from API
+      const allExs = await CL.API.getExercises(true);
+      if (!allExs || !Array.isArray(allExs)) {
+        el.innerHTML = '<div style="padding:20px;color:red">❌ Không thể tải dữ liệu bài tập</div>';
         return;
       }
       
-      const allExs = res.data || [];
       _allExercises = allExs;
-      const grades = [...new Set(allExs.map(e => e.g))];
+      const grades = [...new Set(allExs.map(e => e.g))].sort();
 
       el.innerHTML = `
         <div class="tp-edit-container">
@@ -71,7 +65,10 @@ CL.define('CL.Teacher.ExEditor', function() {
           sidebar.classList.toggle('collapsed');
         });
       }
-    });
+    } catch (err) {
+      console.error('[ExEditor] Error:', err);
+      el.innerHTML = `<div style="padding:20px;color:red">❌ Lỗi: ${err.message}</div>`;
+    }
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -252,13 +249,11 @@ CL.define('CL.Teacher.ExEditor', function() {
       desc: desc
     };
 
-    CL.API.post('saveExercise', { token, exercise }, (res) => {
-      if (res.success) {
-        alert('✅ Lưu thành công');
-        _hasUnsavedChanges = false;
-      } else {
-        alert('❌ Lỗi: ' + res.text);
-      }
+    CL.API.saveExerciseContent(_currentId, 'desc', desc).then(res => {
+      alert('✅ Lưu thành công');
+      _hasUnsavedChanges = false;
+    }).catch(err => {
+      alert('❌ Lỗi: ' + err.message);
     });
   }
 

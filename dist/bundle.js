@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-23 03:33
+/* CodeLab Bundle — built 2026-03-23 03:36
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -7296,26 +7296,20 @@ CL.define('CL.Teacher.ExEditor', function() {
   //  RENDER
   // ══════════════════════════════════════════════════════════════
 
-  function render(el) {
+  async function render(el) {
     console.log('[ExEditor] render called, el:', el);
     el.innerHTML = '<div style="padding:20px;text-align:center">⏳ Đang tải dữ liệu bài tập...</div>';
     
-    // Load exercises from API
-    const token = localStorage.getItem('token');
-    if (!token) {
-      el.innerHTML = '<div style="padding:20px;color:red">❌ Chưa đăng nhập</div>';
-      return;
-    }
-    
-    CL.API.post('getExercises', { token }, (res) => {
-      if (!res.success) {
-        el.innerHTML = `<div style="padding:20px;color:red">❌ Lỗi: ${res.text}</div>`;
+    try {
+      // Load exercises from API
+      const allExs = await CL.API.getExercises(true);
+      if (!allExs || !Array.isArray(allExs)) {
+        el.innerHTML = '<div style="padding:20px;color:red">❌ Không thể tải dữ liệu bài tập</div>';
         return;
       }
       
-      const allExs = res.data || [];
       _allExercises = allExs;
-      const grades = [...new Set(allExs.map(e => e.g))];
+      const grades = [...new Set(allExs.map(e => e.g))].sort();
 
       el.innerHTML = `
         <div class="tp-edit-container">
@@ -7357,7 +7351,10 @@ CL.define('CL.Teacher.ExEditor', function() {
           sidebar.classList.toggle('collapsed');
         });
       }
-    });
+    } catch (err) {
+      console.error('[ExEditor] Error:', err);
+      el.innerHTML = `<div style="padding:20px;color:red">❌ Lỗi: ${err.message}</div>`;
+    }
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -7538,13 +7535,11 @@ CL.define('CL.Teacher.ExEditor', function() {
       desc: desc
     };
 
-    CL.API.post('saveExercise', { token, exercise }, (res) => {
-      if (res.success) {
-        alert('✅ Lưu thành công');
-        _hasUnsavedChanges = false;
-      } else {
-        alert('❌ Lỗi: ' + res.text);
-      }
+    CL.API.saveExerciseContent(_currentId, 'desc', desc).then(res => {
+      alert('✅ Lưu thành công');
+      _hasUnsavedChanges = false;
+    }).catch(err => {
+      alert('❌ Lỗi: ' + err.message);
     });
   }
 
@@ -10182,6 +10177,9 @@ CL.define('API', () => {
   async function getExerciseDetail(id, force) {
     return Cache.swr('exercise_'+id, cfg.CACHE_TTL.EXERCISE_DETAIL, () => _get({ action: 'getExercise', bai_id: id }), force);
   }
+  async function getExercises(force) {
+    return Cache.swr('exercises_all', cfg.CACHE_TTL.EXAMS, () => _get({ action: 'getExercises' }), force);
+  }
 
   // Scores & History
   function submitScore(baiId, tieuDe, diem, thoiGian, kyKtId) {
@@ -10424,7 +10422,7 @@ CL.define('API', () => {
   }
 
     const facade = { setUrl, getUrl, isReady, getToken: _tok,
-    login, logout, changePassword, updateProfile, getExerciseDetail,
+    login, logout, changePassword, updateProfile, getExerciseDetail, getExercises,
     submitScore, submitPracticeScore, saveExerciseContent,
     saveBaiTapRecord, getItemAnalysis, getExamMatrix, getBaiLamForStudent,
     getImageConfig, saveImageConfig, getNamHocInfo, yearTransition, importStudents, getLichSuLop,

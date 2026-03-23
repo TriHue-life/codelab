@@ -52,6 +52,9 @@ CL.define('API', () => {
   async function getExerciseDetail(id, force) {
     return Cache.swr('exercise_'+id, cfg.CACHE_TTL.EXERCISE_DETAIL, () => _get({ action: 'getExercise', bai_id: id }), force);
   }
+  async function getExercises(force) {
+    return Cache.swr('exercises_all', cfg.CACHE_TTL.EXAMS, () => _get({ action: 'getExercises' }), force);
+  }
 
   // Scores & History
   function submitScore(baiId, tieuDe, diem, thoiGian, kyKtId) {
@@ -294,7 +297,7 @@ CL.define('API', () => {
   }
 
     const facade = { setUrl, getUrl, isReady, getToken: _tok,
-    login, logout, changePassword, updateProfile, getExerciseDetail,
+    login, logout, changePassword, updateProfile, getExerciseDetail, getExercises,
     submitScore, submitPracticeScore, saveExerciseContent,
     saveBaiTapRecord, getItemAnalysis, getExamMatrix, getBaiLamForStudent,
     getImageConfig, saveImageConfig, getNamHocInfo, yearTransition, importStudents, getLichSuLop,
