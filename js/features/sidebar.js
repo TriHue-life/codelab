@@ -325,30 +325,60 @@ CL.define('Features.Sidebar', () => {
     _active = id;
     if (save) localStorage.setItem('cl_sb_active', id);
 
-    // Update active state
+    // Update active state for level 2 items
     document.querySelectorAll('.sb-child[data-id]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.id === id);
     });
 
-    // Find item across all groups
+    // Update active state for level 3 items (grandchildren)
+    document.querySelectorAll('.sb-grandchild[data-id]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.id === id);
+    });
+
+    // Find item across all groups (including level 3)
     const groups = MENUS[_role] || MENUS.student;
     let item = null;
+    let parentGroup = null;
+    
     for (const g of groups) {
+      // Check level 2 items
       item = g.children.find(c => c.id === id);
       if (item) {
-        // Expand parent group and always persist it (fixes F5 restore)
-        const grpEl = document.querySelector(`.sb-group[data-gid="${g.id}"]`);
-        if (grpEl) {
-          grpEl.classList.add('expanded');
-          const sb = document.getElementById('sidebar');
-          const expGroups = [...(sb?.querySelectorAll('.sb-group.expanded') || [])]
-            .map(g => g.dataset.gid).filter(Boolean);
-          localStorage.setItem('cl_sb_expanded', JSON.stringify(expGroups));
-        }
+        parentGroup = g;
         break;
       }
+      
+      // Check level 3 items (grandchildren)
+      for (const child of g.children) {
+        if (child.children) {
+          item = child.children.find(gc => gc.id === id);
+          if (item) {
+            parentGroup = g;
+            // Expand the parent child-group (level 2 with children)
+            const childGroupEl = document.querySelector(`.sb-child-group[data-cgid="${child.id}"]`);
+            if (childGroupEl) {
+              childGroupEl.classList.add('expanded');
+            }
+            break;
+          }
+        }
+      }
+      if (item) break;
     }
+    
     if (!item) return;
+    
+    // Expand parent group and persist it
+    if (parentGroup) {
+      const grpEl = document.querySelector(`.sb-group[data-gid="${parentGroup.id}"]`);
+      if (grpEl) {
+        grpEl.classList.add('expanded');
+        const sb = document.getElementById('sidebar');
+        const expGroups = [...(sb?.querySelectorAll('.sb-group.expanded') || [])]
+          .map(g => g.dataset.gid).filter(Boolean);
+        localStorage.setItem('cl_sb_expanded', JSON.stringify(expGroups));
+      }
+    }
 
     closeMobile();
     _hideAllFlyouts();
