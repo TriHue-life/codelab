@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-22 23:25
+/* CodeLab Bundle — built 2026-03-22 23:30
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -15146,7 +15146,13 @@ CL.define('Features.Sidebar', () => {
       {
         id:'exam-mgmt', icon:'📋', label:'Kiểm tra',
         children:[
-          { id:'exams', icon:'📋', label:'Kỳ kiểm tra', section:'tp:exams' },
+          {
+            id:'exams-group', icon:'📋', label:'Kỳ kiểm tra',
+            children:[
+              { id:'exams-list',   icon:'📋', label:'Kỳ kiểm tra',      section:'tp:exams'       },
+              { id:'exams-create', icon:'➕', label:'Tạo kỳ kiểm tra', section:'tp:exams:create' },
+            ]
+          },
         ]
       },
       {
@@ -15462,6 +15468,10 @@ CL.define('Features.Sidebar', () => {
       const configType = section.replace('tp:config:', '');
       _showSection('panel-view');
       _renderPanel(`config:${configType}`);
+    } else if (section === 'tp:exams:create') {
+      // Handle exam creation
+      _showSection('panel-view');
+      _renderPanel('exams:create');
     } else if (section.startsWith('tp:')) {
       // Generic handler for all other tp:* sections
       const tabId = section.replace('tp:', '');
