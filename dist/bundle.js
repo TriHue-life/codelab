@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-22 22:56
+/* CodeLab Bundle — built 2026-03-22 23:06
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -14016,10 +14016,12 @@ Tải lại trang để về giao diện luyện tập?`)) {
     if (exBar) exBar.style.display = '';
 
     // ── FIX: Đảm bảo workspace-view hiển thị đúng sau login ──────
-    const wv = document.getElementById('workspace-view');
-    if (wv && (!wv.style.display || wv.style.display === 'none')) {
-      wv.style.display = 'flex';
-    }
+    // REMOVED: Không nên force hiển thị workspace-view ở đây
+    // Để sidebar.js kiểm soát hiển thị dựa trên active section
+    // const wv = document.getElementById('workspace-view');
+    // if (wv && (!wv.style.display || wv.style.display === 'none')) {
+    //   wv.style.display = 'flex';
+    // }
 
     // ── FIX: Mobile — init editor panel as active on first load ───
     if (window.innerWidth <= 768) {
@@ -15160,9 +15162,24 @@ CL.define('Features.Sidebar', () => {
       {
         id:'sys', icon:'⚙️', label:'Hệ thống',
         children:[
-          { id:'config',    icon:'⚙️', label:'Cấu hình',       section:'tp:config'    },
+          {
+            id:'config-group', icon:'⚙️', label:'Cấu hình',
+            children:[
+              { id:'config',       icon:'⚙️', label:'Cấu hình hệ thống', section:'tp:config'       },
+              { id:'config-theme', icon:'🎨', label:'Giao diện',        section:'tp:config:theme' },
+              { id:'config-api',   icon:'🔌', label:'API & Tích hợp',   section:'tp:config:api'   },
+            ]
+          },
+          {
+            id:'logs-group', icon:'📋', label:'Nhật ký',
+            children:[
+              { id:'logs-system',  icon:'⚙️', label:'Nhật ký hệ thống',  section:'tp:logs:system'  },
+              { id:'logs-user',    icon:'👤', label:'Nhật ký người dùng', section:'tp:logs:user'    },
+              { id:'logs-audit',   icon:'🔒', label:'Nhật ký kiểm toán',  section:'tp:logs:audit'   },
+            ]
+          },
         ]
-      },
+      }
     ],
   };
 
@@ -15310,12 +15327,42 @@ CL.define('Features.Sidebar', () => {
   }
 
   function _childHtml(item) {
+    // Check if item has children (level 3)
+    if (item.children && item.children.length > 0) {
+      const hasActive = item.children.some(c => c.id === _active);
+      return `
+        <div class="sb-child-group${hasActive ? ' has-active' : ''}" data-cgid="${item.id}">
+          <button class="sb-child-header${hasActive ? ' has-active' : ''}"
+            data-cgid="${item.id}"
+            onclick="CL.Features.Sidebar._toggleChildGroup('${item.id}'); event.stopPropagation();">
+            <span class="sb-child-icon">${item.icon}</span>
+            <span class="sb-label">${item.label}</span>
+            <span class="sb-child-arrow">›</span>
+          </button>
+          <div class="sb-child-flyout" id="sbcf-${item.id}">
+            ${item.children.map(c => _grandchildHtml(c)).join('')}
+          </div>
+        </div>`;
+    }
+    
+    // Regular level 2 item
     return `
       <button class="sb-child${_active === item.id ? ' active' : ''}"
         data-id="${item.id}" data-section="${item.section}"
         onclick="CL.Features.Sidebar.navigate('${item.id}'); event.stopPropagation();"
         title="${item.label}">
         <span class="sb-child-icon">${item.icon}</span>
+        <span class="sb-label">${item.label}</span>
+      </button>`;
+  }
+
+  function _grandchildHtml(item) {
+    return `
+      <button class="sb-grandchild${_active === item.id ? ' active' : ''}"
+        data-id="${item.id}" data-section="${item.section}"
+        onclick="CL.Features.Sidebar.navigate('${item.id}'); event.stopPropagation();"
+        title="${item.label}">
+        <span class="sb-grandchild-icon">${item.icon}</span>
         <span class="sb-label">${item.label}</span>
       </button>`;
   }
@@ -15641,7 +15688,13 @@ CL.define('Features.Sidebar', () => {
     document.body.style.overflow = '';
   }
 
-  return { init, navigate, toggleGroup, groupHeaderClick, togglePin, openMobile, closeMobile, _showFlyout, _keepFlyout, _hideFlyout, _hideAllFlyouts };
+  function _toggleChildGroup(cgid) {
+    const childGroup = document.querySelector(`.sb-child-group[data-cgid="${cgid}"]`);
+    if (!childGroup) return;
+    childGroup.classList.toggle('expanded');
+  }
+
+  return { init, navigate, toggleGroup, groupHeaderClick, togglePin, openMobile, closeMobile, _showFlyout, _keepFlyout, _hideFlyout, _hideAllFlyouts, _toggleChildGroup };
 });
 
 // ─── js/features/changelog-ui.js ───────────────────────────

@@ -8654,3 +8654,127 @@ body.view-practice  .ex-bar { display: flex; }
   color:       var(--accent) !important;
   font-weight: 700 !important;
 }
+
+
+/* ════════════════════════════════════════════════════════════════
+   SIDEBAR LEVEL 3 (Grandchildren) - Menu cấp 3
+   ════════════════════════════════════════════════════════════════ */
+
+/* Child group (level 2 that has children) */
+.sb-child-group {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.sb-child-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  padding: 9px 16px !important;
+  background: none !important;
+  border: none !important;
+  color: var(--text2) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  font-family: var(--sans) !important;
+  cursor: pointer !important;
+  transition: background .1s, color .1s !important;
+  text-align: left !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+
+.sb-child-header:hover {
+  background: var(--surface2) !important;
+  color: var(--text) !important;
+}
+
+.sb-child-header.has-active {
+  background: rgba(79,158,255,.05) !important;
+  color: var(--accent) !important;
+}
+
+.sb-child-arrow {
+  margin-left: auto;
+  transition: transform .2s;
+  font-size: 12px;
+}
+
+.sb-child-group.expanded .sb-child-arrow {
+  transform: rotate(90deg);
+}
+
+/* Flyout for level 3 items */
+.sb-child-flyout {
+  display: none;
+  flex-direction: column;
+  padding-left: 24px;
+  background: transparent;
+}
+
+.sb-child-group.expanded .sb-child-flyout {
+  display: flex;
+}
+
+/* Level 3 items (grandchildren) */
+.sb-grandchild {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  padding: 7px 8px 7px 10px !important;
+  background: none !important;
+  border: none !important;
+  color: var(--text3) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  font-family: var(--sans) !important;
+  cursor: pointer !important;
+  transition: background .1s, color .1s !important;
+  text-align: left !important;
+  border-radius: 6px !important;
+  margin: 1px 0 !important;
+  white-space: nowrap !important;
+}
+
+.sb-grandchild:hover {
+  background: var(--surface2) !important;
+  color: var(--text) !important;
+}
+
+.sb-grandchild.active {
+  background: rgba(79,158,255,.15) !important;
+  color: var(--accent) !important;
+  font-weight: 600 !important;
+}
+
+.sb-grandchild-icon {
+  font-size: 13px !important;
+  width: 18px !important;
+  text-align: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* Pinned mode adjustments */
+.sidebar.pinned .sb-child-group {
+  display: flex;
+}
+
+.sidebar.pinned .sb-child-header {
+  padding: 7px 8px 7px 10px !important;
+  font-size: 12.5px !important;
+  border-radius: 6px !important;
+  margin: 1px 0 !important;
+}
+
+.sidebar.pinned .sb-child-flyout {
+  padding-left: 32px;
+}
+
+.sidebar.pinned .sb-grandchild {
+  padding: 6px 6px 6px 8px !important;
+  font-size: 11.5px !important;
+}

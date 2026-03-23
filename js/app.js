@@ -116,10 +116,12 @@ Tải lại trang để về giao diện luyện tập?`)) {
     if (exBar) exBar.style.display = '';
 
     // ── FIX: Đảm bảo workspace-view hiển thị đúng sau login ──────
-    const wv = document.getElementById('workspace-view');
-    if (wv && (!wv.style.display || wv.style.display === 'none')) {
-      wv.style.display = 'flex';
-    }
+    // REMOVED: Không nên force hiển thị workspace-view ở đây
+    // Để sidebar.js kiểm soát hiển thị dựa trên active section
+    // const wv = document.getElementById('workspace-view');
+    // if (wv && (!wv.style.display || wv.style.display === 'none')) {
+    //   wv.style.display = 'flex';
+    // }
 
     // ── FIX: Mobile — init editor panel as active on first load ───
     if (window.innerWidth <= 768) {
