@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-22 23:43
+/* CodeLab Bundle — built 2026-03-22 23:52
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -15568,9 +15568,39 @@ CL.define('Features.Sidebar', () => {
     const wv      = document.getElementById('workspace-view');
     const pv      = document.getElementById('panel-view');
     const cBar    = document.getElementById('content-bar');
-    if (wv)   wv.style.display   = which === 'workspace-view' ? 'flex' : 'none';
-    if (pv)   pv.style.display   = which === 'panel-view'     ? 'flex' : 'none';
-    if (cBar) cBar.style.display = which === 'workspace-view' ? ''     : 'none';
+    
+    // Show/hide workspace-view (code editor)
+    if (wv) {
+      if (which === 'workspace-view') {
+        wv.style.display = 'flex';
+        wv.style.visibility = 'visible';
+        wv.style.position = 'relative';
+        wv.style.zIndex = 'auto';
+      } else {
+        wv.style.display = 'none';
+        wv.style.visibility = 'hidden';
+        wv.style.position = 'absolute';
+        wv.style.zIndex = '-1';
+      }
+    }
+    
+    // Show/hide panel-view
+    if (pv) {
+      if (which === 'panel-view') {
+        pv.style.display = 'flex';
+        pv.style.visibility = 'visible';
+        pv.style.position = 'relative';
+        pv.style.zIndex = 'auto';
+      } else {
+        pv.style.display = 'none';
+        pv.style.visibility = 'hidden';
+        pv.style.position = 'absolute';
+        pv.style.zIndex = '-1';
+      }
+    }
+    
+    // Show/hide content-bar
+    if (cBar) cBar.style.display = which === 'workspace-view' ? '' : 'none';
   }
 
   // ══════════════════════════════════════════════════════════════

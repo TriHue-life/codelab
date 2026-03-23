@@ -3564,9 +3564,15 @@ body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; 
 
 /* ── Panel view (admin/teacher sections) ─────────────────────── */
 #panel-view {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
   padding: 20px;
   overflow-y: auto;
   background: var(--bg);
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
 }
 .pv-loading { text-align:center; padding:60px; color:var(--text3); font-size:14px; }
 .pv-empty   { text-align:center; padding:60px 20px; color:var(--text3); font-size:13px; }
