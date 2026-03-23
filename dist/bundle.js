@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-22 23:52
+/* CodeLab Bundle — built 2026-03-23 00:05
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -204,7 +204,7 @@ CL.define('Config', () => ({
   // Admin dán URL vào đây một lần duy nhất trước khi phân phối app:
   //   https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
   // Nếu để trống: app đọc từ localStorage (nhập qua trang Cấu hình)
-  DEPLOY_URL: '',
+  DEPLOY_URL: 'https://script.google.com/macros/s/AKfycbygkdGhezzgCAuMcZDAQ-qsxkzNtO1zTxbwlol0yqMtGazcVFcUcJ7HnY-IYNu_IY2W/exec',
 
   // ── CT GDPT 2018 — Năng lực đặc thù Tin học ──────────────────
   // Mapping Bloom Level → Năng lực chính (theo TT32/2018)
