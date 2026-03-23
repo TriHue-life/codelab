@@ -109,7 +109,7 @@ CL.define('API', () => {
 
   // Lưu nội dung đề bài/lý thuyết (teacher/admin)
   async function saveExerciseContent(baiId, field, html) {
-    const url = localStorage.getItem(cfg.LS.SCRIPT_URL);
+    const url = _url();
     if (!url) throw new Error('Chưa cấu hình server URL');
     return Http.post(url, { action: 'saveExerciseContent', token: _tok(), bai_id: baiId, field, html });
   }

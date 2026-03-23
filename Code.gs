@@ -944,7 +944,7 @@ function _getImageFolder() {
 }
 
 function handleUploadImage(body) {
-  const session = validateToken(body.token);
+  const session = verifyToken(body.token);
   if (session.error) return session;
   if (session.role !== 'teacher' && session.role !== 'admin') {
     return error('Không có quyền upload ảnh');
@@ -976,7 +976,7 @@ function handleUploadImage(body) {
 //  CẤU HÌNH ẢNH — Admin đặt thư mục Drive lưu ảnh
 // ══════════════════════════════════════════════════════════════════
 function handleGetImageConfig(body) {
-  const session = validateToken(body.token);
+  const session = verifyToken(body.token);
   if (session.error) return session;
   if (session.role !== 'admin') return error('Chỉ Admin mới xem cấu hình ảnh');
 
@@ -1002,8 +1002,8 @@ function handleGetImageConfig(body) {
   return ok({ folderId, folderName, folderUrl });
 }
 
-function handleSaveImageConfig(body) {
-  const session = validateToken(body.token);
+function handleSaveMinhChung(body) {
+  const session = verifyToken(body.token);
   if (session.error) return session;
   if (session.role !== 'admin') return error('Chỉ Admin mới thay đổi cấu hình ảnh');
 
@@ -1034,7 +1034,7 @@ function handleSaveImageConfig(body) {
 //  ĐIỂM LUYỆN TẬP — Ghi riêng vào sheet DiemLuyenTap
 // ══════════════════════════════════════════════════════════════════
 function handleSubmitPracticeScore(body) {
-  const session = validateToken(body.token);
+  const session = verifyToken(body.token);
   if (session.error) return session;
 
   const { bai_id, tieu_de, diem } = body;
@@ -1087,7 +1087,7 @@ function handleSubmitPracticeScore(body) {
 //  LƯU NỘI DUNG ĐỀ BÀI / LÝ THUYẾT (Teacher/Admin)
 // ══════════════════════════════════════════════════════════════════
 function handleSaveExerciseContent(body) {
-  const session = validateToken(body.token);
+  const session = verifyToken(body.token);
   if (session.error) return session;
   if (session.role !== 'teacher' && session.role !== 'admin') {
     return error('Không có quyền chỉnh sửa nội dung');
