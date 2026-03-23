@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-22 23:15
+/* CodeLab Bundle — built 2026-03-22 23:25
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -15452,7 +15452,18 @@ CL.define('Features.Sidebar', () => {
       const sub = section.replace('tp:users:', '');
       _showSection('panel-view');
       _renderUsersPanel(sub);
+    } else if (section.startsWith('tp:logs:')) {
+      // Handle logs sections (tp:logs:system, tp:logs:user, tp:logs:audit)
+      const logType = section.replace('tp:logs:', '');
+      _showSection('panel-view');
+      _renderPanel(`logs:${logType}`);
+    } else if (section.startsWith('tp:config:')) {
+      // Handle config sections (tp:config:theme, tp:config:api)
+      const configType = section.replace('tp:config:', '');
+      _showSection('panel-view');
+      _renderPanel(`config:${configType}`);
     } else if (section.startsWith('tp:')) {
+      // Generic handler for all other tp:* sections
       const tabId = section.replace('tp:', '');
       _showSection('panel-view');
       _renderPanel(tabId);
