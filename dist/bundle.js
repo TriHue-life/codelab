@@ -15061,7 +15061,10 @@ CL.define('Features.Sidebar', () => {
 
   function init(role) {
     _role   = role || 'student';
-    _pinned = localStorage.getItem('cl_sb_pinned') === '1';
+    // Default to pinned=true on first load (better UX: user sees functions immediately)
+    const storedPin = localStorage.getItem('cl_sb_pinned');
+    _pinned = storedPin === null ? true : storedPin === '1';
+    if (storedPin === null) localStorage.setItem('cl_sb_pinned', '1');
 
     const sb = document.getElementById('sidebar');
     if (!sb) return;
@@ -15109,13 +15112,44 @@ CL.define('Features.Sidebar', () => {
         </button>
       </div>`;
 
-    if (_pinned) sb.classList.add('pinned');
+    if (_pinned) {
+      sb.classList.add('pinned');
+      document.getElementById('app-shell')?.classList.add('sb-pinned');
+    }
+    // Restore expanded groups from localStorage
+    try {
+      const savedExp = JSON.parse(localStorage.getItem('cl_sb_expanded') || '[]');
+      savedExp.forEach(gid => {
+        sb.querySelector(`.sb-group[data-gid="${gid}"]`)?.classList.add('expanded');
+      });
+    } catch(e) {}
     document.getElementById('app-shell')?.style.removeProperty('visibility');
     document.getElementById('sb-overlay')?.addEventListener('click', closeMobile);
 
-    // Auto-expand first group
-    const firstGroup = sb.querySelector('.sb-group');
-    if (firstGroup) firstGroup.classList.add('expanded');
+    // Close flyouts when clicking outside sidebar
+    // Add document listeners only once (guard with flag)
+    if (!window._sbListenersAdded) {
+      window._sbListenersAdded = true;
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#sidebar') && !e.target.closest('.sb-flyout')) {
+          _hideAllFlyouts();
+        }
+      }, true);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') _hideAllFlyouts();
+      });
+    }
+
+    // Pinned mode: restore expanded groups from localStorage.
+    // navigate() below will handle expanding the active group.
+    // Auto-expand first group only if nothing was saved (true first load).
+    if (_pinned) {
+      const savedExpArr = JSON.parse(localStorage.getItem('cl_sb_expanded') || '[]');
+      if (savedExpArr.length === 0) {
+        const firstGroup = sb.querySelector('.sb-group');
+        if (firstGroup) firstGroup.classList.add('expanded');
+      }
+    }
 
     // Restore last active
     const saved = localStorage.getItem('cl_sb_active') || _getDefaultId();
@@ -15136,25 +15170,60 @@ CL.define('Features.Sidebar', () => {
       <div class="sb-group${hasActive ? ' has-active' : ''}" data-gid="${group.id}">
         <button class="sb-group-header${hasActive ? ' has-active' : ''}"
           aria-haspopup="true"
+          data-gid="${group.id}"
+          onmouseenter="CL.Features.Sidebar._showFlyout('${group.id}', this)"
+          onmouseleave="CL.Features.Sidebar._hideFlyout('${group.id}')"
           onclick="CL.Features.Sidebar.groupHeaderClick('${group.id}')">
           <span class="sb-icon">${group.icon}</span>
           <span class="sb-label">${group.label}</span>
           <span class="sb-group-arrow">›</span>
         </button>
-        <div class="sb-dropdown" role="menu">
-          <div class="sb-dropdown-label">${group.label}</div>
+        <div class="sb-flyout" id="sbf-${group.id}" role="menu"
+          onmouseenter="CL.Features.Sidebar._keepFlyout('${group.id}')"
+          onmouseleave="CL.Features.Sidebar._hideFlyout('${group.id}')">
+          <div class="sb-flyout-label">${group.icon} ${group.label}</div>
           ${group.children.map(c => _childHtml(c)).join('')}
         </div>
       </div>`;
   }
 
   function _childHtml(item) {
+    // Check if item has children (level 3)
+    if (item.children && item.children.length > 0) {
+      const hasActive = item.children.some(c => c.id === _active);
+      return `
+        <div class="sb-child-group${hasActive ? ' has-active' : ''}" data-cgid="${item.id}">
+          <button class="sb-child-header${hasActive ? ' has-active' : ''}"
+            data-cgid="${item.id}"
+            onclick="CL.Features.Sidebar._toggleChildGroup('${item.id}'); event.stopPropagation();">
+            <span class="sb-child-icon">${item.icon}</span>
+            <span class="sb-label">${item.label}</span>
+            <span class="sb-child-arrow">›</span>
+          </button>
+          <div class="sb-child-flyout" id="sbcf-${item.id}">
+            ${item.children.map(c => _grandchildHtml(c)).join('')}
+          </div>
+        </div>`;
+    }
+    
+    // Regular level 2 item
     return `
       <button class="sb-child${_active === item.id ? ' active' : ''}"
         data-id="${item.id}" data-section="${item.section}"
-        onclick="CL.Features.Sidebar.navigate('${item.id}')"
+        onclick="CL.Features.Sidebar.navigate('${item.id}'); event.stopPropagation();"
         title="${item.label}">
         <span class="sb-child-icon">${item.icon}</span>
+        <span class="sb-label">${item.label}</span>
+      </button>`;
+  }
+
+  function _grandchildHtml(item) {
+    return `
+      <button class="sb-grandchild${_active === item.id ? ' active' : ''}"
+        data-id="${item.id}" data-section="${item.section}"
+        onclick="CL.Features.Sidebar.navigate('${item.id}'); event.stopPropagation();"
+        title="${item.label}">
+        <span class="sb-grandchild-icon">${item.icon}</span>
         <span class="sb-label">${item.label}</span>
       </button>`;
   }
@@ -15167,25 +15236,42 @@ CL.define('Features.Sidebar', () => {
     _active = id;
     if (save) localStorage.setItem('cl_sb_active', id);
 
-    // Update active state
+    // Update active state for level 2 items
     document.querySelectorAll('.sb-child[data-id]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.id === id);
     });
 
-    // Find item across all groups
+    // Update active state for level 3 items (grandchildren)
+    document.querySelectorAll('.sb-grandchild[data-id]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.id === id);
+    });
+
+    // Find item across all groups (including level 3)
     const groups = MENUS[_role] || MENUS.student;
     let item = null;
+    let parentGroup = null;
+    
     for (const g of groups) {
+      // Check level 2 items
       item = g.children.find(c => c.id === id);
       if (item) {
-        // Expand parent group
-        document.querySelector(`.sb-group[data-gid="${g.id}"]`)?.classList.add('expanded');
+        parentGroup = g;
+        // Expand parent group and always persist it (fixes F5 restore)
+        const grpEl = document.querySelector(`.sb-group[data-gid="${g.id}"]`);
+        if (grpEl) {
+          grpEl.classList.add('expanded');
+          const sb = document.getElementById('sidebar');
+          const expGroups = [...(sb?.querySelectorAll('.sb-group.expanded') || [])]
+            .map(g => g.dataset.gid).filter(Boolean);
+          localStorage.setItem('cl_sb_expanded', JSON.stringify(expGroups));
+        }
         break;
       }
     }
     if (!item) return;
 
     closeMobile();
+    _hideAllFlyouts();
 
     const section = item.section;
 
@@ -15222,26 +15308,85 @@ CL.define('Features.Sidebar', () => {
   }
 
   // When narrow sidebar: clicking group header navigates to its first child
+  let _flyoutTimers = {};
+
   function groupHeaderClick(gid) {
-    const sidebar = document.getElementById('sidebar');
+    const sidebar  = document.getElementById('sidebar');
     const isPinned = sidebar?.classList.contains('pinned');
-    const isHovered = sidebar?.matches(':hover');
-    // If sidebar is expanded (pinned or hovered), let hover show dropdown
-    // If narrow, navigate directly to first child
-    if (!isPinned && !isHovered) {
-      const groups = MENUS[_role] || MENUS.student;
-      const g = groups.find(x => x.id === gid);
-      if (g?.children?.length) navigate(g.children[0].id);
+
+    if (isPinned) {
+      // Pinned: toggle inline accordion
+      const grpEl = sidebar?.querySelector(`.sb-group[data-gid="${gid}"]`);
+      if (grpEl) {
+        grpEl.classList.toggle('expanded');
+        // Persist expanded state
+        const expGroups = [...(sidebar?.querySelectorAll('.sb-group.expanded') || [])]
+          .map(g => g.dataset.gid).filter(Boolean);
+        localStorage.setItem('cl_sb_expanded', JSON.stringify(expGroups));
+      }
+      return;
     }
+
+    // Collapsed/hover mode: always show flyout on click
+    // (don't toggle based on .open state — hover may have already added .open via rAF,
+    //  causing isOpen=true → close-without-reopen bug)
+    _hideAllFlyouts();
+    const btn = sidebar?.querySelector(`.sb-group-header[data-gid="${gid}"]`)
+             || sidebar?.querySelector(`.sb-group[data-gid="${gid}"] .sb-group-header`);
+    _positionAndShowFlyout(gid, btn);
+  }
+
+  function _positionAndShowFlyout(gid, refEl) {
+    const flyout = document.getElementById('sbf-' + gid);
+    if (!flyout) return;
+    clearTimeout(_flyoutTimers[gid]);
+    // Use requestAnimationFrame to ensure DOM is painted before measuring
+    requestAnimationFrame(() => {
+      const sb   = document.getElementById('sidebar');
+      const sbW  = sb ? sb.getBoundingClientRect().width : 52;
+      // Minimum 52px (collapsed width)
+      const left = Math.max(sbW, 52) + 4;
+      const rect = refEl ? refEl.getBoundingClientRect() : null;
+      const top  = rect ? rect.top : 80;
+      flyout.style.top  = top + 'px';
+      flyout.style.left = left + 'px';
+      flyout.classList.add('open');
+    });
+  }
+
+  function _showFlyout(gid, btn) {
+    // Pinned = accordion mode: ignore hover flyout completely
+    if (document.getElementById('sidebar')?.classList.contains('pinned')) return;
+    clearTimeout(_flyoutTimers[gid]);
+    document.querySelectorAll('.sb-flyout.open').forEach(f => {
+      if (f.id !== 'sbf-' + gid) f.classList.remove('open');
+    });
+    _positionAndShowFlyout(gid, btn);
+  }
+
+  function _keepFlyout(gid) {
+    if (document.getElementById('sidebar')?.classList.contains('pinned')) return;
+    clearTimeout(_flyoutTimers[gid]);
+  }
+
+  function _hideFlyout(gid) {
+    if (document.getElementById('sidebar')?.classList.contains('pinned')) return;
+    _flyoutTimers[gid] = setTimeout(() => {
+      document.getElementById('sbf-' + gid)?.classList.remove('open');
+    }, 180);
+  }
+
+  function _hideAllFlyouts() {
+    document.querySelectorAll('.sb-flyout.open').forEach(f => f.classList.remove('open'));
   }
 
   function _showSection(which) {
-    const wv = document.getElementById('workspace-view');
-    const pv = document.getElementById('panel-view');
-    const exBar = document.getElementById('tb-ex-bar');
-    if (wv) wv.style.display = which === 'workspace-view' ? 'flex' : 'none';
-    if (pv) pv.style.display = which === 'panel-view'    ? 'flex' : 'none';
-    if (exBar) exBar.style.display = which === 'workspace-view' ? '' : 'none';
+    const wv      = document.getElementById('workspace-view');
+    const pv      = document.getElementById('panel-view');
+    const cBar    = document.getElementById('content-bar');
+    if (wv)   wv.style.display   = which === 'workspace-view' ? 'flex' : 'none';
+    if (pv)   pv.style.display   = which === 'panel-view'     ? 'flex' : 'none';
+    if (cBar) cBar.style.display = which === 'workspace-view' ? ''     : 'none';
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -15387,6 +15532,16 @@ CL.define('Features.Sidebar', () => {
     document.getElementById('app-shell')?.classList.toggle('sb-pinned', _pinned);
     const icon = document.getElementById('sb-pin')?.querySelector('.sb-pin-icon');
     if (icon) icon.textContent = _pinned ? '◀' : '▶';
+    // When pinning: expand first group automatically
+    if (_pinned) {
+      const firstGroup = sb?.querySelector('.sb-group');
+      if (firstGroup && !firstGroup.classList.contains('expanded')) {
+        firstGroup.classList.add('expanded');
+      }
+    } else {
+      // When unpinning: close all flyouts
+      _hideAllFlyouts();
+    }
   }
 
   function openMobile() {
@@ -15401,8 +15556,15 @@ CL.define('Features.Sidebar', () => {
     document.body.style.overflow = '';
   }
 
-  return { init, navigate, toggleGroup, groupHeaderClick, togglePin, openMobile, closeMobile };
+  function _toggleChildGroup(cgid) {
+    const childGroup = document.querySelector(`.sb-child-group[data-cgid="${cgid}"]`);
+    if (!childGroup) return;
+    childGroup.classList.toggle('expanded');
+  }
+
+    return { init, navigate, toggleGroup, groupHeaderClick, togglePin, openMobile, closeMobile, _showFlyout, _keepFlyout, _hideFlyout, _hideAllFlyouts, _toggleChildGroup };
 });
+
 
 // --- js/features/changelog-ui.js ---
 /**
