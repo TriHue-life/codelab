@@ -164,6 +164,19 @@ Tải lại trang để về giao diện luyện tập?`)) {
     }
   });
 
+  // ── FIX: Init sidebar immediately after auth (không chờ callback) ───
+  // Nếu session tồn tại, sidebar sẽ được init ngay lập tức
+  // requestAnimationFrame để đảm bảo DOM sẵn sàng
+  requestAnimationFrame(() => {
+    if (!document.querySelector('.sb-group')) {
+      const Session = CL.require('Auth.Session');
+      const user = Session?.get();
+      if (user) {
+        CL.Features.Sidebar?.init(user.role);
+      }
+    }
+  });
+
   // ── Private helpers ───────────────────────────────────────────
   function _routeEditor(exercise) {
     const type = exercise.type || 'python';
