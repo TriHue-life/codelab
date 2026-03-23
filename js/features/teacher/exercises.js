@@ -15,6 +15,7 @@ CL.define('Teacher.ExEditor', () => {
 
   // Theo dõi instance RichText đang mở
   let _currentId = null;
+  let _hasUnsavedChanges = false;
 
   // ══════════════════════════════════════════════════════════════
   //  RENDER: danh sách bài tập
@@ -26,49 +27,75 @@ CL.define('Teacher.ExEditor', () => {
     const grades = [...new Set(allExs.map(e => e.bo ? `${e.g}-${e.bo}` : e.g))];
 
     el.innerHTML = `
-      <div class="tp-edit-toolbar">
-        <select id="ed-g" style="flex:1">
-          <option value="">— Chọn lớp —</option>
-          ${grades.map(g => `<option>${g}</option>`).join('')}
-        </select>
-        <select id="ed-ch" style="flex:2">
-          <option value="">— Chọn chủ đề —</option>
-        </select>
-      </div>
-      <div id="ed-list" class="tp-edit-list"></div>
-      <div id="ed-form" class="tp-edit-form" style="display:none"></div>
-      <div class="tp-actions" style="padding:8px 14px">
-        <!-- Sync button removed -->
+      <div class="tp-edit-container">
+        <div class="tp-edit-sidebar" id="ed-sidebar">
+          <button class="tp-edit-toggle-btn" id="ed-toggle-btn" title="Thu nhỏ danh sách">◀</button>
+          <div class="tp-edit-toolbar">
+            <select id="ed-g" style="flex:1">
+              <option value="">— Chọn lớp —</option>
+              ${grades.map(g => `<option>${g}</option>`).join('')}
+            </select>
+            <select id="ed-ch" style="flex:2">
+              <option value="">— Chọn chủ đề —</option>
+            </select>
+          </div>
+          <div id="ed-list" class="tp-edit-list"></div>
+        </div>
+        <div class="tp-edit-content">
+          <div id="ed-form" class="tp-edit-form" style="display:none"></div>
+        </div>
       </div>`;
     
     // Attach event listeners (inline onchange doesn't work with innerHTML)
     const edG = document.getElementById('ed-g');
     const edCh = document.getElementById('ed-ch');
+    const toggleBtn = document.getElementById('ed-toggle-btn');
+    const sidebar = document.getElementById('ed-sidebar');
     
     if (edG) edG.addEventListener('change', loadChap);
     if (edCh) edCh.addEventListener('change', loadList);
-    // Sync button removed
+    
+    // Toggle sidebar
+    if (toggleBtn && sidebar) {
+      toggleBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        toggleBtn.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
+        localStorage.setItem('ed-sidebar-collapsed', sidebar.classList.contains('collapsed'));
+      });
+      
+      // Restore collapsed state
+      if (localStorage.getItem('ed-sidebar-collapsed') === 'true') {
+        sidebar.classList.add('collapsed');
+        toggleBtn.textContent = '▶';
+      }
+    }
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  LOAD chapters & list
+  //  LOAD CHAPTERS: tải danh sách chủ đề theo lớp
   // ══════════════════════════════════════════════════════════════
 
   function loadChap() {
     console.log('[ExEditor] loadChap called');
-    const gk  = document.getElementById('ed-g')?.value;
-    const chs = Registry.getChapters(gk);
-    const sel = document.getElementById('ed-ch');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">— Chọn chủ đề —</option>' +
-      chs.map(c => `<option>${c}</option>`).join('');
-    document.getElementById('ed-list').innerHTML = '';
-    const form = document.getElementById('ed-form');
-    if (form) form.style.display = 'none';
-    _unmountAll();
+    const gk = document.getElementById('ed-g')?.value;
+    if (!gk) return;
+    
+    const chapters = Registry.getChapters(gk);
+    const chDropdown = document.getElementById('ed-ch');
+    if (!chDropdown) return;
+    
+    chDropdown.innerHTML = `
+      <option value="">— Chọn chủ đề —</option>
+      ${chapters.map(ch => `<option value="${Utils.escHtml(ch)}">${Utils.escHtml(ch)}</option>`).join('')}
+    `;
   }
 
+  // ══════════════════════════════════════════════════════════════
+  //  LOAD LIST: tải danh sách bài tập theo chủ đề
+  // ══════════════════════════════════════════════════════════════
+
   function loadList() {
+    console.log('[ExEditor] loadList called');
     const gk  = document.getElementById('ed-g')?.value;
     const ch  = document.getElementById('ed-ch')?.value;
     const exs = Registry.getByChapter(gk, ch);
@@ -91,12 +118,19 @@ CL.define('Teacher.ExEditor', () => {
   // ══════════════════════════════════════════════════════════════
 
   async function edit(id) {
+    // Cảnh báo nếu chưa lưu thay đổi
+    if (_hasUnsavedChanges) {
+      const confirmed = await Toast.confirm('Bạn chưa lưu thay đổi. Tiếp tục?');
+      if (!confirmed) return;
+    }
+
     const ex = Registry.findById(id);
     if (!ex) return;
 
     // Unmount previous rich editors
     _unmountAll();
     _currentId = id;
+    _hasUnsavedChanges = false;
 
     // Load saved override from Sheets (if any)
     let detail = { ly_thuyet: '', code_mau: [] };
@@ -119,291 +153,153 @@ CL.define('Teacher.ExEditor', () => {
         </div>
         <button class="ed-close-btn" onclick="CL.Teacher.ExEditor.closeForm()">✕</button>
       </div>
-
-      <div class="ed-tabs" id="ed-tabs-main">
-        <button class="ed-tab on" onclick="CL.Teacher.ExEditor.switchTab(this,'de-bai')">
-          📋 Đề bài
-        </button>
-        <button class="ed-tab" onclick="CL.Teacher.ExEditor.switchTab(this,'ly-thuyet')">
-          📖 Lý thuyết
-        </button>
-        <button class="ed-tab" onclick="CL.Teacher.ExEditor.switchTab(this,'code-mau')">
-          💻 Code mẫu
-        </button>
+      <div class="ed-tabs">
+        <button class="ed-tab-btn active" data-tab="desc">📋 Đề bài</button>
+        <button class="ed-tab-btn" data-tab="theory">📖 Lý thuyết</button>
+        <button class="ed-tab-btn" data-tab="code">💻 Code mẫu</button>
       </div>
-
-      <!-- TAB: ĐỀ BÀI -->
-      <div id="et-de-bai" class="ed-panel">
-        <div class="ed-rte-hint">
-          <span>✏️ Soạn đề bài bằng trình soạn thảo bên dưới — học sinh sẽ thấy đúng như bạn soạn.</span>
+      <div class="ed-tab-content">
+        <div class="ed-tab-pane active" data-tab="desc">
+          <div id="ed-desc-container" class="ed-rte-container"></div>
         </div>
-        <div id="ef-desc-container" class="ed-rte-container">
-          ${savedDesc || ex.desc || '<p>Chưa có đề bài.</p>'}
+        <div class="ed-tab-pane" data-tab="theory">
+          <div id="ed-theory-container" class="ed-rte-container"></div>
         </div>
-        <div class="ed-panel-footer">
-          <button class="ed-save-btn" onclick="CL.Teacher.ExEditor.saveField('${Utils.escHtml(id)}','desc')">
-            💾 Lưu đề bài
-          </button>
-          <span class="ed-save-msg" id="ed-msg-desc"></span>
-        </div>
-      </div>
-
-      <!-- TAB: LÝ THUYẾT -->
-      <div id="et-ly-thuyet" class="ed-panel" style="display:none">
-        <div class="ed-rte-hint">
-          <span>📖 Soạn lý thuyết liên quan — chỉ hiện khi học sinh luyện tập, ẩn khi kiểm tra.</span>
-        </div>
-        <div id="ef-ly-container" class="ed-rte-container">
-          ${savedTheory || detail.ly_thuyet || ex.theory || '<p>Chưa có lý thuyết.</p>'}
-        </div>
-        <div class="ed-panel-footer">
-          <button class="ed-save-btn" onclick="CL.Teacher.ExEditor.saveField('${Utils.escHtml(id)}','theory')">
-            💾 Lưu lý thuyết
-          </button>
-          <span class="ed-save-msg" id="ed-msg-theory"></span>
-        </div>
-      </div>
-
-      <!-- TAB: CODE MẪU -->
-      <div id="et-code-mau" class="ed-panel" style="display:none">
-        <div class="ed-rte-hint">
-          <span>💻 Soạn code mẫu (có thể có giải thích) — học sinh sẽ thấy khi xem lời giải.</span>
-        </div>
-        <div id="ef-code-container" class="ed-rte-container">
-          ${_codeToHtml((detail.code_mau?.[0]?.code) || ex.solution || '', ex.type || 'python')}
-        </div>
-        <div class="ed-panel-footer">
-          <button class="ed-save-btn" onclick="CL.Teacher.ExEditor.saveField('${Utils.escHtml(id)}','code')">
-            💾 Lưu code mẫu
-          </button>
-          <span class="ed-save-msg" id="ed-msg-code"></span>
+        <div class="ed-tab-pane" data-tab="code">
+          <textarea id="ed-code" class="ed-code-textarea" placeholder="Python code mẫu...">${Utils.escHtml(detail.code_mau?.[0] || '')}</textarea>
+          <button class="ed-save-btn" onclick="CL.Teacher.ExEditor.saveField('${Utils.escHtml(id)}', 'code')">💾 Lưu code mẫu</button>
         </div>
       </div>`;
 
-    // Mount rich editors after HTML is set
-    await _mountRichEditors(id, ex, detail, savedDesc, savedTheory);
-  }
+    // Tab switching
+    form.querySelectorAll('.ed-tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
 
-  // ══════════════════════════════════════════════════════════════
-  //  MOUNT rich text editors for desc + theory tabs
-  // ══════════════════════════════════════════════════════════════
-
-  async function _mountRichEditors(id, ex, detail, savedDesc, savedTheory) {
-    if (!CL.Editors?.RichText) {
-      console.warn('[ExEditor] RichText module not loaded');
-      return;
+    // Mount RichText editors
+    const descContainer = document.getElementById('ed-desc-container');
+    const theoryContainer = document.getElementById('ed-theory-container');
+    
+    if (descContainer) {
+      await CL.Editors.RichText.mount('ed-desc', savedDesc || ex.desc || '', async (html) => {
+        await saveField(id, 'desc', html);
+      });
+    }
+    
+    if (theoryContainer) {
+      await CL.Editors.RichText.mount('ed-theory', savedTheory || detail.ly_thuyet || '', async (html) => {
+        await saveField(id, 'theory', html);
+      });
     }
 
-    // Mount DESC editor
-    const descInitial = savedDesc || ex.desc || '';
-    await _mountRte('ef-desc-container', descInitial);
-
-    // Mount THEORY editor
-    const theoryInitial = savedTheory || detail.ly_thuyet || ex.theory || '';
-    await _mountRte('ef-ly-container', theoryInitial);
-
-    // Mount CODE editor — initial content as code-block
-    const codeInitial = _codeToHtml(
-      (detail.code_mau?.[0]?.code) || ex.solution || '', ex.type || 'python'
-    );
-    await _mountRte('ef-code-container', codeInitial);
-  }
-
-  async function _mountRte(containerId, initialHtml) {
-    try {
-      await CL.Editors.RichText.mount(containerId, initialHtml, null);
-      // null onSave = manual save via saveField button
-    } catch(e) {
-      console.warn(`[ExEditor] Cannot mount RTE for ${containerId}:`, e.message);
+    // Code textarea change tracking
+    const codeTextarea = document.getElementById('ed-code');
+    if (codeTextarea) {
+      codeTextarea.addEventListener('change', () => {
+        _hasUnsavedChanges = true;
+      });
     }
   }
 
-  function _unmountAll() {
-    if (!CL.Editors?.RichText) return;
-    CL.Editors.RichText.unmount('ef-desc-container');
-    CL.Editors.RichText.unmount('ef-ly-container');
-    CL.Editors.RichText.unmount('ef-code-container');
-    _currentId = null;
-  }
-
   // ══════════════════════════════════════════════════════════════
-  //  TAB SWITCH
+  //  TAB SWITCHING
   // ══════════════════════════════════════════════════════════════
 
-  function switchTab(btn, panel) {
-    const tabs = document.getElementById('ed-tabs-main');
-    tabs?.querySelectorAll('.ed-tab').forEach(t => t.classList.remove('on'));
-    btn.classList.add('on');
-    ['de-bai', 'ly-thuyet', 'code-mau'].forEach(p => {
-      const el = document.getElementById('et-' + p);
-      if (el) el.style.display = (p === panel ? '' : 'none');
+  function switchTab(tabName) {
+    const form = document.getElementById('ed-form');
+    if (!form) return;
+    
+    form.querySelectorAll('.ed-tab-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.tab === tabName);
+    });
+    
+    form.querySelectorAll('.ed-tab-pane').forEach(pane => {
+      pane.classList.toggle('active', pane.dataset.tab === tabName);
     });
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  SAVE individual field
+  //  SAVE FIELD
   // ══════════════════════════════════════════════════════════════
 
-  async function saveField(id, field) {
-    const msgId = `ed-msg-${field === 'code' ? 'code' : field === 'desc' ? 'desc' : 'theory'}`;
-    const msgEl = document.getElementById(msgId);
-    if (msgEl) msgEl.textContent = '⏳ Đang lưu...';
-
+  async function saveField(id, field, html) {
+    console.log('[ExEditor] saveField:', field);
+    if (!html) {
+      Toast.warn('Nội dung trống');
+      return;
+    }
+    
     try {
-      if (field === 'desc') {
-        const html = CL.Editors.RichText.getHtml('ef-desc-container');
-        await CL.API.saveExerciseContent(id, 'desc', html);
-        // Cache locally too
-        localStorage.setItem(`cl_content_${id}_desc`, html);
-        if (msgEl) msgEl.textContent = '✅ Đã lưu đề bài';
-
-      } else if (field === 'theory') {
-        const html = CL.Editors.RichText.getHtml('ef-ly-container');
-        await CL.API.saveLyThuyet(id, html);
-        // Cache locally
-        localStorage.setItem(`cl_content_${id}_theory`, html);
-        if (msgEl) msgEl.textContent = '✅ Đã lưu lý thuyết';
-
-      } else if (field === 'code') {
-        // Get content from RichText editor (HTML with code blocks + explanations)
-        const html = CL.Editors.RichText.getHtml('ef-code-container');
-        // Extract pure code from first code-block for backward compat grading
-        const codeOnly = _extractCode(html);
-        const ex = CL.require('Exercises.Registry').findById(id);
-        const lang = ex?.type || 'python';
-        // Save HTML version (rich) + plain code for grader compatibility
-        await CL.API.saveCodeMau(id, lang, codeOnly || html, '');
-        await CL.API.saveExerciseContent(id, 'code_rich', html);
-        if (msgEl) msgEl.textContent = '✅ Đã lưu code mẫu';
-      }
-
-      Toast.success(`✅ Đã lưu ${field === 'desc' ? 'đề bài' : field === 'theory' ? 'lý thuyết' : 'code mẫu'}`);
-      setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 3000);
-
+      // Save to localStorage first (for offline support)
+      localStorage.setItem(`cl_content_${id}_${field}`, html);
+      
+      // Then sync to backend
+      await CL.API.saveExerciseContent(id, field, html);
+      Toast.success(`✅ Lưu ${field} thành công`);
+      _hasUnsavedChanges = false;
     } catch(e) {
-      if (msgEl) msgEl.textContent = '❌ ' + e.message;
-      Toast.error('❌ ' + e.message);
+      Toast.error(`❌ Lỗi lưu: ${e.message}`);
     }
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  CLOSE form
+  //  CLOSE FORM
   // ══════════════════════════════════════════════════════════════
 
   function closeForm() {
-    _unmountAll();
+    if (_hasUnsavedChanges) {
+      if (!confirm('Bạn chưa lưu thay đổi. Đóng?')) return;
+    }
+    
     const form = document.getElementById('ed-form');
     if (form) form.style.display = 'none';
+    _unmountAll();
+    _currentId = null;
+    _hasUnsavedChanges = false;
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  SYNC ALL to Google Sheets
+  //  SYNC ALL (removed - functionality moved to admin panel)
   // ══════════════════════════════════════════════════════════════
-
-  async function syncAll() {
-    const confirmed = await Toast.confirm(
-      'Sync toàn bộ bài tập lên Google Sheets?\n' +
-      'Sẽ sync: BaiTap + LyThuyet + CodeMau\n' +
-      'Quá trình mất 3–8 phút. Không đóng tab trong khi sync.'
-    );
-    if (!confirmed) return;
-
-    const all   = Registry.getAll();
-    const BATCH = 100;
-    const TABS  = [
-      { tab: 'BaiTap',   label: '📋 BaiTap'   },
-      { tab: 'LyThuyet', label: '📖 LyThuyet'  },
-      { tab: 'CodeMau',  label: '💻 CodeMau'   },
-    ];
-    const totalSteps = TABS.length * Math.ceil(all.length / BATCH);
-    let step = 0;
-
-    const container = document.getElementById('tp-bar-body') || document.body;
-    const progBox   = _showProgress(container);
-    progBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-    // Button reference removed
-
-    try {
-      for (const { tab, label } of TABS) {
-        const tabBatches = Math.ceil(all.length / BATCH);
-        for (let i = 0; i < all.length; i += BATCH) {
-          step++;
-          const batchNum = Math.floor(i / BATCH) + 1;
-          const batch    = all.slice(i, i + BATCH);
-          _updateProgress(step, totalSteps,
-            `${label} — batch ${batchNum}/${tabBatches}`);
-          await CL.API.syncFull(batch, tab, i === 0);
-          _updateProgress(step, totalSteps,
-            `✓ ${label} batch ${batchNum}/${tabBatches} (${Math.min(i + BATCH, all.length)}/${all.length} bài)`);
-          await new Promise(r => setTimeout(r, 300));
-        }
-      }
-      _finishProgress(true);
-      Toast.success('✅ Sync hoàn tất!');
-    } catch(e) {
-      _finishProgress(false);
-      Toast.error('❌ Sync lỗi: ' + e.message);
-    } finally {
-      // Button update removed
-    }
-  }
 
   // ── Progress bar ────────────────────────────────────────────
 
   function _showProgress(container) {
-    document.getElementById('sync-progress-box')?.remove();
-    const el = document.createElement('div');
-    el.id = 'sync-progress-box';
-    el.innerHTML = `
-      <div class="sync-prog-title">🔄 Đang sync bài tập lên Google Sheets...</div>
-      <div class="sync-prog-wrap"><div class="sync-prog-bar" id="sync-prog-bar" style="width:0%"></div></div>
-      <div class="sync-prog-info">
-        <span id="sync-prog-text">Chuẩn bị...</span>
-        <span id="sync-prog-pct">0%</span>
-      </div>
-      <div class="sync-prog-steps" id="sync-prog-steps"></div>`;
-    container.appendChild(el);
-    return el;
+    const box = document.createElement('div');
+    box.className = 'ed-progress-box';
+    box.innerHTML = `
+      <div class="ed-progress-title">Đang xử lý...</div>
+      <div class="ed-progress-bar"><div class="ed-progress-fill"></div></div>
+      <div class="ed-progress-text"></div>`;
+    container.appendChild(box);
+    return box;
   }
 
   function _updateProgress(step, total, msg) {
-    const pct = Math.round(step / total * 100);
-    const bar  = document.getElementById('sync-prog-bar');
-    const txt  = document.getElementById('sync-prog-text');
-    const pctEl = document.getElementById('sync-prog-pct');
-    const steps = document.getElementById('sync-prog-steps');
-    if (bar)  bar.style.width     = pct + '%';
-    if (txt)  txt.textContent     = msg;
-    if (pctEl) pctEl.textContent  = pct + '%';
-    if (steps && msg) {
-      const line = document.createElement('div');
-      line.className = 'sync-prog-step';
-      line.textContent = '✅ ' + msg;
-      steps.appendChild(line);
-      steps.scrollTop = steps.scrollHeight;
-    }
+    const box = document.querySelector('.ed-progress-box');
+    if (!box) return;
+    const pct = Math.round(100 * step / total);
+    box.querySelector('.ed-progress-fill').style.width = pct + '%';
+    box.querySelector('.ed-progress-text').textContent = `${msg} (${pct}%)`;
   }
 
   function _finishProgress(success) {
-    const bar   = document.getElementById('sync-prog-bar');
-    const txt   = document.getElementById('sync-prog-text');
-    const pctEl = document.getElementById('sync-prog-pct');
-    const box   = document.getElementById('sync-progress-box');
-    if (bar)  { bar.style.width = '100%'; bar.style.background = success ? 'var(--accent2)' : 'var(--error)'; }
-    if (txt)  txt.textContent  = success ? '✅ Sync hoàn tất!' : '❌ Sync thất bại';
-    if (pctEl) pctEl.textContent = success ? '100%' : 'Lỗi';
-    if (box && success) {
-      setTimeout(() => { box.style.opacity = '0'; setTimeout(() => box.remove(), 600); }, 3000);
+    const box = document.querySelector('.ed-progress-box');
+    if (box) {
+      box.querySelector('.ed-progress-fill').style.width = '100%';
+      box.className = 'ed-progress-box ' + (success ? 'success' : 'error');
     }
   }
 
-  // ── Helper: convert code to HTML ────────────────────────────
+  // ── Unmount all RichText instances ──────────────────────────
 
-  function _codeToHtml(code, lang) {
-    if (!code) return '<p>Chưa có code mẫu.</p>';
-    return `<pre><code class="language-${lang}">${Utils.escHtml(code)}</code></pre>`;
+  function _unmountAll() {
+    if (CL.Editors?.RichText?.unmountAll) {
+      CL.Editors.RichText.unmountAll();
+    }
   }
+
+  // ── Extract code from HTML ─────────────────────────────────
 
   function _extractCode(html) {
     const match = html.match(/<code[^>]*>([\s\S]*?)<\/code>/);
