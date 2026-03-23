@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-23 01:59
+/* CodeLab Bundle — built 2026-03-23 02:06
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -7372,7 +7372,17 @@ CL.define('CL.Teacher.ExEditor', function() {
     const allExs = Registry.getAll();
     const filtered = allExs.filter(ex => ex.g === grade);
     
-    const chapters = [...new Set(filtered.map(ex => ex.ch))];
+    // Extract chapter numbers from IDs (e.g., "17" from "k10-17-b1-1_1")
+    const chapterSet = new Set();
+    filtered.forEach(ex => {
+      const parts = ex.id.split('-');
+      if (parts.length >= 2) {
+        const chNum = parts[1]; // e.g., "17"
+        chapterSet.add(chNum);
+      }
+    });
+    
+    const chapters = [...chapterSet].sort((a, b) => parseInt(a) - parseInt(b));
     const edCh = document.getElementById('ed-ch');
     if (edCh) {
       edCh.innerHTML = '<option value="">— Chọn chủ đề —</option>' +
@@ -7391,20 +7401,30 @@ CL.define('CL.Teacher.ExEditor', function() {
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  LOAD EXERCISE LIST
+  //  LOAD EXERCISE LIST (Bài tập cha)
   // ══════════════════════════════════════════════════════════════
 
   function loadList(e) {
-    const chapter = e.target.value;
-    const grade = document.getElementById('ed-g').value;
+    const chapterNum = e.target.value; // e.g., "17"
+    const grade = document.getElementById('ed-g').value; // e.g., "K10"
     const allExs = Registry.getAll();
     
-    const filtered = allExs.filter(ex => ex.g === grade && ex.ch === chapter);
+    // Filter exercises by grade and chapter number
+    // ID format: k10-17-b1-1_1 → grade="K10", chapter="17"
+    const filtered = allExs.filter(ex => {
+      const parts = ex.id.split('-');
+      return parts.length >= 2 && 
+             ex.g === grade && 
+             parts[1] === chapterNum;
+    });
+    
+    // Get unique chapter titles from filtered exercises
+    const chapterTitles = [...new Set(filtered.map(ex => ex.ch))];
     
     const edEx = document.getElementById('ed-ex');
     if (edEx) {
       edEx.innerHTML = '<option value="">— Chọn bài tập —</option>' +
-        filtered.map(ex => `<option value="${ex.id}">${ex.title}</option>`).join('');
+        chapterTitles.map(title => `<option value="${chapterNum}">${title}</option>`).join('');
     }
     
     // Hide Bloom and sub-exercise dropdowns
@@ -7418,9 +7438,9 @@ CL.define('CL.Teacher.ExEditor', function() {
   //  LOAD BLOOM LEVELS
   // ══════════════════════════════════════════════════════════════
 
-  function loadBloomLevels(exerciseId) {
+  function loadBloomLevels(chapterNum) {
+    const grade = document.getElementById('ed-g').value;
     const allExs = Registry.getAll();
-    const exercise = allExs.find(e => e.id === exerciseId);
     const edBloom = document.getElementById('ed-bloom');
     
     if (!edBloom) return;
@@ -7428,18 +7448,18 @@ CL.define('CL.Teacher.ExEditor', function() {
     // Clear Bloom dropdown
     edBloom.innerHTML = '<option value="">— Chọn mức Bloom —</option>';
     
-    // Get all sub-exercises (bài tập con) for this exercise
-    // Sub-exercises are identified by having the same chapter and title prefix
-    const subExercises = allExs.filter(ex => 
-      ex.g === exercise.g && 
-      ex.ch === exercise.ch &&
-      ex.title && exercise.title &&
-      ex.title.includes(exercise.title.split(':')[0])
-    );
+    // Get all exercises with matching grade and chapter number
+    // ID format: k10-17-b1-1_1 → grade="K10", chapter="17", bloom="b1"
+    const exercisesInChapter = allExs.filter(ex => {
+      const parts = ex.id.split('-');
+      return parts.length >= 2 && 
+             ex.g === grade && 
+             parts[1] === chapterNum;
+    });
     
-    if (subExercises && subExercises.length > 0) {
-      // Get unique Bloom levels from sub-exercises
-      const bloomLevels = [...new Set(subExercises.map(ex => ex.bo))].sort();
+    if (exercisesInChapter && exercisesInChapter.length > 0) {
+      // Get unique Bloom levels from exercises in this chapter
+      const bloomLevels = [...new Set(exercisesInChapter.map(ex => ex.bo))].sort();
       
       if (bloomLevels.length > 0) {
         bloomLevels.forEach(bloom => {
@@ -7451,11 +7471,9 @@ CL.define('CL.Teacher.ExEditor', function() {
         edBloom.style.display = 'block';
       } else {
         edBloom.style.display = 'none';
-        edit(exerciseId);
       }
     } else {
       edBloom.style.display = 'none';
-      edit(exerciseId);
     }
     
     // Hide sub-exercise dropdown
@@ -7468,31 +7486,43 @@ CL.define('CL.Teacher.ExEditor', function() {
   // ══════════════════════════════════════════════════════════════
 
   function loadSubExercises(bloomLevel) {
-    const allExs = Registry.getAll();
+    const grade = document.getElementById('ed-g').value;
     const edEx = document.getElementById('ed-ex');
-    const exerciseId = edEx ? edEx.value : '';
-    const exercise = allExs.find(e => e.id === exerciseId);
+    const chapterNum = edEx ? edEx.value : '';
+    const allExs = Registry.getAll();
     const edSub = document.getElementById('ed-sub');
     
-    if (!edSub || !exercise) return;
+    if (!edSub || !chapterNum) return;
     
     // Clear sub-exercise dropdown
     edSub.innerHTML = '<option value="">— Chọn bài tập con —</option>';
     
-    // Get all sub-exercises with matching grade, chapter, and Bloom level
-    const subExercises = allExs.filter(ex => 
-      ex.g === exercise.g && 
-      ex.ch === exercise.ch &&
-      ex.bo === bloomLevel &&
-      ex.title && exercise.title &&
-      ex.title.includes(exercise.title.split(':')[0])
-    );
+    // Get all sub-exercises with matching grade, chapter number, and Bloom level
+    // ID format: k10-17-b1-1_1 → grade="K10", chapter="17", bloom="b1"
+    const subExercises = allExs.filter(ex => {
+      const parts = ex.id.split('-');
+      return parts.length >= 3 && 
+             ex.g === grade && 
+             parts[1] === chapterNum &&
+             ex.bo === bloomLevel;
+    });
     
     if (subExercises && subExercises.length > 0) {
-      subExercises.forEach((subEx, idx) => {
+      // Sort by the last part of ID (e.g., "1_1", "1_2", "2_1")
+      subExercises.sort((a, b) => {
+        const aLast = a.id.split('-').pop();
+        const bLast = b.id.split('-').pop();
+        // Natural sort: "1_1" < "1_2" < "2_1"
+        const aParts = aLast.split('_').map(Number);
+        const bParts = bLast.split('_').map(Number);
+        if (aParts[0] !== bParts[0]) return aParts[0] - bParts[0];
+        return aParts[1] - bParts[1];
+      });
+      
+      subExercises.forEach((subEx) => {
         const option = document.createElement('option');
         option.value = subEx.id;
-        option.textContent = subEx.title || `Bài ${idx + 1}`;
+        option.textContent = subEx.title || subEx.id;
         edSub.appendChild(option);
       });
       edSub.style.display = 'block';
