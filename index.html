@@ -410,61 +410,9 @@
 
 
 <!-- Scripts -->
-<!-- 1. CORE — namespace phải đầu tiên -->
-    <!-- DEV MODE: individual scripts (run build.py to regenerate bundle) -->
-  <script src="js/core/namespace.js"></script>
-  <script src="js/core/config.js"></script>
-  <script src="js/core/utils.js"></script>
-  <script src="js/core/events.js"></script>
-  <script src="js/core/store.js"></script>
-  <script src="js/data/http.js"></script>
-  <script src="js/data/cache.js"></script>
-  <script src="js/data/queue.js"></script>
-  <script src="js/auth/session.js"></script>
-  <script src="js/auth/auth.js"></script>
-  <!-- Exercise Data Files -->
-  <script src="js/exercises.js"></script>
-  <script src="js/exercises_k12.js"></script>
-  <script src="js/exercises_sql.js"></script>
-  <script src="js/exercises/registry.js"></script>
-  <script src="js/interpreter.js"></script>
-  <script src="js/editors/syntax/highlight.js"></script>
-  <script src="js/graders/python.js"></script>
-  <script src="js/graders/html.js"></script>
-  <script src="js/graders/sql.js"></script>
-  <script src="js/editors/python.js"></script>
-  <script src="js/editors/html.js"></script>
-  <script src="js/editors/sql.js"></script>
-  <script src="js/ui/dropdown.js"></script>
-  <script src="js/ui/toast.js"></script>
-  <script src="js/ui/results.js"></script>
-  <script src="js/features/anti-cheat.js"></script>
-  <script src="js/features/teacher/panel.js"></script>
-  <script src="js/features/teacher/scores.js"></script>
-  <script src="js/features/teacher/violations.js"></script>
-  <script src="js/features/teacher/history.js"></script>
-  <script src="js/features/teacher/exams.js"></script>
-  <script src="js/features/teacher/exercises.js"></script>
-  <script src="js/features/teacher/config.js"></script>
-  <script src="js/features/mode-manager.js"></script>
-  <script src="js/features/exam-mode.js"></script>
-  <script src="js/features/teacher/analytics.js"></script>
-  <script src="js/api.js"></script>
-  <script src="js/features/profile.js"></script>
-  <script src="js/features/admin/users.js"></script>
-  <script src="js/features/admin/year-manager.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/features/setup-wizard.js"></script>
-  <script src="js/sheets-loader.js"></script>
-  <script src="js/editors/richtext.js"></script>
-  <script src="js/app.js"></script>
-  <script src="js/features/theme.js"></script>
-  <script src="js/features/sidebar.js"></script>
-  <script src="js/features/changelog-ui.js"></script>
-  <script src="js/features/teacher/ai-client.js"></script>
-  <script src="js/features/teacher/ai-generator.js"></script>
-  <script src="js/features/teacher/prompt-config.js"></script>
-  <script src="js/features/teacher/dot-kiemtra.js"></script>
+<!-- PRODUCTION MODE: bundled script -->
+  <script src="dist/bundle.js"></script>
+
   <!-- EXAM RESULT MODAL -->
   <div id="exam-result-modal" class="exam-modal-overlay" style="display:none">
     <div class="exam-modal-card">
