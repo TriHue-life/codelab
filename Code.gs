@@ -1,7 +1,7 @@
 /**
  * ═══════════════════════════════════════════════════════════════════
- *  PYTHON GRADER — Google Apps Script Backend v2.0
- *  THPT
+ *  CODELAB — Google Apps Script Backend v5.6.0
+ *  THPT THỦ THIÊM
  *
  *  Deploy: Web App → Execute as: Me → Who has access: Anyone
  *
