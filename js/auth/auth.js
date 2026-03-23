@@ -41,7 +41,12 @@ CL.define('Auth.UI', () => {
       const shell = document.getElementById('app-shell');
       if (shell) { shell.style.removeProperty('display'); shell.style.removeProperty('visibility'); }
       _applyRole(existing);
+      // Emit auth:login event TRƯỚC onReady để app.js có thể init sidebar
       CL.Events?.emit('auth:login', { user: existing });
+      // Đảm bảo sidebar được init ngay lập tức nếu chưa init
+      if (!document.querySelector('.sb-group')) {
+        CL.Features.Sidebar?.init(existing.role);
+      }
       onReady(existing);
     } else {
       _renderLoginScreen();
@@ -61,6 +66,9 @@ CL.define('Auth.UI', () => {
     Session.clear();
     Store.resetAuth();
     Events.emit('auth:logout', {});
+    // Xóa localStorage sidebar state trước khi reload
+    localStorage.removeItem('cl_sb_active');
+    localStorage.removeItem('cl_sb_expanded');
     location.reload();
   }
 

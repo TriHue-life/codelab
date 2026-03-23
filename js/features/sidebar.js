@@ -131,6 +131,10 @@ CL.define('Features.Sidebar', () => {
 
     const sb = document.getElementById('sidebar');
     if (!sb) return;
+    
+    // Đảm bảo xóa class auth-pending nếu vẫn còn (fix F5 bug)
+    document.body.classList.remove('auth-pending');
+    document.documentElement.classList.remove('auth-required');
 
     const groups = MENUS[_role] || MENUS.student;
 
@@ -214,9 +218,16 @@ CL.define('Features.Sidebar', () => {
       }
     }
 
-    // Restore last active
+    // Restore last active - IMPORTANT: restore state after init to fix F5 bug
     const saved = localStorage.getItem('cl_sb_active') || _getDefaultId();
     navigate(saved, false);
+    
+    // Ensure app-shell is visible after sidebar init
+    const appShell = document.getElementById('app-shell');
+    if (appShell) {
+      appShell.style.removeProperty('visibility');
+      appShell.style.removeProperty('display');
+    }
 
     const wv = document.getElementById('workspace-view');
     if (wv && wv.style.display === '') wv.style.display = 'flex';
@@ -254,7 +265,7 @@ CL.define('Features.Sidebar', () => {
     return `
       <button class="sb-child${_active === item.id ? ' active' : ''}"
         data-id="${item.id}" data-section="${item.section}"
-        onclick="CL.Features.Sidebar.navigate('${item.id}')"
+        onclick="CL.Features.Sidebar.navigate('${item.id}'); event.stopPropagation();"
         title="${item.label}">
         <span class="sb-child-icon">${item.icon}</span>
         <span class="sb-label">${item.label}</span>
@@ -358,6 +369,8 @@ CL.define('Features.Sidebar', () => {
     const btn = sidebar?.querySelector(`.sb-group-header[data-gid="${gid}"]`)
              || sidebar?.querySelector(`.sb-group[data-gid="${gid}"] .sb-group-header`);
     _positionAndShowFlyout(gid, btn);
+    // Prevent event propagation to avoid closing flyout immediately
+    event?.stopPropagation?.();
   }
 
   function _positionAndShowFlyout(gid, refEl) {
