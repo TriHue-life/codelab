@@ -5,6 +5,7 @@
  */
 'use strict';
 
+try {
 (function bootstrap() {
   const Store    = CL.require('Store');
   const Events   = CL.require('Events');
@@ -891,3 +892,6 @@ Tải lại trang để về giao diện luyện tập?`)) {
   };
 
 })();
+} catch (e) {
+  console.error('[CL] Bootstrap error:', e.message, e.stack);
+}
