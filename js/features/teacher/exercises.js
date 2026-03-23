@@ -1,6 +1,10 @@
 CL.define('CL.Teacher.ExEditor', function() {
   let _currentId = null;
   let _hasUnsavedChanges = false;
+  let _allExercises = [];
+  let _currentGrade = '';
+  let _currentChapter = '';
+  let _currentBloom = '';
 
   // ══════════════════════════════════════════════════════════════
   //  RENDER
@@ -9,6 +13,7 @@ CL.define('CL.Teacher.ExEditor', function() {
   function render(el) {
     console.log('[ExEditor] render called, el:', el);
     const allExs = Registry.getAll();
+    _allExercises = allExs;
     const grades = [...new Set(allExs.map(e => e.g))];
 
     el.innerHTML = `
@@ -24,15 +29,10 @@ CL.define('CL.Teacher.ExEditor', function() {
               <option value="">— Chọn chủ đề —</option>
             </select>
           </div>
-          <select id="ed-ex" style="flex:1;margin-top:8px;padding:8px;">
-            <option value="">— Chọn bài tập —</option>
-          </select>
           <select id="ed-bloom" style="flex:1;margin-top:8px;padding:8px;display:none;">
-            <option value="">— Chọn mức Bloom —</option>
+            <option value="">— Tất cả mức Bloom —</option>
           </select>
-          <select id="ed-sub" style="flex:1;margin-top:8px;padding:8px;display:none;">
-            <option value="">— Chọn bài tập con —</option>
-          </select>
+          <div id="ed-list" class="tp-edit-list"></div>
         </div>
         <div class="tp-edit-content">
           <div id="ed-form" class="tp-edit-form" style="display:none"></div>
@@ -42,32 +42,13 @@ CL.define('CL.Teacher.ExEditor', function() {
     // Attach event listeners (inline onchange doesn't work with innerHTML)
     const edG = document.getElementById('ed-g');
     const edCh = document.getElementById('ed-ch');
+    const edBloom = document.getElementById('ed-bloom');
     const toggleBtn = document.getElementById('ed-toggle-btn');
     const sidebar = document.getElementById('ed-sidebar');
     
     if (edG) edG.addEventListener('change', loadChap);
     if (edCh) edCh.addEventListener('change', loadList);
-    
-    const edEx = document.getElementById('ed-ex');
-    if (edEx) edEx.addEventListener('change', (e) => {
-      if (e.target.value) {
-        loadBloomLevels(e.target.value);
-      }
-    });
-    
-    const edBloom = document.getElementById('ed-bloom');
-    if (edBloom) edBloom.addEventListener('change', (e) => {
-      if (e.target.value) {
-        loadSubExercises(e.target.value);
-      }
-    });
-    
-    const edSub = document.getElementById('ed-sub');
-    if (edSub) edSub.addEventListener('change', (e) => {
-      if (e.target.value) {
-        edit(e.target.value);
-      }
-    });
+    if (edBloom) edBloom.addEventListener('change', filterList);
     
     // Toggle sidebar
     if (toggleBtn && sidebar) {
@@ -82,9 +63,11 @@ CL.define('CL.Teacher.ExEditor', function() {
   // ══════════════════════════════════════════════════════════════
 
   function loadChap(e) {
-    const grade = e.target.value;
-    const allExs = Registry.getAll();
-    const filtered = allExs.filter(ex => ex.g === grade);
+    _currentGrade = e.target.value;
+    _currentChapter = '';
+    _currentBloom = '';
+    
+    const filtered = _allExercises.filter(ex => ex.g === _currentGrade);
     
     // Extract chapter numbers from IDs (e.g., "17" from "k10-17-b1-1_1")
     const chapterSet = new Set();
@@ -103,146 +86,97 @@ CL.define('CL.Teacher.ExEditor', function() {
         chapters.map(ch => `<option>${ch}</option>`).join('');
     }
     
-    // Clear exercise list
-    const edEx = document.getElementById('ed-ex');
-    if (edEx) edEx.innerHTML = '<option value="">— Chọn bài tập —</option>';
+    // Clear list and Bloom dropdown
+    const edList = document.getElementById('ed-list');
+    if (edList) edList.innerHTML = '';
     
-    // Hide Bloom and sub-exercise dropdowns
     const edBloom = document.getElementById('ed-bloom');
-    const edSub = document.getElementById('ed-sub');
     if (edBloom) edBloom.style.display = 'none';
-    if (edSub) edSub.style.display = 'none';
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  LOAD EXERCISE LIST (Bài tập cha)
+  //  LOAD EXERCISE LIST
   // ══════════════════════════════════════════════════════════════
 
   function loadList(e) {
-    const chapterNum = e.target.value; // e.g., "17"
-    const grade = document.getElementById('ed-g').value; // e.g., "K10"
-    const allExs = Registry.getAll();
+    _currentChapter = e.target.value;
+    _currentBloom = '';
     
-    // Filter exercises by grade and chapter number
-    // ID format: k10-17-b1-1_1 → grade="K10", chapter="17"
-    const filtered = allExs.filter(ex => {
+    const filtered = _allExercises.filter(ex => {
       const parts = ex.id.split('-');
       return parts.length >= 2 && 
-             ex.g === grade && 
-             parts[1] === chapterNum;
+             ex.g === _currentGrade && 
+             parts[1] === _currentChapter;
     });
     
-    // Get unique chapter titles from filtered exercises
-    const chapterTitles = [...new Set(filtered.map(ex => ex.ch))];
+    // Get unique Bloom levels
+    const bloomLevels = [...new Set(filtered.map(ex => ex.bo))].sort();
     
-    const edEx = document.getElementById('ed-ex');
-    if (edEx) {
-      edEx.innerHTML = '<option value="">— Chọn bài tập —</option>' +
-        chapterTitles.map(title => `<option value="${chapterNum}">${title}</option>`).join('');
+    const edBloom = document.getElementById('ed-bloom');
+    if (edBloom) {
+      edBloom.innerHTML = '<option value="">— Tất cả mức Bloom —</option>' +
+        bloomLevels.map(b => `<option>${b}</option>`).join('');
+      edBloom.style.display = 'block';
     }
     
-    // Hide Bloom and sub-exercise dropdowns
-    const edBloom = document.getElementById('ed-bloom');
-    const edSub = document.getElementById('ed-sub');
-    if (edBloom) edBloom.style.display = 'none';
-    if (edSub) edSub.style.display = 'none';
+    // Display all exercises in this chapter
+    renderList(filtered);
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  LOAD BLOOM LEVELS
+  //  FILTER LIST BY BLOOM
   // ══════════════════════════════════════════════════════════════
 
-  function loadBloomLevels(chapterNum) {
-    const grade = document.getElementById('ed-g').value;
-    const allExs = Registry.getAll();
-    const edBloom = document.getElementById('ed-bloom');
+  function filterList(e) {
+    _currentBloom = e.target.value;
     
-    if (!edBloom) return;
-    
-    // Clear Bloom dropdown
-    edBloom.innerHTML = '<option value="">— Chọn mức Bloom —</option>';
-    
-    // Get all exercises with matching grade and chapter number
-    // ID format: k10-17-b1-1_1 → grade="K10", chapter="17", bloom="b1"
-    const exercisesInChapter = allExs.filter(ex => {
+    let filtered = _allExercises.filter(ex => {
       const parts = ex.id.split('-');
       return parts.length >= 2 && 
-             ex.g === grade && 
-             parts[1] === chapterNum;
+             ex.g === _currentGrade && 
+             parts[1] === _currentChapter;
     });
     
-    if (exercisesInChapter && exercisesInChapter.length > 0) {
-      // Get unique Bloom levels from exercises in this chapter
-      const bloomLevels = [...new Set(exercisesInChapter.map(ex => ex.bo))].sort();
-      
-      if (bloomLevels.length > 0) {
-        bloomLevels.forEach(bloom => {
-          const option = document.createElement('option');
-          option.value = bloom;
-          option.textContent = bloom;
-          edBloom.appendChild(option);
-        });
-        edBloom.style.display = 'block';
-      } else {
-        edBloom.style.display = 'none';
-      }
-    } else {
-      edBloom.style.display = 'none';
+    // Filter by Bloom if selected
+    if (_currentBloom) {
+      filtered = filtered.filter(ex => ex.bo === _currentBloom);
     }
     
-    // Hide sub-exercise dropdown
-    const edSub = document.getElementById('ed-sub');
-    if (edSub) edSub.style.display = 'none';
+    renderList(filtered);
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  LOAD SUB-EXERCISES
+  //  RENDER LIST
   // ══════════════════════════════════════════════════════════════
 
-  function loadSubExercises(bloomLevel) {
-    const grade = document.getElementById('ed-g').value;
-    const edEx = document.getElementById('ed-ex');
-    const chapterNum = edEx ? edEx.value : '';
-    const allExs = Registry.getAll();
-    const edSub = document.getElementById('ed-sub');
+  function renderList(exercises) {
+    const edList = document.getElementById('ed-list');
+    if (!edList) return;
     
-    if (!edSub || !chapterNum) return;
+    if (!exercises || exercises.length === 0) {
+      edList.innerHTML = '<div style="padding:10px;color:#999;">Không có bài tập</div>';
+      return;
+    }
     
-    // Clear sub-exercise dropdown
-    edSub.innerHTML = '<option value="">— Chọn bài tập con —</option>';
-    
-    // Get all sub-exercises with matching grade, chapter number, and Bloom level
-    // ID format: k10-17-b1-1_1 → grade="K10", chapter="17", bloom="b1"
-    const subExercises = allExs.filter(ex => {
-      const parts = ex.id.split('-');
-      return parts.length >= 3 && 
-             ex.g === grade && 
-             parts[1] === chapterNum &&
-             ex.bo === bloomLevel;
+    // Sort exercises by ID (natural sort)
+    exercises.sort((a, b) => {
+      const aParts = a.id.split('-').pop().split('_').map(Number);
+      const bParts = b.id.split('-').pop().split('_').map(Number);
+      if (aParts[0] !== bParts[0]) return aParts[0] - bParts[0];
+      return aParts[1] - bParts[1];
     });
     
-    if (subExercises && subExercises.length > 0) {
-      // Sort by the last part of ID (e.g., "1_1", "1_2", "2_1")
-      subExercises.sort((a, b) => {
-        const aLast = a.id.split('-').pop();
-        const bLast = b.id.split('-').pop();
-        // Natural sort: "1_1" < "1_2" < "2_1"
-        const aParts = aLast.split('_').map(Number);
-        const bParts = bLast.split('_').map(Number);
-        if (aParts[0] !== bParts[0]) return aParts[0] - bParts[0];
-        return aParts[1] - bParts[1];
-      });
-      
-      subExercises.forEach((subEx) => {
-        const option = document.createElement('option');
-        option.value = subEx.id;
-        option.textContent = subEx.title || subEx.id;
-        edSub.appendChild(option);
-      });
-      edSub.style.display = 'block';
-    } else {
-      edSub.style.display = 'none';
-    }
+    edList.innerHTML = exercises.map(e => `
+      <div class="ed-item" onclick="CL.Teacher.ExEditor.edit('${e.id}')">
+        <span class="ed-lv">${(e.bo || '').split('–')[0].trim()}</span>
+        <span class="ed-num">${e.id.split('-').pop()}</span>
+        <span class="ed-title">${e.title || ''}</span>
+        <span class="ed-type-badge ${e.type || 'python'}">${(e.type || 'python').toUpperCase()}</span>
+      </div>`).join('');
+    
+    const form = document.getElementById('ed-form');
+    if (form) form.style.display = 'none';
+    _unmountAll();
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -253,8 +187,7 @@ CL.define('CL.Teacher.ExEditor', function() {
     _currentId = id;
     _hasUnsavedChanges = false;
     
-    const allExs = Registry.getAll();
-    const ex = allExs.find(e => e.id === id);
+    const ex = _allExercises.find(e => e.id === id);
     if (!ex) {
       console.error('[ExEditor] Exercise not found:', id);
       return;
@@ -390,39 +323,6 @@ CL.define('CL.Teacher.ExEditor', function() {
     _hasUnsavedChanges = false;
   }
 
-  // ══════════════════════════════════════════════════════════════
-  //  SYNC ALL (removed - functionality moved to admin panel)
-  // ══════════════════════════════════════════════════════════════
-
-  // ── Progress bar ────────────────────────────────────────────
-
-  function _showProgress(container) {
-    const box = document.createElement('div');
-    box.className = 'ed-progress-box';
-    box.innerHTML = `
-      <div class="ed-progress-title">Đang xử lý...</div>
-      <div class="ed-progress-bar"><div class="ed-progress-fill"></div></div>
-      <div class="ed-progress-text"></div>`;
-    container.appendChild(box);
-    return box;
-  }
-
-  function _updateProgress(step, total, msg) {
-    const box = document.querySelector('.ed-progress-box');
-    if (!box) return;
-    const pct = Math.round(100 * step / total);
-    box.querySelector('.ed-progress-fill').style.width = pct + '%';
-    box.querySelector('.ed-progress-text').textContent = `${msg} (${pct}%)`;
-  }
-
-  function _finishProgress(success) {
-    const box = document.querySelector('.ed-progress-box');
-    if (box) {
-      box.querySelector('.ed-progress-fill').style.width = '100%';
-      box.className = 'ed-progress-box ' + (success ? 'success' : 'error');
-    }
-  }
-
   // ── Unmount all RichText instances ──────────────────────────
 
   function _unmountAll() {
@@ -431,12 +331,5 @@ CL.define('CL.Teacher.ExEditor', function() {
     }
   }
 
-  // ── Extract code from HTML ─────────────────────────────────
-
-  function _extractCode(html) {
-    const match = html.match(/<code[^>]*>([\s\S]*?)<\/code>/);
-    return match ? match[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&') : '';
-  }
-
-  return { render, loadChap, loadList, edit, switchTab, saveField, closeForm };
+  return { render, edit, switchTab, saveField, closeForm };
 });
