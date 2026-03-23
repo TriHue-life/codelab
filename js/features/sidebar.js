@@ -397,7 +397,8 @@ CL.define('Features.Sidebar', () => {
       CL.Features.Profile?.open();
       return;
     } else if (section === 'exam') {
-      _showSection('workspace-view');
+      _showSection('panel-view');
+      _renderPanel('exam');
     } else if (section === 'history') {
       _showSection('panel-view');
       _renderStudentHistory();

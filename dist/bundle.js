@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-22 23:40
+/* CodeLab Bundle — built 2026-03-22 23:43
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -15447,7 +15447,8 @@ CL.define('Features.Sidebar', () => {
       CL.Features.Profile?.open();
       return;
     } else if (section === 'exam') {
-      _showSection('workspace-view');
+      _showSection('panel-view');
+      _renderPanel('exam');
     } else if (section === 'history') {
       _showSection('panel-view');
       _renderStudentHistory();
