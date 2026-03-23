@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-23 02:12
+/* CodeLab Bundle — built 2026-03-23 02:21
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -7298,7 +7298,7 @@ CL.define('CL.Teacher.ExEditor', function() {
 
   function render(el) {
     console.log('[ExEditor] render called, el:', el);
-    const allExs = Registry.getAll();
+    const allExs = CL.Exercises.Registry.getAll();
     _allExercises = allExs;
     const grades = [...new Set(allExs.map(e => e.g))];
 
@@ -7353,6 +7353,7 @@ CL.define('CL.Teacher.ExEditor', function() {
     _currentChapter = '';
     _currentBloom = '';
     
+    _allExercises = CL.Exercises.Registry.getAll();
     const filtered = _allExercises.filter(ex => ex.g === _currentGrade);
     
     // Extract chapter numbers from IDs (e.g., "17" from "k10-17-b1-1_1")
