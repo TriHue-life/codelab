@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-23 02:21
+/* CodeLab Bundle — built 2026-03-23 02:33
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -7397,7 +7397,7 @@ CL.define('CL.Teacher.ExEditor', function() {
     });
     
     // Get unique Bloom levels
-    const bloomLevels = [...new Set(filtered.map(ex => ex.bo))].sort();
+    const bloomLevels = [...new Set(filtered.map(ex => ex.lv))].sort();
     
     const edBloom = document.getElementById('ed-bloom');
     if (edBloom) {
@@ -7426,7 +7426,7 @@ CL.define('CL.Teacher.ExEditor', function() {
     
     // Filter by Bloom if selected
     if (_currentBloom) {
-      filtered = filtered.filter(ex => ex.bo === _currentBloom);
+      filtered = filtered.filter(ex => ex.lv === _currentBloom);
     }
     
     renderList(filtered);
@@ -7445,18 +7445,22 @@ CL.define('CL.Teacher.ExEditor', function() {
       return;
     }
     
-    // Sort exercises by ID (natural sort)
+    // Sort exercises by num (natural sort)
     exercises.sort((a, b) => {
-      const aParts = a.id.split('-').pop().split('_').map(Number);
-      const bParts = b.id.split('-').pop().split('_').map(Number);
-      if (aParts[0] !== bParts[0]) return aParts[0] - bParts[0];
-      return aParts[1] - bParts[1];
+      const aNum = (a.num || '').split('.').map(Number);
+      const bNum = (b.num || '').split('.').map(Number);
+      for (let i = 0; i < Math.max(aNum.length, bNum.length); i++) {
+        const aPart = aNum[i] || 0;
+        const bPart = bNum[i] || 0;
+        if (aPart !== bPart) return aPart - bPart;
+      }
+      return 0;
     });
     
     edList.innerHTML = exercises.map(e => `
       <div class="ed-item" onclick="CL.Teacher.ExEditor.edit('${e.id}')">
-        <span class="ed-lv">${(e.bo || '').split('–')[0].trim()}</span>
-        <span class="ed-num">${e.id.split('-').pop()}</span>
+        <span class="ed-lv">${(e.lv || '').split('–')[0].trim()}</span>
+        <span class="ed-num">${e.num || e.id.split('-').pop()}</span>
         <span class="ed-title">${e.title || ''}</span>
         <span class="ed-type-badge ${e.type || 'python'}">${(e.type || 'python').toUpperCase()}</span>
       </div>`).join('');
