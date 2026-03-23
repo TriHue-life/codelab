@@ -405,7 +405,7 @@ function getActiveNamHoc() {
 function setActiveNamHoc(namHoc) {
   PROP.setProperty('active_nam_hoc', namHoc);
 }
-const BAITAP_H   = ['id','lop','bo_sach','chuong','muc_bloom','so_bai','tieu_de','mo_ta','type','updated_at'];
+const BAITAP_H   = ['id','lop','bo_sach','chuong','muc_bloom','so_bai','tieu_de','mo_ta','ly_thuyet','code_mau','type','updated_at'];
 const LYTH_H     = ['bai_id','noi_dung_html','updated_at'];
 const CODEMAU_H  = ['bai_id','ngon_ngu','code','mo_ta','updated_at'];
 const TIEUCHI_H  = ['id','bai_id','mo_ta','tu_khoa','diem','goi_y','thu_tu'];
