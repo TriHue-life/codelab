@@ -39,7 +39,9 @@ CL.define('Teacher.ExEditor', () => {
               <option value="">— Chọn chủ đề —</option>
             </select>
           </div>
-          <div id="ed-list" class="tp-edit-list"></div>
+          <select id="ed-ex" style="flex:1;margin-top:8px;padding:8px;">
+            <option value="">— Chọn bài tập —</option>
+          </select>
         </div>
         <div class="tp-edit-content">
           <div id="ed-form" class="tp-edit-form" style="display:none"></div>
@@ -54,6 +56,13 @@ CL.define('Teacher.ExEditor', () => {
     
     if (edG) edG.addEventListener('change', loadChap);
     if (edCh) edCh.addEventListener('change', loadList);
+    
+    const edEx = document.getElementById('ed-ex');
+    if (edEx) edEx.addEventListener('change', (e) => {
+      if (e.target.value) {
+        edit(e.target.value);
+      }
+    });
     
     // Toggle sidebar
     if (toggleBtn && sidebar) {
@@ -99,20 +108,18 @@ CL.define('Teacher.ExEditor', () => {
     const gk  = document.getElementById('ed-g')?.value;
     const ch  = document.getElementById('ed-ch')?.value;
     const exs = Registry.getByChapter(gk, ch);
-    const list = document.getElementById('ed-list');
-    if (!list) return;
-    list.innerHTML = exs.map(e => `
-      <div class="ed-item" onclick="CL.Teacher.ExEditor.edit('${Utils.escHtml(e.id)}')">
-        <span class="ed-lv">${(e.lv || '').split('–')[0].trim()}</span>
-        <span class="ed-num">${Utils.escHtml(e.num)}</span>
-        <span class="ed-title">${Utils.escHtml(e.title)}</span>
-        <span class="ed-type-badge ${e.type || 'python'}">${(e.type || 'python').toUpperCase()}</span>
-      </div>`).join('');
+    const dropdown = document.getElementById('ed-ex');
+    if (!dropdown) return;
+    
+    dropdown.innerHTML = `
+      <option value="">— Chọn bài tập —</option>
+      ${exs.map(e => `<option value="${Utils.escHtml(e.id)}">${Utils.escHtml(e.num)} - ${Utils.escHtml(e.title)}</option>`).join('')}
+    `;
+    
     const form = document.getElementById('ed-form');
     if (form) form.style.display = 'none';
     _unmountAll();
   }
-
   // ══════════════════════════════════════════════════════════════
   //  EDIT: mở form chỉnh sửa bài tập
   // ══════════════════════════════════════════════════════════════
