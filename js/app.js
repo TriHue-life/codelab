@@ -155,6 +155,10 @@ Tải lại trang để về giao diện luyện tập?`)) {
       shell.style.removeProperty('display');
       shell.style.removeProperty('visibility');
     }
+    
+    // ── FIX: Init sidebar khi page load lại (F5) ──────────────────
+    // Sidebar cần được init khi auth ready, không chỉ khi login
+    CL.Features.Sidebar?.init(user.role);
   });
 
   // ── Private helpers ───────────────────────────────────────────
