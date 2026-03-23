@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-23 03:12
+/* CodeLab Bundle — built 2026-03-23 03:33
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -7298,50 +7298,66 @@ CL.define('CL.Teacher.ExEditor', function() {
 
   function render(el) {
     console.log('[ExEditor] render called, el:', el);
-    const allExs = CL.Exercises.Registry.getAll();
-    _allExercises = allExs;
-    const grades = [...new Set(allExs.map(e => e.g))];
-
-    el.innerHTML = `
-      <div class="tp-edit-container">
-        <div class="tp-edit-sidebar" id="ed-sidebar">
-          <button class="tp-edit-toggle-btn" id="ed-toggle-btn" title="Thu nhỏ danh sách">◀</button>
-          <div class="tp-edit-toolbar">
-            <select id="ed-g" style="flex:1">
-              <option value="">— Chọn lớp —</option>
-              ${grades.map(g => `<option>${g}</option>`).join('')}
-            </select>
-            <select id="ed-ch" style="flex:2">
-              <option value="">— Chọn chủ đề —</option>
-            </select>
-          </div>
-          <select id="ed-bloom" style="flex:1;margin-top:8px;padding:8px;display:none;">
-            <option value="">— Tất cả mức Bloom —</option>
-          </select>
-          <div id="ed-list" class="tp-edit-list"></div>
-        </div>
-        <div class="tp-edit-content">
-          <div id="ed-form" class="tp-edit-form" style="display:none"></div>
-        </div>
-      </div>`;
+    el.innerHTML = '<div style="padding:20px;text-align:center">⏳ Đang tải dữ liệu bài tập...</div>';
     
-    // Attach event listeners (inline onchange doesn't work with innerHTML)
-    const edG = document.getElementById('ed-g');
-    const edCh = document.getElementById('ed-ch');
-    const edBloom = document.getElementById('ed-bloom');
-    const toggleBtn = document.getElementById('ed-toggle-btn');
-    const sidebar = document.getElementById('ed-sidebar');
-    
-    if (edG) edG.addEventListener('change', loadChap);
-    if (edCh) edCh.addEventListener('change', loadList);
-    if (edBloom) edBloom.addEventListener('change', filterList);
-    
-    // Toggle sidebar
-    if (toggleBtn && sidebar) {
-      toggleBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('collapsed');
-      });
+    // Load exercises from API
+    const token = localStorage.getItem('token');
+    if (!token) {
+      el.innerHTML = '<div style="padding:20px;color:red">❌ Chưa đăng nhập</div>';
+      return;
     }
+    
+    CL.API.post('getExercises', { token }, (res) => {
+      if (!res.success) {
+        el.innerHTML = `<div style="padding:20px;color:red">❌ Lỗi: ${res.text}</div>`;
+        return;
+      }
+      
+      const allExs = res.data || [];
+      _allExercises = allExs;
+      const grades = [...new Set(allExs.map(e => e.g))];
+
+      el.innerHTML = `
+        <div class="tp-edit-container">
+          <div class="tp-edit-sidebar" id="ed-sidebar">
+            <button class="tp-edit-toggle-btn" id="ed-toggle-btn" title="Thu nhỏ danh sách">◀</button>
+            <div class="tp-edit-toolbar">
+              <select id="ed-g" style="flex:1">
+                <option value="">— Chọn lớp —</option>
+                ${grades.map(g => `<option>${g}</option>`).join('')}
+              </select>
+              <select id="ed-ch" style="flex:2">
+                <option value="">— Chọn chủ đề —</option>
+              </select>
+            </div>
+            <select id="ed-bloom" style="flex:1;margin-top:8px;padding:8px;display:none;">
+              <option value="">— Tất cả mức Bloom —</option>
+            </select>
+            <div id="ed-list" class="tp-edit-list"></div>
+          </div>
+          <div class="tp-edit-content">
+            <div id="ed-form" class="tp-edit-form" style="display:none"></div>
+          </div>
+        </div>`;
+      
+      // Attach event listeners (inline onchange doesn't work with innerHTML)
+      const edG = document.getElementById('ed-g');
+      const edCh = document.getElementById('ed-ch');
+      const edBloom = document.getElementById('ed-bloom');
+      const toggleBtn = document.getElementById('ed-toggle-btn');
+      const sidebar = document.getElementById('ed-sidebar');
+      
+      if (edG) edG.addEventListener('change', loadChap);
+      if (edCh) edCh.addEventListener('change', loadList);
+      if (edBloom) edBloom.addEventListener('change', filterList);
+      
+      // Toggle sidebar
+      if (toggleBtn && sidebar) {
+        toggleBtn.addEventListener('click', () => {
+          sidebar.classList.toggle('collapsed');
+        });
+      }
+    });
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -7353,7 +7369,6 @@ CL.define('CL.Teacher.ExEditor', function() {
     _currentChapter = '';
     _currentBloom = '';
     
-    _allExercises = CL.Exercises.Registry.getAll();
     const filtered = _allExercises.filter(ex => ex.g === _currentGrade);
     
     // Extract chapter numbers from IDs (e.g., "17" from "k10-17-b1-1_1")
@@ -7389,85 +7404,73 @@ CL.define('CL.Teacher.ExEditor', function() {
     _currentChapter = e.target.value;
     _currentBloom = '';
     
-    const filtered = _allExercises.filter(ex => {
+    const filtered = _allExercises.filter(ex => 
+      ex.g === _currentGrade && ex.id.split('-')[1] === _currentChapter
+    );
+    
+    // Extract Bloom levels
+    const bloomSet = new Set();
+    filtered.forEach(ex => {
       const parts = ex.id.split('-');
-      return parts.length >= 2 && 
-             ex.g === _currentGrade && 
-             parts[1] === _currentChapter;
+      if (parts.length >= 3) {
+        const bloom = parts[2]; // e.g., "b1", "b2"
+        bloomSet.add(bloom);
+      }
     });
     
-    // Get unique Bloom levels
-    const bloomLevels = [...new Set(filtered.map(ex => ex.lv))].sort();
-    
+    const blooms = [...bloomSet].sort();
     const edBloom = document.getElementById('ed-bloom');
     if (edBloom) {
       edBloom.innerHTML = '<option value="">— Tất cả mức Bloom —</option>' +
-        bloomLevels.map(b => `<option>${b}</option>`).join('');
+        blooms.map(b => {
+          const bloomLabel = b.toUpperCase();
+          return `<option value="${b}">${bloomLabel}</option>`;
+        }).join('');
       edBloom.style.display = 'block';
     }
     
-    // Display all exercises in this chapter
-    renderList(filtered);
+    // Display all exercises for this chapter
+    filterList();
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  FILTER LIST BY BLOOM
+  //  FILTER LIST
   // ══════════════════════════════════════════════════════════════
 
-  function filterList(e) {
-    _currentBloom = e.target.value;
+  function filterList() {
+    const edBloom = document.getElementById('ed-bloom');
+    if (edBloom) {
+      _currentBloom = edBloom.value;
+    }
     
-    let filtered = _allExercises.filter(ex => {
-      const parts = ex.id.split('-');
-      return parts.length >= 2 && 
-             ex.g === _currentGrade && 
-             parts[1] === _currentChapter;
-    });
+    let filtered = _allExercises.filter(ex => 
+      ex.g === _currentGrade && ex.id.split('-')[1] === _currentChapter
+    );
     
-    // Filter by Bloom if selected
     if (_currentBloom) {
-      filtered = filtered.filter(ex => ex.lv === _currentBloom);
+      filtered = filtered.filter(ex => ex.id.split('-')[2] === _currentBloom);
     }
     
-    renderList(filtered);
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  RENDER LIST
-  // ══════════════════════════════════════════════════════════════
-
-  function renderList(exercises) {
-    const edList = document.getElementById('ed-list');
-    if (!edList) return;
-    
-    if (!exercises || exercises.length === 0) {
-      edList.innerHTML = '<div style="padding:10px;color:#999;">Không có bài tập</div>';
-      return;
-    }
-    
-    // Sort exercises by num (natural sort)
-    exercises.sort((a, b) => {
-      const aNum = (a.num || '').split('.').map(Number);
-      const bNum = (b.num || '').split('.').map(Number);
-      for (let i = 0; i < Math.max(aNum.length, bNum.length); i++) {
-        const aPart = aNum[i] || 0;
-        const bPart = bNum[i] || 0;
-        if (aPart !== bPart) return aPart - bPart;
+    // Sort naturally
+    filtered.sort((a, b) => {
+      const aParts = a.id.split('-');
+      const bParts = b.id.split('-');
+      if (aParts[3] !== bParts[3]) {
+        return parseInt(aParts[3]) - parseInt(bParts[3]);
       }
-      return 0;
+      return a.id.localeCompare(b.id);
     });
     
-    edList.innerHTML = exercises.map(e => `
-      <div class="ed-item" onclick="CL.Teacher.ExEditor.edit('${e.id}')">
-        <span class="ed-lv">${(e.lv || '').split('–')[0].trim()}</span>
-        <span class="ed-num">${e.num || e.id.split('-').pop()}</span>
-        <span class="ed-title">${e.title || ''}</span>
-        <span class="ed-type-badge ${e.type || 'python'}">${(e.type || 'python').toUpperCase()}</span>
-      </div>`).join('');
-    
-    const form = document.getElementById('ed-form');
-    if (form) form.style.display = 'none';
-    _unmountAll();
+    const edList = document.getElementById('ed-list');
+    if (edList) {
+      edList.innerHTML = filtered.map(e => `
+        <div class="ed-item" onclick="CL.Teacher.ExEditor.edit('${e.id}')">
+          <span class="ed-lv">${(e.lv || '').split('–')[0].trim()}</span>
+          <span class="ed-num">${e.num || ''}</span>
+          <span class="ed-title">${e.title || ''}</span>
+          <span class="ed-type-badge ${e.type || 'python'}">${(e.type || 'python').toUpperCase()}</span>
+        </div>`).join('');
+    }
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -7476,153 +7479,87 @@ CL.define('CL.Teacher.ExEditor', function() {
 
   function edit(id) {
     _currentId = id;
-    _hasUnsavedChanges = false;
-    
     const ex = _allExercises.find(e => e.id === id);
-    if (!ex) {
-      console.error('[ExEditor] Exercise not found:', id);
-      return;
-    }
+    if (!ex) return;
 
-    console.log('[ExEditor] Editing:', ex);
-    
     const form = document.getElementById('ed-form');
     if (!form) return;
-    
+
     form.innerHTML = `
-      <div class="ed-header">
-        <h2>${ex.title}</h2>
-        <button class="ed-close-btn" id="ed-close">✕</button>
+      <div class="ed-form-header">
+        <h3>${ex.title || 'Bài tập'}</h3>
+        <button onclick="CL.Teacher.ExEditor.close()" class="ed-close-btn">✕</button>
       </div>
       <div class="ed-tabs">
-        <button class="ed-tab-btn active" data-tab="desc">Mô tả</button>
-        <button class="ed-tab-btn" data-tab="theory">Lý thuyết</button>
-        <button class="ed-tab-btn" data-tab="code">Code mẫu</button>
+        <button class="ed-tab-btn active" data-tab="desc">📝 Mô tả</button>
+        <button class="ed-tab-btn" data-tab="theory">📖 Lý thuyết</button>
+        <button class="ed-tab-btn" data-tab="code">💻 Code mẫu</button>
       </div>
-      <div class="ed-tab-content" data-tab="desc" style="display:block"></div>
-      <div class="ed-tab-content" data-tab="theory" style="display:none"></div>
-      <div class="ed-tab-content" data-tab="code" style="display:none"></div>
-      <div class="ed-actions">
-        <button id="ed-save-desc" class="ed-save-btn">💾 Lưu Mô tả</button>
-        <button id="ed-save-theory" class="ed-save-btn">💾 Lưu Lý thuyết</button>
-        <button id="ed-save-code" class="ed-save-btn">💾 Lưu Code mẫu</button>
+      <div class="ed-tab-content">
+        <div class="ed-tab-pane active" data-tab="desc">
+          <textarea id="ed-desc" class="ed-textarea" placeholder="Nhập mô tả bài tập...">${ex.desc || ''}</textarea>
+        </div>
+        <div class="ed-tab-pane" data-tab="theory">
+          <textarea id="ed-theory" class="ed-textarea" placeholder="Nhập lý thuyết..."></textarea>
+        </div>
+        <div class="ed-tab-pane" data-tab="code">
+          <textarea id="ed-code" class="ed-textarea" placeholder="Nhập code mẫu..."></textarea>
+        </div>
+      </div>
+      <div class="ed-form-footer">
+        <button onclick="CL.Teacher.ExEditor.save()" class="ed-save-btn">💾 Lưu</button>
+        <button onclick="CL.Teacher.ExEditor.close()" class="ed-cancel-btn">Hủy</button>
       </div>`;
-    
+
     form.style.display = 'block';
-    
-    // Mount RichText editors
-    const descContainer = form.querySelector('[data-tab="desc"]');
-    const theoryContainer = form.querySelector('[data-tab="theory"]');
-    const codeContainer = form.querySelector('[data-tab="code"]');
-    
-    if (CL.Editors?.RichText) {
-      const descContent = localStorage.getItem(`cl_content_${id}_desc`) || ex.desc || '';
-      const theoryContent = localStorage.getItem(`cl_content_${id}_theory`) || '';
-      const codeContent = localStorage.getItem(`cl_content_${id}_code`) || '';
-      
-      CL.Editors.RichText.mount(descContainer, descContent, () => {
-        _hasUnsavedChanges = true;
-      });
-      CL.Editors.RichText.mount(theoryContainer, theoryContent, () => {
-        _hasUnsavedChanges = true;
-      });
-      CL.Editors.RichText.mount(codeContainer, codeContent, () => {
-        _hasUnsavedChanges = true;
-      });
-    }
-    
+
     // Tab switching
-    form.querySelectorAll('.ed-tab-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
+    const tabBtns = form.querySelectorAll('.ed-tab-btn');
+    const tabPanes = form.querySelectorAll('.ed-tab-pane');
+    
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabPanes.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        form.querySelector(`[data-tab="${btn.dataset.tab}"]`).classList.add('active');
+      });
     });
-    
-    // Close button
-    form.querySelector('.ed-close-btn').addEventListener('click', closeForm);
-    
-    // Save buttons
-    form.querySelector('#ed-save-desc').addEventListener('click', () => saveField(id, 'desc'));
-    form.querySelector('#ed-save-theory').addEventListener('click', () => saveField(id, 'theory'));
-    form.querySelector('#ed-save-code').addEventListener('click', () => saveField(id, 'code'));
   }
 
-  // ══════════════════════════════════════════════════════════════
-  //  SWITCH TAB
-  // ══════════════════════════════════════════════════════════════
+  function save() {
+    if (!_currentId) return;
+    
+    const desc = document.getElementById('ed-desc')?.value || '';
+    const token = localStorage.getItem('token');
+    
+    const exercise = {
+      id: _currentId,
+      desc: desc
+    };
 
-  function switchTab(tabName) {
-    const form = document.getElementById('ed-form');
-    if (!form) return;
-    
-    // Hide all tabs
-    form.querySelectorAll('.ed-tab-content').forEach(tab => {
-      tab.style.display = 'none';
-    });
-    
-    // Deactivate all buttons
-    form.querySelectorAll('.ed-tab-btn').forEach(btn => {
-      btn.classList.remove('active');
-    });
-    
-    // Show selected tab
-    const selectedTab = form.querySelector(`[data-tab="${tabName}"]`);
-    if (selectedTab) selectedTab.style.display = 'block';
-    
-    // Activate button
-    const selectedBtn = form.querySelector(`[data-tab="${tabName}"]`).previousElementSibling;
-    if (selectedBtn) selectedBtn.classList.add('active');
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  SAVE FIELD
-  // ══════════════════════════════════════════════════════════════
-
-  async function saveField(id, field) {
-    try {
-      const editor = document.querySelector(`[data-tab="${field}"] .ProseMirror`);
-      if (!editor) {
-        Toast.error(`❌ Không tìm thấy editor cho ${field}`);
-        return;
+    CL.API.post('saveExercise', { token, exercise }, (res) => {
+      if (res.success) {
+        alert('✅ Lưu thành công');
+        _hasUnsavedChanges = false;
+      } else {
+        alert('❌ Lỗi: ' + res.text);
       }
-      
-      const html = editor.innerHTML;
-      
-      // First save to localStorage
-      localStorage.setItem(`cl_content_${id}_${field}`, html);
-      
-      // Then sync to backend
-      await CL.API.saveExerciseContent(id, field, html);
-      Toast.success(`✅ Lưu ${field} thành công`);
-      _hasUnsavedChanges = false;
-    } catch(e) {
-      Toast.error(`❌ Lỗi lưu: ${e.message}`);
-    }
+    });
   }
 
-  // ══════════════════════════════════════════════════════════════
-  //  CLOSE FORM
-  // ══════════════════════════════════════════════════════════════
-
-  function closeForm() {
-    if (_hasUnsavedChanges) {
-      if (!confirm('Bạn chưa lưu thay đổi. Đóng?')) return;
-    }
-    
+  function close() {
     const form = document.getElementById('ed-form');
     if (form) form.style.display = 'none';
-    _unmountAll();
     _currentId = null;
-    _hasUnsavedChanges = false;
   }
 
-  // ── Unmount all RichText instances ──────────────────────────
-
-  function _unmountAll() {
-    if (CL.Editors?.RichText?.unmountAll) {
-      CL.Editors.RichText.unmountAll();
-    }
-  }
-
-  return { render, edit, switchTab, saveField, closeForm };
+  return {
+    render: render,
+    edit: edit,
+    save: save,
+    close: close
+  };
 });
 
 // ─── js/features/teacher/config.js ───────────────────────────
