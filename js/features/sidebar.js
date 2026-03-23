@@ -251,12 +251,42 @@ CL.define('Features.Sidebar', () => {
   }
 
   function _childHtml(item) {
+    // Check if item has children (level 3)
+    if (item.children && item.children.length > 0) {
+      const hasActive = item.children.some(c => c.id === _active);
+      return `
+        <div class="sb-child-group${hasActive ? ' has-active' : ''}" data-cgid="${item.id}">
+          <button class="sb-child-header${hasActive ? ' has-active' : ''}"
+            data-cgid="${item.id}"
+            onclick="CL.Features.Sidebar._toggleChildGroup('${item.id}'); event.stopPropagation();">
+            <span class="sb-child-icon">${item.icon}</span>
+            <span class="sb-label">${item.label}</span>
+            <span class="sb-child-arrow">›</span>
+          </button>
+          <div class="sb-child-flyout" id="sbcf-${item.id}">
+            ${item.children.map(c => _grandchildHtml(c)).join('')}
+          </div>
+        </div>`;
+    }
+    
+    // Regular level 2 item
     return `
       <button class="sb-child${_active === item.id ? ' active' : ''}"
         data-id="${item.id}" data-section="${item.section}"
-        onclick="CL.Features.Sidebar.navigate('${item.id}')"
+        onclick="CL.Features.Sidebar.navigate('${item.id}'); event.stopPropagation();"
         title="${item.label}">
         <span class="sb-child-icon">${item.icon}</span>
+        <span class="sb-label">${item.label}</span>
+      </button>`;
+  }
+
+  function _grandchildHtml(item) {
+    return `
+      <button class="sb-grandchild${_active === item.id ? ' active' : ''}"
+        data-id="${item.id}" data-section="${item.section}"
+        onclick="CL.Features.Sidebar.navigate('${item.id}'); event.stopPropagation();"
+        title="${item.label}">
+        <span class="sb-grandchild-icon">${item.icon}</span>
         <span class="sb-label">${item.label}</span>
       </button>`;
   }
@@ -269,17 +299,26 @@ CL.define('Features.Sidebar', () => {
     _active = id;
     if (save) localStorage.setItem('cl_sb_active', id);
 
-    // Update active state
+    // Update active state for level 2 items
     document.querySelectorAll('.sb-child[data-id]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.id === id);
     });
 
-    // Find item across all groups
+    // Update active state for level 3 items (grandchildren)
+    document.querySelectorAll('.sb-grandchild[data-id]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.id === id);
+    });
+
+    // Find item across all groups (including level 3)
     const groups = MENUS[_role] || MENUS.student;
     let item = null;
+    let parentGroup = null;
+    
     for (const g of groups) {
+      // Check level 2 items
       item = g.children.find(c => c.id === id);
       if (item) {
+        parentGroup = g;
         // Expand parent group and always persist it (fixes F5 restore)
         const grpEl = document.querySelector(`.sb-group[data-gid="${g.id}"]`);
         if (grpEl) {
@@ -580,5 +619,11 @@ CL.define('Features.Sidebar', () => {
     document.body.style.overflow = '';
   }
 
-  return { init, navigate, toggleGroup, groupHeaderClick, togglePin, openMobile, closeMobile, _showFlyout, _keepFlyout, _hideFlyout, _hideAllFlyouts };
+  function _toggleChildGroup(cgid) {
+    const childGroup = document.querySelector(`.sb-child-group[data-cgid="${cgid}"]`);
+    if (!childGroup) return;
+    childGroup.classList.toggle('expanded');
+  }
+
+    return { init, navigate, toggleGroup, groupHeaderClick, togglePin, openMobile, closeMobile, _showFlyout, _keepFlyout, _hideFlyout, _hideAllFlyouts, _toggleChildGroup };
 });
