@@ -153,8 +153,6 @@ CL.define('Editors.RichText', () => {
       </div>
       <div class="rte-actions-right">
         <span class="rte-hint">Ctrl+S lưu · Kéo thả ảnh để upload</span>
-        <button class="rte-btn" id="rte-cancel-${containerId}">Hủy</button>
-        <button class="rte-btn rte-btn-primary" id="rte-save-${containerId}">💾 Lưu</button>
       </div>`;
 
     wrapper.appendChild(uploadBar);
@@ -224,11 +222,7 @@ CL.define('Editors.RichText', () => {
       container.style.display = '';
     };
 
-    document.getElementById(`rte-save-${containerId}`)?.addEventListener('click', doSave);
-    document.getElementById(`rte-cancel-${containerId}`)?.addEventListener('click', () => {
-      unmount(containerId);
-      container.style.display = '';
-    });
+    // Event listeners for save/cancel buttons removed (buttons hidden)
 
     // Ctrl+S
     quill.root.addEventListener('keydown', e => {

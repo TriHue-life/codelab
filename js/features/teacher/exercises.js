@@ -38,19 +38,16 @@ CL.define('Teacher.ExEditor', () => {
       <div id="ed-list" class="tp-edit-list"></div>
       <div id="ed-form" class="tp-edit-form" style="display:none"></div>
       <div class="tp-actions" style="padding:8px 14px">
-        <button class="tp-action-btn" id="sync-all-btn">
-          🔄 Sync lên Sheets
-        </button>
+        <!-- Sync button removed -->
       </div>`;
     
     // Attach event listeners (inline onchange doesn't work with innerHTML)
     const edG = document.getElementById('ed-g');
     const edCh = document.getElementById('ed-ch');
-    const syncBtn = document.getElementById('sync-all-btn');
     
     if (edG) edG.addEventListener('change', loadChap);
     if (edCh) edCh.addEventListener('change', loadList);
-    if (syncBtn) syncBtn.addEventListener('click', syncAll);
+    // Sync button removed
   }
 
   // ══════════════════════════════════════════════════════════════
