@@ -14018,7 +14018,10 @@ Tải lại trang để về giao diện luyện tập?`)) {
   CL.Features.Theme?.init();
 
   // ── Auth start ───────────────────────────────────────────────
-  CL.Auth.UI.init(() => {
+  CL.Auth.UI.init((user) => {
+    // ── FIX: Init sidebar khi page load lại (F5) ──────────────────
+    // Sidebar cần được init khi auth ready, không chỉ khi login
+    CL.Features.Sidebar?.init(user.role);
   });
 
   // ── Private helpers ───────────────────────────────────────────
