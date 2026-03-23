@@ -231,8 +231,8 @@ CL.define('CL.Teacher.ExEditor', function() {
     
     if (CL.Editors?.RichText) {
       const descContent = localStorage.getItem(`cl_content_${id}_desc`) || ex.desc || '';
-      const theoryContent = localStorage.getItem(`cl_content_${id}_theory`) || ex.ly_thuyet || '';
-      const codeContent = localStorage.getItem(`cl_content_${id}_code`) || ex.code_mau || '';
+      const theoryContent = localStorage.getItem(`cl_content_${id}_theory`) || '';
+      const codeContent = localStorage.getItem(`cl_content_${id}_code`) || '';
       
       CL.Editors.RichText.mount(descContainer, descContent, () => {
         _hasUnsavedChanges = true;
