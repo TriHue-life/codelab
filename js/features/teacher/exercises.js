@@ -21,26 +21,36 @@ CL.define('Teacher.ExEditor', () => {
   // ══════════════════════════════════════════════════════════════
 
   async function render(el) {
+    console.log('[ExEditor] render called, el:', el);
     const allExs = Registry.getAll();
     const grades = [...new Set(allExs.map(e => e.bo ? `${e.g}-${e.bo}` : e.g))];
 
     el.innerHTML = `
       <div class="tp-edit-toolbar">
-        <select id="ed-g" onchange="CL.Teacher.ExEditor.loadChap()" style="flex:1">
+        <select id="ed-g" style="flex:1">
           <option value="">— Chọn lớp —</option>
           ${grades.map(g => `<option>${g}</option>`).join('')}
         </select>
-        <select id="ed-ch" onchange="CL.Teacher.ExEditor.loadList()" style="flex:2">
+        <select id="ed-ch" style="flex:2">
           <option value="">— Chọn chủ đề —</option>
         </select>
       </div>
       <div id="ed-list" class="tp-edit-list"></div>
       <div id="ed-form" class="tp-edit-form" style="display:none"></div>
       <div class="tp-actions" style="padding:8px 14px">
-        <button class="tp-action-btn" onclick="CL.Teacher.ExEditor.syncAll()">
+        <button class="tp-action-btn" id="sync-all-btn">
           🔄 Sync lên Sheets
         </button>
       </div>`;
+    
+    // Attach event listeners (inline onchange doesn't work with innerHTML)
+    const edG = document.getElementById('ed-g');
+    const edCh = document.getElementById('ed-ch');
+    const syncBtn = document.getElementById('sync-all-btn');
+    
+    if (edG) edG.addEventListener('change', loadChap);
+    if (edCh) edCh.addEventListener('change', loadList);
+    if (syncBtn) syncBtn.addEventListener('click', syncAll);
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -48,6 +58,7 @@ CL.define('Teacher.ExEditor', () => {
   // ══════════════════════════════════════════════════════════════
 
   function loadChap() {
+    console.log('[ExEditor] loadChap called');
     const gk  = document.getElementById('ed-g')?.value;
     const chs = Registry.getChapters(gk);
     const sel = document.getElementById('ed-ch');
@@ -156,13 +167,13 @@ CL.define('Teacher.ExEditor', () => {
         </div>
       </div>
 
-      <!-- TAB: CODE MẪU — RichText (có thể kết hợp giải thích + code block) -->
+      <!-- TAB: CODE MẪU -->
       <div id="et-code-mau" class="ed-panel" style="display:none">
         <div class="ed-rte-hint">
-          <span>💻 Code mẫu & giải thích — chỉ hiện khi điểm &lt; ${CL.require('Config').GRADE.SHOW_SOLUTION_BELOW}/10. Dùng nút <b>code-block</b> (</>) để chèn code có highlight.</span>
+          <span>💻 Soạn code mẫu (có thể có giải thích) — học sinh sẽ thấy khi xem lời giải.</span>
         </div>
         <div id="ef-code-container" class="ed-rte-container">
-          ${_codeToHtml((detail.code_mau?.[0]||{}).code || ex.solution || '', ex.type || 'python')}
+          ${_codeToHtml((detail.code_mau?.[0]?.code) || ex.solution || '', ex.type || 'python')}
         </div>
         <div class="ed-panel-footer">
           <button class="ed-save-btn" onclick="CL.Teacher.ExEditor.saveField('${Utils.escHtml(id)}','code')">
@@ -170,31 +181,10 @@ CL.define('Teacher.ExEditor', () => {
           </button>
           <span class="ed-save-msg" id="ed-msg-code"></span>
         </div>
-      </div>
+      </div>`;
 
-      <div id="ed-msg-global" class="ed-global-msg"></div>`;
-
-    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-    // Mount RichText editors after DOM is ready
+    // Mount rich editors after HTML is set
     await _mountRichEditors(id, ex, detail, savedDesc, savedTheory);
-  }
-
-  // ── Convert raw code string → HTML for RichText initial content ──
-  function _codeToHtml(code, lang) {
-    if (!code || !code.trim()) return '';
-    // Wrap in a proper pre/code block that Quill can display
-    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    return `<pre class="ql-syntax" data-language="${lang || 'python'}">${esc(code.trim())}</pre>`;
-  }
-
-  // ── Extract raw code from RichText HTML (first <pre> block) ────
-  function _extractCode(html) {
-    if (!html) return '';
-    const m = html.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
-    if (!m) return html.replace(/<[^>]+>/g, '').trim();
-    // Unescape HTML entities
-    return m[1].replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').trim();
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -335,7 +325,7 @@ CL.define('Teacher.ExEditor', () => {
     const progBox   = _showProgress(container);
     progBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-    const btn = document.querySelector('[onclick*="syncAll"]');
+    const btn = document.querySelector('[id="sync-all-btn"]');
     if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang sync...'; }
 
     try {
@@ -410,6 +400,18 @@ CL.define('Teacher.ExEditor', () => {
     if (box && success) {
       setTimeout(() => { box.style.opacity = '0'; setTimeout(() => box.remove(), 600); }, 3000);
     }
+  }
+
+  // ── Helper: convert code to HTML ────────────────────────────
+
+  function _codeToHtml(code, lang) {
+    if (!code) return '<p>Chưa có code mẫu.</p>';
+    return `<pre><code class="language-${lang}">${Utils.escHtml(code)}</code></pre>`;
+  }
+
+  function _extractCode(html) {
+    const match = html.match(/<code[^>]*>([\s\S]*?)<\/code>/);
+    return match ? match[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&') : '';
   }
 
   return { render, loadChap, loadList, edit, switchTab, saveField, closeForm, syncAll };
