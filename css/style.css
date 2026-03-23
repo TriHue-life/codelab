@@ -6865,6 +6865,13 @@ tr.item-warn td { background:rgba(248,113,113,.04); }
   flex-shrink: 0 !important;
   box-sizing:  border-box !important;
 }
+
+/* FIX: Ẩn mobile-nav trên desktop (> 768px) */
+@media (min-width: 769px) {
+  .mobile-nav {
+    display: none !important;
+  }
+}
 .mobile-nav-inner {
   display:     flex !important;
   align-items: stretch !important;

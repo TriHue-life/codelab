@@ -236,7 +236,7 @@ CL.define('Features.Sidebar', () => {
           data-gid="${group.id}"
           onmouseenter="CL.Features.Sidebar._showFlyout('${group.id}', this)"
           onmouseleave="CL.Features.Sidebar._hideFlyout('${group.id}')"
-          onclick="CL.Features.Sidebar.groupHeaderClick('${group.id}')">
+          onclick="CL.Features.Sidebar.groupHeaderClick('${group.id}', event)">
           <span class="sb-icon">${group.icon}</span>
           <span class="sb-label">${group.label}</span>
           <span class="sb-group-arrow">›</span>
@@ -373,7 +373,10 @@ CL.define('Features.Sidebar', () => {
   // When narrow sidebar: clicking group header navigates to its first child
   let _flyoutTimers = {};
 
-  function groupHeaderClick(gid) {
+  function groupHeaderClick(gid, event) {
+    // FIX: Stop propagation để menu cấp 2 không đóng ngay lập tức
+    if (event) event.stopPropagation();
+    
     const sidebar  = document.getElementById('sidebar');
     const isPinned = sidebar?.classList.contains('pinned');
 

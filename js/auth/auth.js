@@ -41,7 +41,17 @@ CL.define('Auth.UI', () => {
       const shell = document.getElementById('app-shell');
       if (shell) { shell.style.removeProperty('display'); shell.style.removeProperty('visibility'); }
       _applyRole(existing);
-      CL.Events?.emit('auth:login', { user: existing });
+      
+      // FIX: Init sidebar IMMEDIATELY (không chờ event) để tránh race condition
+      // Dùng requestAnimationFrame để đảm bảo DOM sẵn sàng
+      requestAnimationFrame(() => {
+        // Emit auth:login event để app.js có thể làm việc khác
+        CL.Events?.emit('auth:login', { user: existing });
+        // Init sidebar ngay lập tức - không chờ event listener
+        if (!document.querySelector('.sb-group')) {
+          CL.Features.Sidebar?.init(existing.role);
+        }
+      });
       onReady(existing);
     } else {
       _renderLoginScreen();

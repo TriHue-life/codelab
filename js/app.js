@@ -158,7 +158,10 @@ Tải lại trang để về giao diện luyện tập?`)) {
     
     // ── FIX: Init sidebar khi page load lại (F5) ──────────────────
     // Sidebar cần được init khi auth ready, không chỉ khi login
-    CL.Features.Sidebar?.init(user.role);
+    // Guard: chỉ init nếu chưa được init (để tránh double-init)
+    if (!document.querySelector('.sb-group')) {
+      CL.Features.Sidebar?.init(user.role);
+    }
   });
 
   // ── Private helpers ───────────────────────────────────────────
