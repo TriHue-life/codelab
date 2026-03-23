@@ -210,7 +210,7 @@
     /* All panels hidden by default on mobile — JS (mobilePanel) controls which is active */
     .panel {
       display: none;
-      height: calc(100dvh - 52px - 56px); /* 52px topbar + 56px mobile-nav */
+      height: calc(100dvh - 52px); /* 52px topbar (mobile-nav hidden) */
       height: calc(100vh - 52px - 56px);  /* fallback */
       min-height: 0;
       border-right: none !important;
@@ -6858,6 +6858,7 @@ tr.item-warn td { background:rgba(248,113,113,.04); }
    12. MOBILE BOTTOM NAV — 56px Canvas standard
    ══════════════════════════════════════════════════════════════════ */
 .mobile-nav {
+  display:     none !important; /* Hide mobile nav */
   height:      56px !important;
   min-height:  56px !important;
   background:  var(--surface) !important;
