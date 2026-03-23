@@ -5,7 +5,6 @@
  */
 'use strict';
 
-try {
 (function bootstrap() {
   const Store    = CL.require('Store');
   const Events   = CL.require('Events');
@@ -88,10 +87,7 @@ Tải lại trang để về giao diện luyện tập?`)) {
     if (shell) shell.style.removeProperty('display');
 
     // Init sidebar navigation (Canvas-style)
-    // Guard: chỉ init nếu chưa được init (tránh double-init)
-    if (!document.querySelector('.sb-group')) {
-      CL.Features.Sidebar?.init(user.role);
-    }
+    CL.Features.Sidebar?.init(user.role);
 
     // Update user badge in topbar
     const area = document.getElementById('user-badge-area');
@@ -117,12 +113,10 @@ Tải lại trang để về giao diện luyện tập?`)) {
     if (exBar) exBar.style.display = '';
 
     // ── FIX: Đảm bảo workspace-view hiển thị đúng sau login ──────
-    // REMOVED: Không nên force hiển thị workspace-view ở đây
-    // Để sidebar.js kiểm soát hiển thị dựa trên active section
-    // const wv = document.getElementById('workspace-view');
-    // if (wv && (!wv.style.display || wv.style.display === 'none')) {
-    //   wv.style.display = 'flex';
-    // }
+    const wv = document.getElementById('workspace-view');
+    if (wv && (!wv.style.display || wv.style.display === 'none')) {
+      wv.style.display = 'flex';
+    }
 
     // ── FIX: Mobile — init editor panel as active on first load ───
     if (window.innerWidth <= 768) {
@@ -892,6 +886,3 @@ Tải lại trang để về giao diện luyện tập?`)) {
   };
 
 })();
-} catch (e) {
-  console.error('[CL] Bootstrap error:', e.message, e.stack);
-}

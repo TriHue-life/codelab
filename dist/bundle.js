@@ -1,9 +1,6 @@
-/* CodeLab Bundle — built 2026-03-23 03:36
- * 49 modules bundled
- * Exercise data lazy-loaded on grade selection
- */
+/* CodeLab v5.15.0 */
 
-// ─── js/core/namespace.js ───────────────────────────
+// --- js/core/namespace.js ---
 /**
  * core/namespace.js — CodeLab Global Namespace Bootstrap
  * ═══════════════════════════════════════════════════════════════
@@ -182,7 +179,7 @@ if (typeof window.CL !== 'undefined' && window.CL._initialized) {
   );
 }
 
-// ─── js/core/config.js ───────────────────────────
+// --- js/core/config.js ---
 /**
  * core/config.js — Tất cả hằng số và cấu hình
  * ═══════════════════════════════════════════════════════════════
@@ -199,12 +196,6 @@ CL.define('Config', () => ({
   // ── App ────────────────────────────────────────────────────────
   APP_NAME:    'CodeLab',
   APP_VERSION: '5.15.0',
-
-  // ── Server URL — điền URL Apps Script sau khi deploy ─────────
-  // Admin dán URL vào đây một lần duy nhất trước khi phân phối app:
-  //   https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
-  // Nếu để trống: app đọc từ localStorage (nhập qua trang Cấu hình)
-  DEPLOY_URL: 'https://script.google.com/macros/s/AKfycbygkdGhezzgCAuMcZDAQ-qsxkzNtO1zTxbwlol0yqMtGazcVFcUcJ7HnY-IYNu_IY2W/exec',
 
   // ── CT GDPT 2018 — Năng lực đặc thù Tin học ──────────────────
   // Mapping Bloom Level → Năng lực chính (theo TT32/2018)
@@ -334,7 +325,7 @@ CL.define('Config', () => ({
 
 }));
 
-// ─── js/core/utils.js ───────────────────────────
+// --- js/core/utils.js ---
 /**
  * core/utils.js — Pure Utility Functions
  * ═══════════════════════════════════════════════════════════════
@@ -560,7 +551,7 @@ CL.define('Utils', () => {
   };
 });
 
-// ─── js/core/events.js ───────────────────────────
+// --- js/core/events.js ---
 /**
  * core/events.js — EventBus (Pub/Sub)
  * ═══════════════════════════════════════════════════════════════
@@ -674,7 +665,7 @@ CL.define('Events', () => {
   return { on, once, off, emit, debug };
 });
 
-// ─── js/core/store.js ───────────────────────────
+// --- js/core/store.js ---
 /**
  * core/store.js — Global State Store
  * ═══════════════════════════════════════════════════════════════
@@ -776,7 +767,7 @@ CL.define('Store', () => {
   return { get, set, update, resetAuth, snapshot };
 });
 
-// ─── js/data/http.js ───────────────────────────
+// --- js/data/http.js ---
 /**
  * data/http.js — HTTP Client
  * ═══════════════════════════════════════════════════════════════
@@ -874,7 +865,7 @@ CL.define('Data.Http', () => {
   return { post, get, postAsync };
 });
 
-// ─── js/data/cache.js ───────────────────────────
+// --- js/data/cache.js ---
 /**
  * data/cache.js — Stale-While-Revalidate Cache
  * ═══════════════════════════════════════════════════════════════
@@ -1033,7 +1024,7 @@ CL.define('Data.Cache', () => {
   return { get, set, invalidate, clear, cleanup, swr };
 });
 
-// ─── js/data/queue.js ───────────────────────────
+// --- js/data/queue.js ---
 /**
  * data/queue.js — Write Queue (Fire-and-Forget với Retry)
  * ═══════════════════════════════════════════════════════════════
@@ -1110,7 +1101,7 @@ CL.define('Data.Queue', () => {
   return { enqueue, size };
 });
 
-// ─── js/auth/session.js ───────────────────────────
+// --- js/auth/session.js ---
 /**
  * auth/session.js — Session Storage Management
  * ═══════════════════════════════════════════════════════════════
@@ -1207,7 +1198,7 @@ CL.define('Auth.Session', () => {
   return { save, get, getToken, isLoggedIn, clear, hasRole };
 });
 
-// ─── js/auth/auth.js ───────────────────────────
+// --- js/auth/auth.js ---
 /**
  * auth/auth.js — Login UI & Authentication Flow
  * ═══════════════════════════════════════════════════════════════
@@ -1246,23 +1237,11 @@ CL.define('Auth.UI', () => {
     const existing = Session.get();
     if (existing) {
       // Session còn hợp lệ (F5) → khôi phục không login lại
-      document.documentElement.classList.remove('auth-required');
       document.body.classList.remove('auth-pending');
       const shell = document.getElementById('app-shell');
-      if (shell) { shell.style.removeProperty('display'); shell.style.removeProperty('visibility'); }
+      if (shell) shell.style.removeProperty('display');
       _applyRole(existing);
-      
-      // FIX: Init sidebar IMMEDIATELY (không chờ event) để tránh race condition
-      // Dùng requestAnimationFrame để đảm bảo DOM sẵn sàng
-      requestAnimationFrame(() => {
-        // Emit auth:login event để app.js có thể làm việc khác
-        CL.Events?.emit('auth:login', { user: existing });
-        // Init sidebar ngay lập tức - không chờ event listener
-        if (!document.querySelector('.sb-group')) {
-          CL.Features.Sidebar?.init(existing.role);
-        }
-      });
-      
+      CL.Events?.emit('auth:login', { user: existing });
       onReady(existing);
     } else {
       _renderLoginScreen();
@@ -1282,9 +1261,6 @@ CL.define('Auth.UI', () => {
     Session.clear();
     Store.resetAuth();
     Events.emit('auth:logout', {});
-    // Xóa localStorage sidebar state trước khi reload
-    localStorage.removeItem('cl_sb_active');
-    localStorage.removeItem('cl_sb_expanded');
     location.reload();
   }
 
@@ -1302,6 +1278,7 @@ CL.define('Auth.UI', () => {
 
     const ov = document.createElement('div');
     ov.id = 'auth-overlay';
+    const hasUrl = !!localStorage.getItem(cfg.LS.SCRIPT_URL);
     ov.innerHTML = `
       <div class="auth-card">
         <div class="auth-brand">
@@ -1358,7 +1335,11 @@ CL.define('Auth.UI', () => {
           </button>
         </div>
 
-
+        <div class="auth-setup-hint" id="auth-setup-hint"
+          style="display:${hasUrl ? 'none' : 'flex'}">
+          <span>⚙️ Chưa kết nối server</span>
+          <a href="#" onclick="CL.Auth.UI._openSetup();return false">Nhập URL →</a>
+        </div>
 
         <div class="auth-footer">
           <span>CodeLab v${cfg.APP_VERSION}</span>
@@ -1406,10 +1387,8 @@ CL.define('Auth.UI', () => {
     if (!idVal)   return _showError('err-main', 'Vui lòng nhập tài khoản');
     if (!rawPwd)  return _showError('err-main', 'Vui lòng nhập mật khẩu');
 
-    const url = (cfg.DEPLOY_URL && cfg.DEPLOY_URL.startsWith('http'))
-      ? cfg.DEPLOY_URL
-      : localStorage.getItem(cfg.LS.SCRIPT_URL);
-    if (!url) return _showError('err-main', '⚠️ Chưa cấu hình server. Liên hệ quản trị viên.');
+    const url = localStorage.getItem(cfg.LS.SCRIPT_URL);
+    if (!url) return _showError('err-main', 'Chưa cấu hình server. Nhấn "Thiết lập ngay".');
 
     // Auto-detect: chỉ số 9-12 chữ số = học sinh, còn lại = giáo viên/admin
     const role = /^\d{9,12}$/.test(idVal) ? 'student' : 'teacher';
@@ -1473,11 +1452,15 @@ CL.define('Auth.UI', () => {
     });
   }
 
+  // ── Setup wizard opener ───────────────────────────────────────
 
-  /** @deprecated - URL managed in Cấu hình section */
-  function _openSetup() {}
-  function _saveUrl() {}
-  function _showUrlInput() {}
+  function _openSetup() {
+    const url = prompt('🔗 Dán Apps Script Web App URL của bạn vào đây:');
+    if (url?.trim()) {
+      localStorage.setItem(cfg.LS.SCRIPT_URL, url.trim());
+      location.reload();
+    }
+  }
 
   // ── Helpers ───────────────────────────────────────────────────
 
@@ -1510,7 +1493,7 @@ CL.define('Auth.UI', () => {
   return { init, logout, setScriptUrl, _switchTab, _submit, _openSetup, _togglePw, _detectType };
 });
 
-// ─── js/exercises/registry.js ───────────────────────────
+// --- js/exercises/registry.js ---
 /**
  * exercises/registry.js — Exercise Registry
  * ═══════════════════════════════════════════════════════════════
@@ -1768,7 +1751,7 @@ CL.define('Exercises.Registry', () => {
   };
 });
 
-// ─── js/interpreter.js ───────────────────────────
+// --- js/interpreter.js ---
 // ══════════════════════════════════════════════════════════════
 //  PYTHON INTERPRETER  (Pure JavaScript, không cần thư viện)
 // ══════════════════════════════════════════════════════════════
@@ -2796,7 +2779,7 @@ return{run,tokenize,Parser,Interp,PyErr};
 })();
 
 
-// ─── js/editors/syntax/highlight.js ───────────────────────────
+// --- js/editors/syntax/highlight.js ---
 /**
  * editors/syntax/highlight.js — VSCode Dark+ Syntax Highlighter
  * ═══════════════════════════════════════════════════════════════
@@ -3337,7 +3320,7 @@ CL.define('Editors.Syntax', () => {
   return { python, html, css, sql };
 });
 
-// ─── js/graders/python.js ───────────────────────────
+// --- js/graders/python.js ---
 /**
  * graders/python.js — Python Grader Engine v2
  * ═══════════════════════════════════════════════════════════════
@@ -3536,7 +3519,7 @@ CL.define('Graders.Python', () => {
   return { grade };
 });
 
-// ─── js/graders/html.js ───────────────────────────
+// --- js/graders/html.js ---
 /**
  * graders/html.js — HTML/CSS Grader Engine v2
  * ═══════════════════════════════════════════════════════════════
@@ -3698,7 +3681,7 @@ CL.define('Graders.Html', () => {
   return { grade };
 });
 
-// ─── js/graders/sql.js ───────────────────────────
+// --- js/graders/sql.js ---
 /**
  * graders/sql.js — SQL Grader Engine v2
  * ═══════════════════════════════════════════════════════════════
@@ -3910,7 +3893,7 @@ CL.define('Graders.Sql', () => {
   return { grade };
 });
 
-// ─── js/editors/python.js ───────────────────────────
+// --- js/editors/python.js ---
 /**
  * editors/python.js — Python Code Editor
  * ═══════════════════════════════════════════════════════════════
@@ -4136,7 +4119,7 @@ CL.define('Editors.Python', () => {
            insertText, indent, dedent, getCode, setCode, clear };
 });
 
-// ─── js/editors/html.js ───────────────────────────
+// --- js/editors/html.js ---
 /**
  * editors/html.js — HTML/CSS Editor với Live Preview
  * ═══════════════════════════════════════════════════════════════
@@ -4396,7 +4379,7 @@ CL.define('Editors.Html', () => {
            insertSnippet, handleKey, reset, openFullscreen, setSize };
 });
 
-// ─── js/editors/sql.js ───────────────────────────
+// --- js/editors/sql.js ---
 /**
  * editors/sql.js — SQL Editor (SQLite WebAssembly)
  * ═══════════════════════════════════════════════════════════════
@@ -4760,7 +4743,7 @@ CL.define('Editors.Sql', () => {
   return { mount, unmount, run, resetDb, getCode, applyCode, insertSnippet, handleKey, showPanel };
 });
 
-// ─── js/ui/dropdown.js ───────────────────────────
+// --- js/ui/dropdown.js ---
 /**
  * ui/dropdown.js — Custom Dropdown Component (CDD)
  * ═══════════════════════════════════════════════════════════════
@@ -4955,7 +4938,7 @@ CL.define('UI.Dropdown', () => {
   return { init, open, select, setLocked, reset };
 });
 
-// ─── js/ui/toast.js ───────────────────────────
+// --- js/ui/toast.js ---
 /**
  * ui/toast.js — Toast Notifications
  * ═══════════════════════════════════════════════════════════════
@@ -5076,7 +5059,7 @@ CL.define('UI.Toast', () => {
   return { show, success, error, warn, confirm };
 });
 
-// ─── js/ui/results.js ───────────────────────────
+// --- js/ui/results.js ---
 /**
  * ui/results.js — Results Panel Renderer
  * ═══════════════════════════════════════════════════════════════
@@ -5247,7 +5230,7 @@ CL.define('UI.Results', () => {
   return { render };
 });
 
-// ─── js/features/anti-cheat.js ───────────────────────────
+// --- js/features/anti-cheat.js ---
 /**
  * features/anti-cheat.js — Anti-Cheat Monitor
  * ═══════════════════════════════════════════════════════════════
@@ -5425,7 +5408,7 @@ CL.define('Features.AntiCheat', () => {
   return { enable, disable };
 });
 
-// ─── js/features/teacher/panel.js ───────────────────────────
+// --- js/features/teacher/panel.js ---
 /**
  * features/teacher/panel.js — Teacher Panel (Inline Top Bar)
  * ═══════════════════════════════════════════════════════════════
@@ -5579,7 +5562,7 @@ CL.define('Teacher.Panel', () => {
   return { open, close, switchTab, toggle };
 });
 
-// ─── js/features/teacher/scores.js ───────────────────────────
+// --- js/features/teacher/scores.js ---
 /**
  * features/teacher/scores.js — Teacher Panel: Tab Điểm
  * @requires core/*, CL.API, CL.Utils
@@ -5654,7 +5637,7 @@ function _filterTable(tbodyId, q) {
   });
 }
 
-// ─── js/features/teacher/violations.js ───────────────────────────
+// --- js/features/teacher/violations.js ---
 /**
  * features/teacher/violations.js — Teacher Panel: Tab Vi phạm
  * @requires core/*, CL.API
@@ -5705,7 +5688,7 @@ CL.define('Teacher.Violations', () => {
   return { render };
 });
 
-// ─── js/features/teacher/history.js ───────────────────────────
+// --- js/features/teacher/history.js ---
 /**
  * features/teacher/history.js — Teacher Panel: Tab Lịch sử
  * @requires core/*, CL.API
@@ -5753,7 +5736,7 @@ CL.define('Teacher.History', () => {
   return { render };
 });
 
-// ─── js/features/teacher/exams.js ───────────────────────────
+// --- js/features/teacher/exams.js ---
 /**
  * features/teacher/exams.js — Exam Creator (Canvas LMS style v2)
  * ═══════════════════════════════════════════════════════════════
@@ -7283,281 +7266,425 @@ CL.define('Teacher.Exams', () => {
   };
 });
 
-// ─── js/features/teacher/exercises.js ───────────────────────────
-CL.define('CL.Teacher.ExEditor', function() {
+// --- js/features/teacher/exercises.js ---
+/**
+ * features/teacher/exercises.js — Ngân hàng bài tập (Teacher/Admin)
+ * ═══════════════════════════════════════════════════════════════
+ * Tabs: Đề bài (RichText) | Lý thuyết (RichText) | Code mẫu (textarea)
+ * Tiêu chí & Hướng dẫn lỗi: xử lý tự động bởi Python grader
+ *
+ * @requires core/*, CL.API, exercises/registry.js, CL.Editors.RichText
+ */
+'use strict';
+
+CL.define('Teacher.ExEditor', () => {
+  const Utils    = CL.require('Utils');
+  const Registry = CL.require('Exercises.Registry');
+  const Toast    = CL.require('UI.Toast');
+
+  // Theo dõi instance RichText đang mở
   let _currentId = null;
-  let _hasUnsavedChanges = false;
-  let _allExercises = [];
-  let _currentGrade = '';
-  let _currentChapter = '';
-  let _currentBloom = '';
 
   // ══════════════════════════════════════════════════════════════
-  //  RENDER
+  //  RENDER: danh sách bài tập
   // ══════════════════════════════════════════════════════════════
 
   async function render(el) {
-    console.log('[ExEditor] render called, el:', el);
-    el.innerHTML = '<div style="padding:20px;text-align:center">⏳ Đang tải dữ liệu bài tập...</div>';
-    
-    try {
-      // Load exercises from API
-      const allExs = await CL.API.getExercises(true);
-      if (!allExs || !Array.isArray(allExs)) {
-        el.innerHTML = '<div style="padding:20px;color:red">❌ Không thể tải dữ liệu bài tập</div>';
-        return;
-      }
-      
-      _allExercises = allExs;
-      const grades = [...new Set(allExs.map(e => e.g))].sort();
+    const allExs = Registry.getAll();
+    const grades = [...new Set(allExs.map(e => e.bo ? `${e.g}-${e.bo}` : e.g))];
 
-      el.innerHTML = `
-        <div class="tp-edit-container">
-          <div class="tp-edit-sidebar" id="ed-sidebar">
-            <button class="tp-edit-toggle-btn" id="ed-toggle-btn" title="Thu nhỏ danh sách">◀</button>
-            <div class="tp-edit-toolbar">
-              <select id="ed-g" style="flex:1">
-                <option value="">— Chọn lớp —</option>
-                ${grades.map(g => `<option>${g}</option>`).join('')}
-              </select>
-              <select id="ed-ch" style="flex:2">
-                <option value="">— Chọn chủ đề —</option>
-              </select>
-            </div>
-            <select id="ed-bloom" style="flex:1;margin-top:8px;padding:8px;display:none;">
-              <option value="">— Tất cả mức Bloom —</option>
-            </select>
-            <div id="ed-list" class="tp-edit-list"></div>
-          </div>
-          <div class="tp-edit-content">
-            <div id="ed-form" class="tp-edit-form" style="display:none"></div>
-          </div>
-        </div>`;
-      
-      // Attach event listeners (inline onchange doesn't work with innerHTML)
-      const edG = document.getElementById('ed-g');
-      const edCh = document.getElementById('ed-ch');
-      const edBloom = document.getElementById('ed-bloom');
-      const toggleBtn = document.getElementById('ed-toggle-btn');
-      const sidebar = document.getElementById('ed-sidebar');
-      
-      if (edG) edG.addEventListener('change', loadChap);
-      if (edCh) edCh.addEventListener('change', loadList);
-      if (edBloom) edBloom.addEventListener('change', filterList);
-      
-      // Toggle sidebar
-      if (toggleBtn && sidebar) {
-        toggleBtn.addEventListener('click', () => {
-          sidebar.classList.toggle('collapsed');
-        });
-      }
-    } catch (err) {
-      console.error('[ExEditor] Error:', err);
-      el.innerHTML = `<div style="padding:20px;color:red">❌ Lỗi: ${err.message}</div>`;
-    }
+    el.innerHTML = `
+      <div class="tp-edit-toolbar">
+        <select id="ed-g" onchange="CL.Teacher.ExEditor.loadChap()" style="flex:1">
+          <option value="">— Chọn lớp —</option>
+          ${grades.map(g => `<option>${g}</option>`).join('')}
+        </select>
+        <select id="ed-ch" onchange="CL.Teacher.ExEditor.loadList()" style="flex:2">
+          <option value="">— Chọn chủ đề —</option>
+        </select>
+      </div>
+      <div id="ed-list" class="tp-edit-list"></div>
+      <div id="ed-form" class="tp-edit-form" style="display:none"></div>
+      <div class="tp-actions" style="padding:8px 14px">
+        <button class="tp-action-btn" onclick="CL.Teacher.ExEditor.syncAll()">
+          🔄 Sync lên Sheets
+        </button>
+      </div>`;
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  LOAD CHAPTERS
+  //  LOAD chapters & list
   // ══════════════════════════════════════════════════════════════
 
-  function loadChap(e) {
-    _currentGrade = e.target.value;
-    _currentChapter = '';
-    _currentBloom = '';
-    
-    const filtered = _allExercises.filter(ex => ex.g === _currentGrade);
-    
-    // Extract chapter numbers from IDs (e.g., "17" from "k10-17-b1-1_1")
-    const chapterSet = new Set();
-    filtered.forEach(ex => {
-      const parts = ex.id.split('-');
-      if (parts.length >= 2) {
-        const chNum = parts[1]; // e.g., "17"
-        chapterSet.add(chNum);
-      }
-    });
-    
-    const chapters = [...chapterSet].sort((a, b) => parseInt(a) - parseInt(b));
-    const edCh = document.getElementById('ed-ch');
-    if (edCh) {
-      edCh.innerHTML = '<option value="">— Chọn chủ đề —</option>' +
-        chapters.map(ch => `<option>${ch}</option>`).join('');
-    }
-    
-    // Clear list and Bloom dropdown
-    const edList = document.getElementById('ed-list');
-    if (edList) edList.innerHTML = '';
-    
-    const edBloom = document.getElementById('ed-bloom');
-    if (edBloom) edBloom.style.display = 'none';
+  function loadChap() {
+    const gk  = document.getElementById('ed-g')?.value;
+    const chs = Registry.getChapters(gk);
+    const sel = document.getElementById('ed-ch');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">— Chọn chủ đề —</option>' +
+      chs.map(c => `<option>${c}</option>`).join('');
+    document.getElementById('ed-list').innerHTML = '';
+    const form = document.getElementById('ed-form');
+    if (form) form.style.display = 'none';
+    _unmountAll();
+  }
+
+  function loadList() {
+    const gk  = document.getElementById('ed-g')?.value;
+    const ch  = document.getElementById('ed-ch')?.value;
+    const exs = Registry.getByChapter(gk, ch);
+    const list = document.getElementById('ed-list');
+    if (!list) return;
+    list.innerHTML = exs.map(e => `
+      <div class="ed-item" onclick="CL.Teacher.ExEditor.edit('${Utils.escHtml(e.id)}')">
+        <span class="ed-lv">${(e.lv || '').split('–')[0].trim()}</span>
+        <span class="ed-num">${Utils.escHtml(e.num)}</span>
+        <span class="ed-title">${Utils.escHtml(e.title)}</span>
+        <span class="ed-type-badge ${e.type || 'python'}">${(e.type || 'python').toUpperCase()}</span>
+      </div>`).join('');
+    const form = document.getElementById('ed-form');
+    if (form) form.style.display = 'none';
+    _unmountAll();
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  LOAD EXERCISE LIST
+  //  EDIT: mở form chỉnh sửa bài tập
   // ══════════════════════════════════════════════════════════════
 
-  function loadList(e) {
-    _currentChapter = e.target.value;
-    _currentBloom = '';
-    
-    const filtered = _allExercises.filter(ex => 
-      ex.g === _currentGrade && ex.id.split('-')[1] === _currentChapter
-    );
-    
-    // Extract Bloom levels
-    const bloomSet = new Set();
-    filtered.forEach(ex => {
-      const parts = ex.id.split('-');
-      if (parts.length >= 3) {
-        const bloom = parts[2]; // e.g., "b1", "b2"
-        bloomSet.add(bloom);
-      }
-    });
-    
-    const blooms = [...bloomSet].sort();
-    const edBloom = document.getElementById('ed-bloom');
-    if (edBloom) {
-      edBloom.innerHTML = '<option value="">— Tất cả mức Bloom —</option>' +
-        blooms.map(b => {
-          const bloomLabel = b.toUpperCase();
-          return `<option value="${b}">${bloomLabel}</option>`;
-        }).join('');
-      edBloom.style.display = 'block';
-    }
-    
-    // Display all exercises for this chapter
-    filterList();
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  FILTER LIST
-  // ══════════════════════════════════════════════════════════════
-
-  function filterList() {
-    const edBloom = document.getElementById('ed-bloom');
-    if (edBloom) {
-      _currentBloom = edBloom.value;
-    }
-    
-    let filtered = _allExercises.filter(ex => 
-      ex.g === _currentGrade && ex.id.split('-')[1] === _currentChapter
-    );
-    
-    if (_currentBloom) {
-      filtered = filtered.filter(ex => ex.id.split('-')[2] === _currentBloom);
-    }
-    
-    // Sort naturally
-    filtered.sort((a, b) => {
-      const aParts = a.id.split('-');
-      const bParts = b.id.split('-');
-      if (aParts[3] !== bParts[3]) {
-        return parseInt(aParts[3]) - parseInt(bParts[3]);
-      }
-      return a.id.localeCompare(b.id);
-    });
-    
-    const edList = document.getElementById('ed-list');
-    if (edList) {
-      edList.innerHTML = filtered.map(e => `
-        <div class="ed-item" onclick="CL.Teacher.ExEditor.edit('${e.id}')">
-          <span class="ed-lv">${(e.lv || '').split('–')[0].trim()}</span>
-          <span class="ed-num">${e.num || ''}</span>
-          <span class="ed-title">${e.title || ''}</span>
-          <span class="ed-type-badge ${e.type || 'python'}">${(e.type || 'python').toUpperCase()}</span>
-        </div>`).join('');
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  EDIT EXERCISE
-  // ══════════════════════════════════════════════════════════════
-
-  function edit(id) {
-    _currentId = id;
-    const ex = _allExercises.find(e => e.id === id);
+  async function edit(id) {
+    const ex = Registry.findById(id);
     if (!ex) return;
+
+    // Unmount previous rich editors
+    _unmountAll();
+    _currentId = id;
+
+    // Load saved override from Sheets (if any)
+    let detail = { ly_thuyet: '', code_mau: [] };
+    if (CL.API?.isReady?.()) {
+      try { detail = await CL.API.getExerciseDetail(id); } catch {}
+    }
+
+    // Load saved desc/theory from NoiDung sheet (via localStorage cache or API)
+    const savedDesc   = localStorage.getItem(`cl_content_${id}_desc`);
+    const savedTheory = localStorage.getItem(`cl_content_${id}_theory`);
 
     const form = document.getElementById('ed-form');
     if (!form) return;
-
+    form.style.display = 'block';
     form.innerHTML = `
       <div class="ed-form-header">
-        <h3>${ex.title || 'Bài tập'}</h3>
-        <button onclick="CL.Teacher.ExEditor.close()" class="ed-close-btn">✕</button>
-      </div>
-      <div class="ed-tabs">
-        <button class="ed-tab-btn active" data-tab="desc">📝 Mô tả</button>
-        <button class="ed-tab-btn" data-tab="theory">📖 Lý thuyết</button>
-        <button class="ed-tab-btn" data-tab="code">💻 Code mẫu</button>
-      </div>
-      <div class="ed-tab-content">
-        <div class="ed-tab-pane active" data-tab="desc">
-          <textarea id="ed-desc" class="ed-textarea" placeholder="Nhập mô tả bài tập...">${ex.desc || ''}</textarea>
+        <div class="ed-form-title">
+          <span class="ed-form-type-badge ${ex.type || 'python'}">${(ex.type||'python').toUpperCase()}</span>
+          ✏️ ${Utils.escHtml(ex.num)} – ${Utils.escHtml(ex.title)}
         </div>
-        <div class="ed-tab-pane" data-tab="theory">
-          <textarea id="ed-theory" class="ed-textarea" placeholder="Nhập lý thuyết..."></textarea>
-        </div>
-        <div class="ed-tab-pane" data-tab="code">
-          <textarea id="ed-code" class="ed-textarea" placeholder="Nhập code mẫu..."></textarea>
-        </div>
+        <button class="ed-close-btn" onclick="CL.Teacher.ExEditor.closeForm()">✕</button>
       </div>
-      <div class="ed-form-footer">
-        <button onclick="CL.Teacher.ExEditor.save()" class="ed-save-btn">💾 Lưu</button>
-        <button onclick="CL.Teacher.ExEditor.close()" class="ed-cancel-btn">Hủy</button>
-      </div>`;
 
-    form.style.display = 'block';
+      <div class="ed-tabs" id="ed-tabs-main">
+        <button class="ed-tab on" onclick="CL.Teacher.ExEditor.switchTab(this,'de-bai')">
+          📋 Đề bài
+        </button>
+        <button class="ed-tab" onclick="CL.Teacher.ExEditor.switchTab(this,'ly-thuyet')">
+          📖 Lý thuyết
+        </button>
+        <button class="ed-tab" onclick="CL.Teacher.ExEditor.switchTab(this,'code-mau')">
+          💻 Code mẫu
+        </button>
+      </div>
 
-    // Tab switching
-    const tabBtns = form.querySelectorAll('.ed-tab-btn');
-    const tabPanes = form.querySelectorAll('.ed-tab-pane');
-    
-    tabBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        tabBtns.forEach(b => b.classList.remove('active'));
-        tabPanes.forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        form.querySelector(`[data-tab="${btn.dataset.tab}"]`).classList.add('active');
-      });
-    });
+      <!-- TAB: ĐỀ BÀI -->
+      <div id="et-de-bai" class="ed-panel">
+        <div class="ed-rte-hint">
+          <span>✏️ Soạn đề bài bằng trình soạn thảo bên dưới — học sinh sẽ thấy đúng như bạn soạn.</span>
+        </div>
+        <div id="ef-desc-container" class="ed-rte-container">
+          ${savedDesc || ex.desc || '<p>Chưa có đề bài.</p>'}
+        </div>
+        <div class="ed-panel-footer">
+          <button class="ed-save-btn" onclick="CL.Teacher.ExEditor.saveField('${Utils.escHtml(id)}','desc')">
+            💾 Lưu đề bài
+          </button>
+          <span class="ed-save-msg" id="ed-msg-desc"></span>
+        </div>
+      </div>
+
+      <!-- TAB: LÝ THUYẾT -->
+      <div id="et-ly-thuyet" class="ed-panel" style="display:none">
+        <div class="ed-rte-hint">
+          <span>📖 Soạn lý thuyết liên quan — chỉ hiện khi học sinh luyện tập, ẩn khi kiểm tra.</span>
+        </div>
+        <div id="ef-ly-container" class="ed-rte-container">
+          ${savedTheory || detail.ly_thuyet || ex.theory || '<p>Chưa có lý thuyết.</p>'}
+        </div>
+        <div class="ed-panel-footer">
+          <button class="ed-save-btn" onclick="CL.Teacher.ExEditor.saveField('${Utils.escHtml(id)}','theory')">
+            💾 Lưu lý thuyết
+          </button>
+          <span class="ed-save-msg" id="ed-msg-theory"></span>
+        </div>
+      </div>
+
+      <!-- TAB: CODE MẪU — RichText (có thể kết hợp giải thích + code block) -->
+      <div id="et-code-mau" class="ed-panel" style="display:none">
+        <div class="ed-rte-hint">
+          <span>💻 Code mẫu & giải thích — chỉ hiện khi điểm &lt; ${CL.require('Config').GRADE.SHOW_SOLUTION_BELOW}/10. Dùng nút <b>code-block</b> (</>) để chèn code có highlight.</span>
+        </div>
+        <div id="ef-code-container" class="ed-rte-container">
+          ${_codeToHtml((detail.code_mau?.[0]||{}).code || ex.solution || '', ex.type || 'python')}
+        </div>
+        <div class="ed-panel-footer">
+          <button class="ed-save-btn" onclick="CL.Teacher.ExEditor.saveField('${Utils.escHtml(id)}','code')">
+            💾 Lưu code mẫu
+          </button>
+          <span class="ed-save-msg" id="ed-msg-code"></span>
+        </div>
+      </div>
+
+      <div id="ed-msg-global" class="ed-global-msg"></div>`;
+
+    form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    // Mount RichText editors after DOM is ready
+    await _mountRichEditors(id, ex, detail, savedDesc, savedTheory);
   }
 
-  function save() {
-    if (!_currentId) return;
-    
-    const desc = document.getElementById('ed-desc')?.value || '';
-    const token = localStorage.getItem('token');
-    
-    const exercise = {
-      id: _currentId,
-      desc: desc
-    };
-
-    CL.API.saveExerciseContent(_currentId, 'desc', desc).then(res => {
-      alert('✅ Lưu thành công');
-      _hasUnsavedChanges = false;
-    }).catch(err => {
-      alert('❌ Lỗi: ' + err.message);
-    });
+  // ── Convert raw code string → HTML for RichText initial content ──
+  function _codeToHtml(code, lang) {
+    if (!code || !code.trim()) return '';
+    // Wrap in a proper pre/code block that Quill can display
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<pre class="ql-syntax" data-language="${lang || 'python'}">${esc(code.trim())}</pre>`;
   }
 
-  function close() {
-    const form = document.getElementById('ed-form');
-    if (form) form.style.display = 'none';
+  // ── Extract raw code from RichText HTML (first <pre> block) ────
+  function _extractCode(html) {
+    if (!html) return '';
+    const m = html.match(/<pre[^>]*>([\s\S]*?)<\/pre>/i);
+    if (!m) return html.replace(/<[^>]+>/g, '').trim();
+    // Unescape HTML entities
+    return m[1].replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').trim();
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  MOUNT rich text editors for desc + theory tabs
+  // ══════════════════════════════════════════════════════════════
+
+  async function _mountRichEditors(id, ex, detail, savedDesc, savedTheory) {
+    if (!CL.Editors?.RichText) {
+      console.warn('[ExEditor] RichText module not loaded');
+      return;
+    }
+
+    // Mount DESC editor
+    const descInitial = savedDesc || ex.desc || '';
+    await _mountRte('ef-desc-container', descInitial);
+
+    // Mount THEORY editor
+    const theoryInitial = savedTheory || detail.ly_thuyet || ex.theory || '';
+    await _mountRte('ef-ly-container', theoryInitial);
+
+    // Mount CODE editor — initial content as code-block
+    const codeInitial = _codeToHtml(
+      (detail.code_mau?.[0]?.code) || ex.solution || '', ex.type || 'python'
+    );
+    await _mountRte('ef-code-container', codeInitial);
+  }
+
+  async function _mountRte(containerId, initialHtml) {
+    try {
+      await CL.Editors.RichText.mount(containerId, initialHtml, null);
+      // null onSave = manual save via saveField button
+    } catch(e) {
+      console.warn(`[ExEditor] Cannot mount RTE for ${containerId}:`, e.message);
+    }
+  }
+
+  function _unmountAll() {
+    if (!CL.Editors?.RichText) return;
+    CL.Editors.RichText.unmount('ef-desc-container');
+    CL.Editors.RichText.unmount('ef-ly-container');
+    CL.Editors.RichText.unmount('ef-code-container');
     _currentId = null;
   }
 
-  return {
-    render: render,
-    edit: edit,
-    save: save,
-    close: close
-  };
+  // ══════════════════════════════════════════════════════════════
+  //  TAB SWITCH
+  // ══════════════════════════════════════════════════════════════
+
+  function switchTab(btn, panel) {
+    const tabs = document.getElementById('ed-tabs-main');
+    tabs?.querySelectorAll('.ed-tab').forEach(t => t.classList.remove('on'));
+    btn.classList.add('on');
+    ['de-bai', 'ly-thuyet', 'code-mau'].forEach(p => {
+      const el = document.getElementById('et-' + p);
+      if (el) el.style.display = (p === panel ? '' : 'none');
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  SAVE individual field
+  // ══════════════════════════════════════════════════════════════
+
+  async function saveField(id, field) {
+    const msgId = `ed-msg-${field === 'code' ? 'code' : field === 'desc' ? 'desc' : 'theory'}`;
+    const msgEl = document.getElementById(msgId);
+    if (msgEl) msgEl.textContent = '⏳ Đang lưu...';
+
+    try {
+      if (field === 'desc') {
+        const html = CL.Editors.RichText.getHtml('ef-desc-container');
+        await CL.API.saveExerciseContent(id, 'desc', html);
+        // Cache locally too
+        localStorage.setItem(`cl_content_${id}_desc`, html);
+        if (msgEl) msgEl.textContent = '✅ Đã lưu đề bài';
+
+      } else if (field === 'theory') {
+        const html = CL.Editors.RichText.getHtml('ef-ly-container');
+        await CL.API.saveLyThuyet(id, html);
+        // Cache locally
+        localStorage.setItem(`cl_content_${id}_theory`, html);
+        if (msgEl) msgEl.textContent = '✅ Đã lưu lý thuyết';
+
+      } else if (field === 'code') {
+        // Get content from RichText editor (HTML with code blocks + explanations)
+        const html = CL.Editors.RichText.getHtml('ef-code-container');
+        // Extract pure code from first code-block for backward compat grading
+        const codeOnly = _extractCode(html);
+        const ex = CL.require('Exercises.Registry').findById(id);
+        const lang = ex?.type || 'python';
+        // Save HTML version (rich) + plain code for grader compatibility
+        await CL.API.saveCodeMau(id, lang, codeOnly || html, '');
+        await CL.API.saveExerciseContent(id, 'code_rich', html);
+        if (msgEl) msgEl.textContent = '✅ Đã lưu code mẫu';
+      }
+
+      Toast.success(`✅ Đã lưu ${field === 'desc' ? 'đề bài' : field === 'theory' ? 'lý thuyết' : 'code mẫu'}`);
+      setTimeout(() => { if (msgEl) msgEl.textContent = ''; }, 3000);
+
+    } catch(e) {
+      if (msgEl) msgEl.textContent = '❌ ' + e.message;
+      Toast.error('❌ ' + e.message);
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  CLOSE form
+  // ══════════════════════════════════════════════════════════════
+
+  function closeForm() {
+    _unmountAll();
+    const form = document.getElementById('ed-form');
+    if (form) form.style.display = 'none';
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  SYNC ALL to Google Sheets
+  // ══════════════════════════════════════════════════════════════
+
+  async function syncAll() {
+    const confirmed = await Toast.confirm(
+      'Sync toàn bộ bài tập lên Google Sheets?\n' +
+      'Sẽ sync: BaiTap + LyThuyet + CodeMau\n' +
+      'Quá trình mất 3–8 phút. Không đóng tab trong khi sync.'
+    );
+    if (!confirmed) return;
+
+    const all   = Registry.getAll();
+    const BATCH = 100;
+    const TABS  = [
+      { tab: 'BaiTap',   label: '📋 BaiTap'   },
+      { tab: 'LyThuyet', label: '📖 LyThuyet'  },
+      { tab: 'CodeMau',  label: '💻 CodeMau'   },
+    ];
+    const totalSteps = TABS.length * Math.ceil(all.length / BATCH);
+    let step = 0;
+
+    const container = document.getElementById('tp-bar-body') || document.body;
+    const progBox   = _showProgress(container);
+    progBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    const btn = document.querySelector('[onclick*="syncAll"]');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang sync...'; }
+
+    try {
+      for (const { tab, label } of TABS) {
+        const tabBatches = Math.ceil(all.length / BATCH);
+        for (let i = 0; i < all.length; i += BATCH) {
+          step++;
+          const batchNum = Math.floor(i / BATCH) + 1;
+          const batch    = all.slice(i, i + BATCH);
+          _updateProgress(step, totalSteps,
+            `${label} — batch ${batchNum}/${tabBatches}`);
+          await CL.API.syncFull(batch, tab, i === 0);
+          _updateProgress(step, totalSteps,
+            `✓ ${label} batch ${batchNum}/${tabBatches} (${Math.min(i + BATCH, all.length)}/${all.length} bài)`);
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+      _finishProgress(true);
+      Toast.success('✅ Sync hoàn tất!');
+    } catch(e) {
+      _finishProgress(false);
+      Toast.error('❌ Sync lỗi: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '🔄 Sync lên Sheets'; }
+    }
+  }
+
+  // ── Progress bar ────────────────────────────────────────────
+
+  function _showProgress(container) {
+    document.getElementById('sync-progress-box')?.remove();
+    const el = document.createElement('div');
+    el.id = 'sync-progress-box';
+    el.innerHTML = `
+      <div class="sync-prog-title">🔄 Đang sync bài tập lên Google Sheets...</div>
+      <div class="sync-prog-wrap"><div class="sync-prog-bar" id="sync-prog-bar" style="width:0%"></div></div>
+      <div class="sync-prog-info">
+        <span id="sync-prog-text">Chuẩn bị...</span>
+        <span id="sync-prog-pct">0%</span>
+      </div>
+      <div class="sync-prog-steps" id="sync-prog-steps"></div>`;
+    container.appendChild(el);
+    return el;
+  }
+
+  function _updateProgress(step, total, msg) {
+    const pct = Math.round(step / total * 100);
+    const bar  = document.getElementById('sync-prog-bar');
+    const txt  = document.getElementById('sync-prog-text');
+    const pctEl = document.getElementById('sync-prog-pct');
+    const steps = document.getElementById('sync-prog-steps');
+    if (bar)  bar.style.width     = pct + '%';
+    if (txt)  txt.textContent     = msg;
+    if (pctEl) pctEl.textContent  = pct + '%';
+    if (steps && msg) {
+      const line = document.createElement('div');
+      line.className = 'sync-prog-step';
+      line.textContent = '✅ ' + msg;
+      steps.appendChild(line);
+      steps.scrollTop = steps.scrollHeight;
+    }
+  }
+
+  function _finishProgress(success) {
+    const bar   = document.getElementById('sync-prog-bar');
+    const txt   = document.getElementById('sync-prog-text');
+    const pctEl = document.getElementById('sync-prog-pct');
+    const box   = document.getElementById('sync-progress-box');
+    if (bar)  { bar.style.width = '100%'; bar.style.background = success ? 'var(--accent2)' : 'var(--error)'; }
+    if (txt)  txt.textContent  = success ? '✅ Sync hoàn tất!' : '❌ Sync thất bại';
+    if (pctEl) pctEl.textContent = success ? '100%' : 'Lỗi';
+    if (box && success) {
+      setTimeout(() => { box.style.opacity = '0'; setTimeout(() => box.remove(), 600); }, 3000);
+    }
+  }
+
+  return { render, loadChap, loadList, edit, switchTab, saveField, closeForm, syncAll };
 });
 
-// ─── js/features/teacher/config.js ───────────────────────────
+// --- js/features/teacher/config.js ---
 /**
  * features/teacher/config.js — Teacher Panel: Tab Cấu hình (v2)
  * Thêm: Cấu hình đa AI API (Claude, OpenAI, Gemini) — admin only
@@ -7700,10 +7827,6 @@ CL.define('Teacher.Config', () => {
           <div class="cfg-hint">
             Google Sheet → Extensions → Apps Script → Deploy → Web App
             → Execute as: <b>Me</b> → Who has access: <b>Anyone</b> → Copy URL
-          </div>
-          <div class="cfg-hint" style="margin-top:6px;color:var(--accent2)">
-            💡 Cách tốt nhất: Dán URL vào <code>DEPLOY_URL</code> trong <b>js/core/config.js</b>
-            trước khi phân phối app — tất cả máy trạm dùng chung URL mà không cần cấu hình lại.
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
@@ -7983,7 +8106,7 @@ CL.define('Teacher.Config', () => {
   };
 });
 
-// ─── js/features/mode-manager.js ───────────────────────────
+// --- js/features/mode-manager.js ---
 /**
  * features/mode-manager.js — Quản lý chế độ Luyện tập ↔ Kiểm tra
  * ═══════════════════════════════════════════════════════════════
@@ -8170,7 +8293,7 @@ CL.define('Features.ModeManager', () => {
   return { init, enterExamWithCode, exitToPractice, isPractice, isExam, showEnterCodeDialog };
 });
 
-// ─── js/features/exam-mode.js ───────────────────────────
+// --- js/features/exam-mode.js ---
 /**
  * features/exam-mode.js — Chế độ Thi/Kiểm tra
  * ═══════════════════════════════════════════════════════════════
@@ -9247,7 +9370,7 @@ ${_questions.slice(0, 5).map((q, i) => {
   return { start, navTo, submitQuestion, confirmSubmit, downloadPdf, cleanup, handleEditorKey, onPaste, scheduleHtmlPreview, runCode, runSQL };
 });
 
-// ─── js/features/teacher/analytics.js ───────────────────────────
+// --- js/features/teacher/analytics.js ---
 /**
  * features/teacher/analytics.js — Thống kê & Phân tích (v2)
  * ═══════════════════════════════════════════════════════════════
@@ -10122,7 +10245,7 @@ CL.define('Teacher.Analytics', () => {
   };
 });
 
-// ─── js/api.js ───────────────────────────
+// --- js/api.js ---
 /**
  * api.js — Public API Facade
  * Lớp mỏng trên Data.Http + Data.Cache + Data.Queue.
@@ -10150,13 +10273,7 @@ CL.define('API', () => {
   }
   window.addEventListener('visibilitychange', () => { if (document.hidden) _flushLogs(); });
 
-  // URL priority: 1) config.DEPLOY_URL (hardcoded by admin at deploy time)
-  //               2) localStorage (set via teacher config panel)
-  function _url() {
-    return (cfg.DEPLOY_URL && cfg.DEPLOY_URL.startsWith('http'))
-      ? cfg.DEPLOY_URL
-      : (localStorage.getItem(cfg.LS.SCRIPT_URL) || '');
-  }
+  function _url()  { return localStorage.getItem(cfg.LS.SCRIPT_URL) || ''; }
   function _tok()  { return Session.getToken(); }
   function _ok()   { return !!_url(); }
   async function _post(body, timeoutMs) { return Http.post(_url(), body, timeoutMs); }
@@ -10176,9 +10293,6 @@ CL.define('API', () => {
   // Exercises
   async function getExerciseDetail(id, force) {
     return Cache.swr('exercise_'+id, cfg.CACHE_TTL.EXERCISE_DETAIL, () => _get({ action: 'getExercise', bai_id: id }), force);
-  }
-  async function getExercises(force) {
-    return Cache.swr('exercises_all', cfg.CACHE_TTL.EXAMS, () => _get({ action: 'getExercises' }), force);
   }
 
   // Scores & History
@@ -10237,7 +10351,7 @@ CL.define('API', () => {
 
   // Lưu nội dung đề bài/lý thuyết (teacher/admin)
   async function saveExerciseContent(baiId, field, html) {
-    const url = _url();
+    const url = localStorage.getItem(cfg.LS.SCRIPT_URL);
     if (!url) throw new Error('Chưa cấu hình server URL');
     return Http.post(url, { action: 'saveExerciseContent', token: _tok(), bai_id: baiId, field, html });
   }
@@ -10422,7 +10536,7 @@ CL.define('API', () => {
   }
 
     const facade = { setUrl, getUrl, isReady, getToken: _tok,
-    login, logout, changePassword, updateProfile, getExerciseDetail, getExercises,
+    login, logout, changePassword, updateProfile, getExerciseDetail,
     submitScore, submitPracticeScore, saveExerciseContent,
     saveBaiTapRecord, getItemAnalysis, getExamMatrix, getBaiLamForStudent,
     getImageConfig, saveImageConfig, getNamHocInfo, yearTransition, importStudents, getLichSuLop,
@@ -10444,7 +10558,7 @@ CL.define('API', () => {
   return facade;
 });
 
-// ─── js/features/profile.js ───────────────────────────
+// --- js/features/profile.js ---
 /**
  * features/profile.js — Profile Panel
  * ═══════════════════════════════════════════════════════════════
@@ -10874,7 +10988,7 @@ CL.define('Features.Profile', () => {
   return {open, close, saveInfo, changePw, _tab, _chkPw, _eye, _filterH, _pickAvatar};
 });
 
-// ─── js/features/admin/users.js ───────────────────────────
+// --- js/features/admin/users.js ---
 /**
  * features/admin/users.js — Admin: Quản lý người dùng
  */
@@ -10885,9 +10999,8 @@ CL.define('Admin.Users', () => {
   const Utils = CL.require('Utils');
   const Toast = CL.require('UI.Toast');
   let _curTab = 'students';
-  const _stuCache   = {};  // mshs → student obj
-  const _gvCache    = {};  // username → teacher obj
-  const _adminCache = {};  // username → admin obj
+  const _stuCache = {};  // mshs → student obj
+  const _gvCache  = {};  // username → teacher obj
 
   // ── Main render ───────────────────────────────────────────────
   async function render(el) {
@@ -11053,8 +11166,7 @@ CL.define('Admin.Users', () => {
       <div id="aufs-msg" class="pf-msg"></div>
       <div style="display:flex;gap:8px;margin-top:10px">
         <button class="pf-btn-primary"
-          data-exist-mshs="${Utils.escHtml(isEdit?String(s.mshs||''):'')}"
-          onclick="CL.Admin.Users.saveStudent(this.dataset.existMshs)">
+          onclick="CL.Admin.Users.saveStudent(${JSON.stringify(isEdit?s.mshs:'')})">
           💾 ${isEdit?'Lưu thay đổi':'Thêm học sinh'}
         </button>
         <button class="au-btn-cancel"
@@ -11207,8 +11319,7 @@ CL.define('Admin.Users', () => {
       <div id="aufg-msg" class="pf-msg"></div>
       <div style="display:flex;gap:8px;margin-top:10px">
         <button class="pf-btn-primary"
-          data-exist-id="${Utils.escHtml(isEdit?String(t.username||''):'')}"
-          onclick="CL.Admin.Users.saveTeacher(this.dataset.existId)">
+          onclick="CL.Admin.Users.saveTeacher(${JSON.stringify(isEdit?t.username:'')})">
           💾 ${isEdit?'Lưu thay đổi':'Thêm giáo viên'}
         </button>
         <button class="au-btn-cancel"
@@ -11255,7 +11366,6 @@ CL.define('Admin.Users', () => {
   async function _renderAdmins(el) {
     try {
       const admins = await CL.API.adminGetAdmins();
-      admins.forEach(a => { _adminCache[a.username] = a; });
       el.innerHTML = `
         <div class="au-admin-note">
           ⚡ Tài khoản Admin lưu trong tab <b>[Admin]</b> của 01_TaiKhoan.gsheet — tách biệt với Giáo viên.
@@ -11293,7 +11403,7 @@ CL.define('Admin.Users', () => {
       <td style="font-size:11px;color:var(--text3)">${created}</td>
       <td class="au-actions">
         <button class="au-act-btn" title="Sửa"
-          onclick="CL.Admin.Users.showAdminForm(CL.Admin.Users._getAdmin('${Utils.escHtml(String(a.username||''))}'))">✏️</button>
+          onclick="CL.Admin.Users.showAdminForm(${JSON.stringify({username:a.username,ho_ten:a.ho_ten||'',email:a.email||''})})">✏️</button>
         <button class="au-act-btn" title="Reset mật khẩu"
           onclick="CL.Admin.Users.resetAdminPw('${Utils.escHtml(String(a.username||''))}')">🔑</button>
         <button class="au-act-btn au-del-btn" title="Xoá"
@@ -11331,8 +11441,7 @@ CL.define('Admin.Users', () => {
       <div id="aufa-msg" class="pf-msg"></div>
       <div style="display:flex;gap:8px;margin-top:10px">
         <button class="pf-btn-primary"
-          data-exist-id="${Utils.escHtml(isEdit?String(a.username||''):'')}"
-          onclick="CL.Admin.Users.saveAdmin(this.dataset.existId)">
+          onclick="CL.Admin.Users.saveAdmin(${JSON.stringify(isEdit?a.username:'')})">
           💾 ${isEdit?'Lưu':'Tạo tài khoản Admin'}
         </button>
         <button class="au-btn-cancel"
@@ -11563,7 +11672,7 @@ CL.define('Admin.Users', () => {
 
   return {
     render, _auTab,
-    showStudentForm, saveStudent, _filterStu, _getStu, _getAdmin,
+    showStudentForm, saveStudent, _filterStu, _getStu,
     showTeacherForm, saveTeacher, _filterGv, _getGv,
     showAdminForm, saveAdmin, resetAdminPw, deleteAdmin,
     _filterScores, _exportScoresCsv,
@@ -11571,7 +11680,7 @@ CL.define('Admin.Users', () => {
   };
 });
 
-// ─── js/features/admin/year-manager.js ───────────────────────────
+// --- js/features/admin/year-manager.js ---
 /**
  * admin/year-manager.js — Quản lý Năm học (Admin only)
  * ═══════════════════════════════════════════════════════════════
@@ -11950,7 +12059,7 @@ CL.define('Admin.YearManager', () => {
   return { render, clearCsv, importNow, previewTransition, doTransition, loadHistory };
 });
 
-// ─── js/ui.js ───────────────────────────
+// --- js/ui.js ---
 //  UI CODE
 // ══════════════════════════════════════════════════════════════
 
@@ -12260,7 +12369,7 @@ function syncEditorLayout() {
   }
   // Đồng bộ chiều cao header và ex-bar để panel.mob-active tính đúng
   const hdr = document.querySelector('header');
-  const bar = document.getElementById('content-bar');
+  const bar = document.getElementById('ex-bar');
   const desc = document.getElementById('ex-desc');
   if (hdr) document.documentElement.style.setProperty('--header-h', hdr.offsetHeight + 'px');
   if (bar) {
@@ -12559,7 +12668,7 @@ let currentExId = '';
 
 // ════════════════════════════════════════════════════════════════
 
-// ─── js/features/setup-wizard.js ───────────────────────────
+// --- js/features/setup-wizard.js ---
 /**
  * features/setup-wizard.js — First-Time Setup Wizard
  * ═══════════════════════════════════════════════════════════════
@@ -12601,9 +12710,8 @@ CL.define('Features.Setup', () => {
   }
 
   async function checkAndShow() {
-    // Only show if explicitly called from config panel (not auto on missing URL)
-    const url = localStorage.getItem(cfg.LS.SCRIPT_URL) || cfg.DEPLOY_URL;
-    if (!url) return;  // No URL = nothing to check, user must configure via Config
+    const url = localStorage.getItem(cfg.LS.SCRIPT_URL);
+    if (!url) { show(); return; }
     try {
       const res  = await fetch(`${url}?action=getSetupStatus`);
       const data = await res.json();
@@ -12804,7 +12912,7 @@ const DB_IDS = { TAIKHOAN:'', BAITAP:'', ... };</pre>
   return { show, hide, checkAndShow, _next, _back, _testUrl, _runSetup };
 });
 
-// ─── js/sheets-loader.js ───────────────────────────
+// --- js/sheets-loader.js ---
 // ══════════════════════════════════════════════════════════════════
 //  sheets-loader.js — Tải bài tập từ Google Sheets (Private)
 //  Dùng Google Sheets API v4 với API Key
@@ -13019,7 +13127,7 @@ const SheetsDB = (function () {
   return { init, exportToCSV, downloadOffline, readCache, writeCache };
 })();
 
-// ─── js/editors/richtext.js ───────────────────────────
+// --- js/editors/richtext.js ---
 /**
  * editors/richtext.js — Rich Text Editor (Canvas LMS style)
  * ═══════════════════════════════════════════════════════════════
@@ -13175,6 +13283,8 @@ CL.define('Editors.RichText', () => {
       </div>
       <div class="rte-actions-right">
         <span class="rte-hint">Ctrl+S lưu · Kéo thả ảnh để upload</span>
+        <button class="rte-btn" id="rte-cancel-${containerId}">Hủy</button>
+        <button class="rte-btn rte-btn-primary" id="rte-save-${containerId}">💾 Lưu</button>
       </div>`;
 
     wrapper.appendChild(uploadBar);
@@ -13227,6 +13337,8 @@ CL.define('Editors.RichText', () => {
     // Save
     const doSave = async () => {
       const html = getHtml(containerId);
+      const btn  = document.getElementById(`rte-save-${containerId}`);
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu...'; }
       try {
         if (onSave) await onSave(html);
         // Update display
@@ -13235,13 +13347,18 @@ CL.define('Editors.RichText', () => {
         _renderMath(container);
       } catch(e) {
         alert('Lỗi lưu: ' + e.message);
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Lưu'; }
         return;
       }
       unmount(containerId);
       container.style.display = '';
     };
 
-    // Event listeners for save/cancel buttons removed (buttons hidden)
+    document.getElementById(`rte-save-${containerId}`)?.addEventListener('click', doSave);
+    document.getElementById(`rte-cancel-${containerId}`)?.addEventListener('click', () => {
+      unmount(containerId);
+      container.style.display = '';
+    });
 
     // Ctrl+S
     quill.root.addEventListener('keydown', e => {
@@ -13747,7 +13864,7 @@ CL.define('Editors.RichText', () => {
   return { mount, unmount, getHtml, renderMath };
 });
 
-// ─── js/app.js ───────────────────────────
+// --- js/app.js ---
 /**
  * app.js — Application Bootstrap (Entry Point)
  * PHẢI LOAD CUỐI CÙNG. Không chứa business logic.
@@ -13837,10 +13954,7 @@ Tải lại trang để về giao diện luyện tập?`)) {
     if (shell) shell.style.removeProperty('display');
 
     // Init sidebar navigation (Canvas-style)
-    // Guard: chỉ init nếu chưa được init (tránh double-init)
-    if (!document.querySelector('.sb-group')) {
-      CL.Features.Sidebar?.init(user.role);
-    }
+    CL.Features.Sidebar?.init(user.role);
 
     // Update user badge in topbar
     const area = document.getElementById('user-badge-area');
@@ -13862,25 +13976,28 @@ Tải lại trang để về giao diện luyện tập?`)) {
     }
 
     // Show/hide exercise bar based on role & view
-    const exBar = document.getElementById('content-bar');
+    const exBar = document.getElementById('tb-ex-bar');
     if (exBar) exBar.style.display = '';
 
     // ── FIX: Đảm bảo workspace-view hiển thị đúng sau login ──────
-    // REMOVED: Không nên force hiển thị workspace-view ở đây
-    // Để sidebar.js kiểm soát hiển thị dựa trên active section
-    // const wv = document.getElementById('workspace-view');
-    // if (wv && (!wv.style.display || wv.style.display === 'none')) {
-    //   wv.style.display = 'flex';
-    // }
+    // Sidebar.init() gọi navigate() → _showSection('workspace-view') nhưng
+    // workspace-view cần được đảm bảo display:flex ngay từ đầu
+    const wv = document.getElementById('workspace-view');
+    if (wv && (!wv.style.display || wv.style.display === 'none')) {
+      wv.style.display = 'flex';
+    }
 
     // ── FIX: Mobile — init editor panel as active on first load ───
+    // Nếu là mobile (width ≤ 768), JS phải set mob-active cho editor-panel
+    // vì CSS mặc định ẩn tất cả panels trên mobile
     if (window.innerWidth <= 768) {
       const edPanel  = document.getElementById('editor-panel');
       const outPanel = document.getElementById('output-panel');
       const grPanel  = document.getElementById('grade-panel');
-      if (edPanel)  { edPanel.classList.add('mob-active');     edPanel.style.display  = ''; }
+      if (edPanel)  { edPanel.classList.add('mob-active');    edPanel.style.display  = ''; }
       if (outPanel) { outPanel.classList.remove('mob-active'); outPanel.style.display = 'none'; }
       if (grPanel)  { grPanel.classList.remove('mob-active');  grPanel.style.display  = 'none'; }
+      // Highlight mobile nav editor button
       const mnEditor = document.getElementById('mnav-editor');
       const mnOutput = document.getElementById('mnav-output');
       const mnGrade  = document.getElementById('mnav-grade');
@@ -13901,15 +14018,7 @@ Tải lại trang để về giao diện luyện tập?`)) {
   CL.Features.Theme?.init();
 
   // ── Auth start ───────────────────────────────────────────────
-  // Auth: fires after login OR valid session restore
-  CL.Auth.UI.init(function onAuthReady(user) {
-    document.documentElement.classList.remove('auth-required');
-    document.body.classList.remove('auth-pending');
-    const shell = document.getElementById('app-shell');
-    if (shell) {
-      shell.style.removeProperty('display');
-      shell.style.removeProperty('visibility');
-    }
+  CL.Auth.UI.init(() => {
   });
 
   // ── Private helpers ───────────────────────────────────────────
@@ -14004,25 +14113,17 @@ Tải lại trang để về giao diện luyện tập?`)) {
   // ── Global bridges for HTML onclick handlers ──────────────────
   window.cddOpen   = w    => Dropdown.open(w);
   window.cddSelect = (w,v)=> Dropdown.select(w,v);
-  window.cddClose  = ()   => {
-    document.getElementById('cdd-overlay')?.classList.remove('show');
-    document.getElementById('cdd-popup')?.classList.remove('show');
-  };
+  window.cddClose  = ()   => {};
 
   // ── Tab system (new v2) ──────────────────────────────────────
   window.rpTab = function(tab) {
-    // Update content-bar tabs (desc, theory)
-    document.querySelectorAll('#rp-tabbar .rp-tab').forEach(t => t.classList.remove('on'));
-    // Update inner grade-panel tabs (result, analysis)
-    document.querySelectorAll('.rp-inner-tab').forEach(t => t.classList.remove('on'));
-    // Update all tabpanes
+    document.querySelectorAll('.rp-tab').forEach(t => t.classList.remove('on'));
     document.querySelectorAll('.rp-tabpane').forEach(p => p.classList.remove('on'));
-
     const tabEl  = document.getElementById('rp-tab-' + tab);
     const paneEl = document.getElementById('rp-pane-' + tab);
     if (tabEl)  tabEl.classList.add('on');
     if (paneEl) paneEl.classList.add('on');
-  };;
+  };
 
   // Backward compat
   window.rpToggle = window.rpExpand = function(section) {
@@ -14100,17 +14201,14 @@ Tải lại trang để về giao diện luyện tập?`)) {
       }
 
       // Show analysis tab badge if there are errors
-      const hasFails = result.results?.some(r => !r.passed) || false;
+      const hasFails = result.results?.some(r => !r.passed);
       _renderAnalysis(result, type);
-      // Analysis tab: show with fail count badge when there are errors
       const analysisTab = document.getElementById('rp-tab-analysis');
-      const analysisBadge = document.getElementById('analysis-badge');
       if (analysisTab) {
-        const failCount = result.results?.filter(r => !r.passed).length || 0;
         analysisTab.style.display = hasFails ? '' : 'none';
-        if (analysisBadge) {
-          analysisBadge.style.display = hasFails && failCount ? '' : 'none';
-          analysisBadge.textContent = failCount || '';
+        if (hasFails) {
+          analysisTab.innerHTML = '<span class="dot" style="background:#f87171"></span>🔍 Phân tích <span style="background:var(--error);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;margin-left:3px">' +
+            result.results.filter(r => !r.passed).length + '</span>';
         }
       }
 
@@ -14642,122 +14740,94 @@ Tải lại trang để về giao diện luyện tập?`)) {
 
 })();
 
-// ─── js/features/theme.js ───────────────────────────
+// --- js/features/theme.js ---
 /**
- * features/theme.js — Theme & Editor Settings
+ * features/theme.js — Theme Switcher
  * ═══════════════════════════════════════════════════════════════
  * 8 themes: Dark Navy, One Dark, Dracula, Monokai,
  *           GitHub Dark, Solarized Dark, Light, Solarized Light
- * + Editor font size, font family, line height settings
- * Keyboard: Shift+T = toggle panel | Shift+click btn = quick toggle
+ * Lưu vào localStorage, áp dụng ngay qua data-theme trên <html>
  */
 'use strict';
 
 CL.define('Features.Theme', () => {
 
-  const LS_KEY        = 'cl_theme';
-  const LS_FONT_SIZE  = 'cl_editor_fontsize';
-  const LS_FONT_FAM   = 'cl_editor_fontfam';
-  const LS_LINE_HT    = 'cl_editor_lineheight';
+  const LS_KEY = 'cl_theme';
 
   const THEMES = [
-    { id: 'dark-navy',      name: 'Dark Navy',       dark: true,  preview: ['#0a0e1a','#4f9eff','#34d399','#a78bfa'] },
-    { id: 'one-dark',       name: 'One Dark',        dark: true,  preview: ['#282c34','#61afef','#98c379','#c678dd'] },
-    { id: 'dracula',        name: 'Dracula',         dark: true,  preview: ['#282a36','#8be9fd','#50fa7b','#bd93f9'] },
-    { id: 'monokai',        name: 'Monokai',         dark: true,  preview: ['#272822','#66d9e8','#a6e22e','#ae81ff'] },
-    { id: 'github-dark',    name: 'GitHub Dark',     dark: true,  preview: ['#0d1117','#58a6ff','#3fb950','#bc8cff'] },
-    { id: 'solarized-dark', name: 'Solarized Dark',  dark: true,  preview: ['#002b36','#268bd2','#859900','#6c71c4'] },
-    { id: 'light',          name: 'Light',           dark: false, preview: ['#f3f3f3','#0969da','#1a7f37','#8250df'] },
-    { id: 'solarized-light',name: 'Solarized Light', dark: false, preview: ['#fdf6e3','#268bd2','#859900','#6c71c4'] },
-  ];
-
-  const FONT_FAMILIES = [
-    { id: 'default',       name: 'Mặc định',         css: "'JetBrains Mono','Cascadia Code','Fira Code','Consolas',monospace" },
-    { id: 'jetbrains',     name: 'JetBrains Mono',   css: "'JetBrains Mono',monospace" },
-    { id: 'cascadia',      name: 'Cascadia Code',    css: "'Cascadia Code',monospace" },
-    { id: 'consolas',      name: 'Consolas',         css: "'Consolas','Courier New',monospace" },
-    { id: 'firacode',      name: 'Fira Code',        css: "'Fira Code',monospace" },
-    { id: 'sourcecodepro', name: 'Source Code Pro',  css: "'Source Code Pro',monospace" },
-  ];
-
-  const FONT_SIZES   = [11, 12, 13, 14, 15, 16, 18];
-  const LINE_HEIGHTS = [
-    { id: '1.4', name: 'Compact',  value: 1.4 },
-    { id: '1.6', name: 'Normal',   value: 1.6 },
-    { id: '1.8', name: 'Relaxed',  value: 1.8 },
-    { id: '2.0', name: 'Spacious', value: 2.0 },
+    {
+      id: 'dark-navy', name: 'Dark Navy', dark: true,
+      preview: ['#0a0e1a','#4f9eff','#34d399','#a78bfa'],
+    },
+    {
+      id: 'one-dark', name: 'One Dark', dark: true,
+      preview: ['#282c34','#61afef','#98c379','#c678dd'],
+    },
+    {
+      id: 'dracula', name: 'Dracula', dark: true,
+      preview: ['#282a36','#8be9fd','#50fa7b','#bd93f9'],
+    },
+    {
+      id: 'monokai', name: 'Monokai', dark: true,
+      preview: ['#272822','#66d9e8','#a6e22e','#ae81ff'],
+    },
+    {
+      id: 'github-dark', name: 'GitHub Dark', dark: true,
+      preview: ['#0d1117','#58a6ff','#3fb950','#bc8cff'],
+    },
+    {
+      id: 'solarized-dark', name: 'Solarized Dark', dark: true,
+      preview: ['#002b36','#268bd2','#859900','#6c71c4'],
+    },
+    {
+      id: 'light', name: 'Light', dark: false,
+      preview: ['#f6f8fa','#0969da','#1a7f37','#8250df'],
+    },
+    {
+      id: 'solarized-light', name: 'Solarized Light', dark: false,
+      preview: ['#fdf6e3','#268bd2','#859900','#6c71c4'],
+    },
   ];
 
   // ── Apply theme ───────────────────────────────────────────────
   function apply(themeId) {
     const theme = THEMES.find(t => t.id === themeId) || THEMES[0];
     document.documentElement.setAttribute('data-theme', theme.id);
+    // Update meta theme-color for mobile browser chrome
     let meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta); }
+    if (!meta) { meta = document.createElement('meta'); meta.name='theme-color'; document.head.appendChild(meta); }
     meta.content = theme.preview[0];
     localStorage.setItem(LS_KEY, theme.id);
     _updateActiveCard(theme.id);
   }
 
-  // ── Apply editor font/size settings via injected <style> ─────
-  function applyEditorSettings() {
-    const fs  = parseInt(localStorage.getItem(LS_FONT_SIZE)) || 13;
-    const fam = localStorage.getItem(LS_FONT_FAM) || 'default';
-    const lh  = parseFloat(localStorage.getItem(LS_LINE_HT)) || 1.6;
-    const famDef = FONT_FAMILIES.find(f => f.id === fam) || FONT_FAMILIES[0];
-
-    let s = document.getElementById('_cl_editor_style');
-    if (!s) { s = document.createElement('style'); s.id = '_cl_editor_style'; document.head.appendChild(s); }
-
-    s.textContent = `
-      #code-input, .editor-wrap textarea, .html-editor-wrap textarea,
-      .hl-kw,.hl-fn,.hl-cls,.hl-bi,.hl-str,.hl-num,.hl-cmt,.hl-self,.hl-bool,
-      .hl-deco,.hl-op,.hl-punc,.hl-plain,.hl-tag,.hl-attr,.hl-attrval,.hl-entity,
-      .hl-css-sel,.hl-css-prop,.hl-css-val,.hl-css-unit,.hl-css-color,.hl-css-at,
-      .hl-sql-kw,.hl-sql-fn,.hl-sql-type,.hl-sql-id {
-        font-size: ${fs}px !important;
-        font-family: ${famDef.css} !important;
-        line-height: ${lh} !important;
-      }
-      .lnums span { height: calc(${fs}px * ${lh}) !important; line-height: ${lh} !important; }
-    `;
+  function current() {
+    return localStorage.getItem(LS_KEY) || 'dark-navy';
   }
 
-  function setFontSize(sz)  { localStorage.setItem(LS_FONT_SIZE, sz);  applyEditorSettings(); _updateEditorControls(); }
-  function setFontFamily(id){ localStorage.setItem(LS_FONT_FAM,  id);  applyEditorSettings(); _updateEditorControls(); }
-  function setLineHeight(v) { localStorage.setItem(LS_LINE_HT,   v);   applyEditorSettings(); _updateEditorControls(); }
-  function current()        { return localStorage.getItem(LS_KEY) || 'dark-navy'; }
-
-  // ── Init ─────────────────────────────────────────────────────
+  // ── Init: apply saved theme on load ──────────────────────────
   function init() {
     apply(current());
-    applyEditorSettings();
     _injectButton();
-    document.addEventListener('keydown', (e) => {
-      if (e.shiftKey && e.key === 'T' &&
-          !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName || '')) {
-        e.preventDefault();
-        togglePanel();
-      }
-    });
   }
 
-  // ── Wire button ───────────────────────────────────────────────
+  // ── Inject / re-wire theme button ───────────────────────────
   function _injectButton() {
+    // Wire the button (already in HTML topbar) — use delegation to avoid clone issues
     const btn = document.getElementById('theme-picker-btn');
     if (btn) {
-      btn.title = 'Cài đặt giao diện & Editor (Shift+T)';
-      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:block;flex-shrink:0">
-        <circle cx="8" cy="8" r="2.2" fill="currentColor"/>
-        <path d="M8 1.5v1.8M8 12.7v1.8M1.5 8h1.8M12.7 8h1.8M3.4 3.4l1.27 1.27M11.33 11.33l1.27 1.27M3.4 12.6l1.27-1.27M11.33 4.67l1.27-1.27"
-          stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>`;
+      btn.title = 'Đổi giao diện (Shift+click = nhanh tối/sáng)';
+      btn.innerHTML = '🎨';
+      // Don't override style - let CSS handle it (theme-aware)
+      btn.style.cssText = '';
       if (!btn._themeWired) {
         btn._themeWired = true;
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           if (e.shiftKey) {
-            const isDark = THEMES.find(t => t.id === current())?.dark !== false;
+            // Quick toggle: dark-navy ↔ light
+            const cur = current();
+            const isDark = THEMES.find(t => t.id === cur)?.dark !== false;
             apply(isDark ? 'light' : 'dark-navy');
           } else {
             togglePanel();
@@ -14765,80 +14835,54 @@ CL.define('Features.Theme', () => {
         });
       }
     }
-    _buildPanel();
-  }
 
-  // ── Build panel HTML ─────────────────────────────────────────
-  function _buildPanel() {
+    // Build fresh panel with dark/light grouping
     document.getElementById('theme-picker-panel')?.remove();
+
     const dark  = THEMES.filter(t =>  t.dark);
     const light = THEMES.filter(t => !t.dark);
     const cur   = current();
-    const curFs  = parseInt(localStorage.getItem(LS_FONT_SIZE)) || 13;
-    const curFam = localStorage.getItem(LS_FONT_FAM) || 'default';
-    const curLh  = localStorage.getItem(LS_LINE_HT) || '1.6';
 
     const panel = document.createElement('div');
     panel.id = 'theme-picker-panel';
     panel.innerHTML = `
       <div class="tp-header-row">
-        <span>⚙ Giao diện &amp; Editor</span>
-        <button class="tp-close-btn" id="tp-close-x" title="Đóng (Esc)">✕</button>
+        <span style="font-size:13px;font-weight:800;color:var(--text)">🎨 Giao diện</span>
+        <button class="tp-close-btn" title="Đóng" id="tp-close-x">✕</button>
       </div>
-
-      <div class="theme-section-label">🎨 Màu giao diện</div>
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:4px">🌙 Tối</div>
+      <div class="theme-section-label">🌙 Tối</div>
       <div class="theme-grid" id="theme-grid-dark">
         ${dark.map(t => _cardHtml(t, cur)).join('')}
       </div>
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin:8px 0 4px">☀ Sáng</div>
+      <div class="theme-section-label">☀️ Sáng</div>
       <div class="theme-grid" id="theme-grid-light">
         ${light.map(t => _cardHtml(t, cur)).join('')}
-      </div>
-
-      <div class="theme-section-label" style="margin-top:12px">✏ Cài đặt Editor</div>
-
-      <div class="tp-editor-row">
-        <span class="tp-editor-label">Cỡ chữ</span>
-        <div class="tp-font-btns" id="tp-font-size-btns">
-          ${FONT_SIZES.map(sz => `<button class="tp-sz-btn${sz === curFs ? ' active' : ''}" data-sz="${sz}">${sz}</button>`).join('')}
-        </div>
-      </div>
-
-      <div class="tp-editor-row">
-        <span class="tp-editor-label">Font</span>
-        <select class="tp-select" id="tp-font-fam">
-          ${FONT_FAMILIES.map(f => `<option value="${f.id}"${f.id === curFam ? ' selected' : ''}>${f.name}</option>`).join('')}
-        </select>
-      </div>
-
-      <div class="tp-editor-row">
-        <span class="tp-editor-label">Dãn dòng</span>
-        <div class="tp-seg" id="tp-lineht-btns">
-          ${LINE_HEIGHTS.map(lh => `<button class="tp-seg-btn${lh.id === curLh ? ' active' : ''}" data-lh="${lh.value}">${lh.name}</button>`).join('')}
-        </div>
-      </div>
-
-      <div class="tp-shortcut-hint">
-        <kbd>Shift</kbd>+<kbd>T</kbd> mở/đóng &nbsp;·&nbsp; <kbd>Shift</kbd>+click chuyển tối↔sáng
-      </div>
-    `;
+      </div>`;
 
     document.body.appendChild(panel);
 
-    document.getElementById('tp-close-x')?.addEventListener('click', (e) => { e.stopPropagation(); _hidePanel(); });
-    panel.querySelectorAll('.theme-card').forEach(c => c.addEventListener('click', (e) => { e.stopPropagation(); apply(c.dataset.tid); }));
-    panel.querySelectorAll('.tp-sz-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); setFontSize(parseInt(b.dataset.sz)); }));
-    panel.querySelector('#tp-font-fam')?.addEventListener('change', (e) => setFontFamily(e.target.value));
-    panel.querySelectorAll('.tp-seg-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); setLineHeight(b.dataset.lh); }));
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && panel.classList.contains('show')) _hidePanel();
+    // Wire close button
+    document.getElementById('tp-close-x')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      panel.style.display = 'none';
+      panel.classList.remove('show');
     });
 
+    // Wire theme cards
+    panel.querySelectorAll('.theme-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        e.stopPropagation();
+        apply(card.dataset.tid);
+      });
+    });
+
+    // ✅ Close on outside click — clean up previous listener to avoid stacking
     if (window._themeOutsideClose) document.removeEventListener('click', window._themeOutsideClose);
     window._themeOutsideClose = (e) => {
-      if (!panel.contains(e.target) && e.target.id !== 'theme-picker-btn') _hidePanel();
+      if (!panel.contains(e.target) && e.target.id !== 'theme-picker-btn') {
+        panel.classList.remove('show');
+        panel.style.display = 'none';
+      }
     };
     setTimeout(() => document.addEventListener('click', window._themeOutsideClose), 0);
   }
@@ -14852,52 +14896,45 @@ CL.define('Features.Theme', () => {
     </div>`;
   }
 
-  function _hidePanel() {
-    const p = document.getElementById('theme-picker-panel');
-    if (!p) return;
-    p.classList.remove('show');
-    p.style.display = 'none';
-  }
-
   function togglePanel() {
     const panel = document.getElementById('theme-picker-panel');
     const btn   = document.getElementById('theme-picker-btn');
-    if (!panel) { _buildPanel(); togglePanel(); return; }
-    if (panel.classList.contains('show')) { _hidePanel(); return; }
+    if (!panel) { _injectButton(); togglePanel(); return; }
 
-    const rect = btn ? btn.getBoundingClientRect() : { bottom: 60, right: window.innerWidth - 16 };
-    const pw   = 296;
-    let left   = rect.right - pw;
+    // ✅ Fix: check classList, not inline style — CSS .show{display:block !important} beats style=""
+    const isShowing = panel.classList.contains('show');
+    if (isShowing) {
+      panel.classList.remove('show');
+      panel.style.display = 'none';
+      return;
+    }
+
+    // Position below the button, aligned right
+    const rect  = btn ? btn.getBoundingClientRect() : { bottom: 60, right: window.innerWidth - 16 };
+    const pw    = 300;
+    let left    = rect.right - pw;
     if (left < 8) left = 8;
     if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
-    panel.style.top     = (rect.bottom + 6) + 'px';
-    panel.style.left    = left + 'px';
-    panel.style.right   = 'auto';
-    panel.style.width   = pw + 'px';
+
+    panel.style.top    = (rect.bottom + 8) + 'px';
+    panel.style.left   = left + 'px';
+    panel.style.right  = 'auto';
+    panel.style.width  = pw + 'px';
     panel.style.display = 'block';
     panel.classList.add('show');
     _updateActiveCard(current());
-    _updateEditorControls();
   }
 
   function _updateActiveCard(themeId) {
-    document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c.dataset.tid === themeId));
-  }
-
-  function _updateEditorControls() {
-    const curFs = parseInt(localStorage.getItem(LS_FONT_SIZE)) || 13;
-    const curLh = localStorage.getItem(LS_LINE_HT) || '1.6';
-    const curFam = localStorage.getItem(LS_FONT_FAM) || 'default';
-    document.querySelectorAll('.tp-sz-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.sz) === curFs));
-    document.querySelectorAll('.tp-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.lh === curLh));
-    const sel = document.getElementById('tp-font-fam');
-    if (sel) sel.value = curFam;
+    document.querySelectorAll('.theme-card').forEach(card => {
+      card.classList.toggle('active', card.dataset.tid === themeId);
+    });
   }
 
   return { init, apply, current, togglePanel };
 });
 
-// ─── js/features/sidebar.js ───────────────────────────
+// --- js/features/sidebar.js ---
 /**
  * features/sidebar.js — Sidebar + Panel Layout (Canvas LMS style)
  * ═══════════════════════════════════════════════════════════════
@@ -14996,13 +15033,7 @@ CL.define('Features.Sidebar', () => {
       {
         id:'exam-mgmt', icon:'📋', label:'Kiểm tra',
         children:[
-          {
-            id:'exams-group', icon:'📋', label:'Kỳ kiểm tra',
-            children:[
-              { id:'exams-list',   icon:'📋', label:'Kỳ kiểm tra',      section:'tp:exams'       },
-              { id:'exams-create', icon:'➕', label:'Tạo kỳ kiểm tra', section:'tp:exams:create' },
-            ]
-          },
+          { id:'exams', icon:'📋', label:'Kỳ kiểm tra', section:'tp:exams' },
         ]
       },
       {
@@ -15018,24 +15049,9 @@ CL.define('Features.Sidebar', () => {
       {
         id:'sys', icon:'⚙️', label:'Hệ thống',
         children:[
-          {
-            id:'config-group', icon:'⚙️', label:'Cấu hình',
-            children:[
-              { id:'config',       icon:'⚙️', label:'Cấu hình hệ thống', section:'tp:config'       },
-              { id:'config-theme', icon:'🎨', label:'Giao diện',        section:'tp:config:theme' },
-              { id:'config-api',   icon:'🔌', label:'API & Tích hợp',   section:'tp:config:api'   },
-            ]
-          },
-          {
-            id:'logs-group', icon:'📋', label:'Nhật ký',
-            children:[
-              { id:'logs-system',  icon:'⚙️', label:'Nhật ký hệ thống',  section:'tp:logs:system'  },
-              { id:'logs-user',    icon:'👤', label:'Nhật ký người dùng', section:'tp:logs:user'    },
-              { id:'logs-audit',   icon:'🔒', label:'Nhật ký kiểm toán',  section:'tp:logs:audit'   },
-            ]
-          },
+          { id:'config',    icon:'⚙️', label:'Cấu hình',       section:'tp:config'    },
         ]
-      }
+      },
     ],
   };
 
@@ -15045,17 +15061,10 @@ CL.define('Features.Sidebar', () => {
 
   function init(role) {
     _role   = role || 'student';
-    // Default to pinned=true on first load (better UX: user sees functions immediately)
-    const storedPin = localStorage.getItem('cl_sb_pinned');
-    _pinned = storedPin === null ? true : storedPin === '1';
-    if (storedPin === null) localStorage.setItem('cl_sb_pinned', '1');
+    _pinned = localStorage.getItem('cl_sb_pinned') === '1';
 
     const sb = document.getElementById('sidebar');
     if (!sb) return;
-    
-    // Đảm bảo xóa class auth-pending nếu vẫn còn (fix F5 bug)
-    document.body.classList.remove('auth-pending');
-    document.documentElement.classList.remove('auth-required');
 
     const groups = MENUS[_role] || MENUS.student;
 
@@ -15100,55 +15109,17 @@ CL.define('Features.Sidebar', () => {
         </button>
       </div>`;
 
-    if (_pinned) {
-      sb.classList.add('pinned');
-      document.getElementById('app-shell')?.classList.add('sb-pinned');
-    }
-    // Restore expanded groups from localStorage
-    try {
-      const savedExp = JSON.parse(localStorage.getItem('cl_sb_expanded') || '[]');
-      savedExp.forEach(gid => {
-        sb.querySelector(`.sb-group[data-gid="${gid}"]`)?.classList.add('expanded');
-      });
-    } catch(e) {}
+    if (_pinned) sb.classList.add('pinned');
     document.getElementById('app-shell')?.style.removeProperty('visibility');
     document.getElementById('sb-overlay')?.addEventListener('click', closeMobile);
 
-    // Close flyouts when clicking outside sidebar
-    // Add document listeners only once (guard with flag)
-    if (!window._sbListenersAdded) {
-      window._sbListenersAdded = true;
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('#sidebar') && !e.target.closest('.sb-flyout')) {
-          _hideAllFlyouts();
-        }
-      }, true);
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') _hideAllFlyouts();
-      });
-    }
+    // Auto-expand first group
+    const firstGroup = sb.querySelector('.sb-group');
+    if (firstGroup) firstGroup.classList.add('expanded');
 
-    // Pinned mode: restore expanded groups from localStorage.
-    // navigate() below will handle expanding the active group.
-    // Auto-expand first group only if nothing was saved (true first load).
-    if (_pinned) {
-      const savedExpArr = JSON.parse(localStorage.getItem('cl_sb_expanded') || '[]');
-      if (savedExpArr.length === 0) {
-        const firstGroup = sb.querySelector('.sb-group');
-        if (firstGroup) firstGroup.classList.add('expanded');
-      }
-    }
-
-    // Restore last active - IMPORTANT: restore state after init to fix F5 bug
+    // Restore last active
     const saved = localStorage.getItem('cl_sb_active') || _getDefaultId();
     navigate(saved, false);
-    
-    // Ensure app-shell is visible after sidebar init
-    const appShell = document.getElementById('app-shell');
-    if (appShell) {
-      appShell.style.removeProperty('visibility');
-      appShell.style.removeProperty('display');
-    }
 
     const wv = document.getElementById('workspace-view');
     if (wv && wv.style.display === '') wv.style.display = 'flex';
@@ -15165,60 +15136,25 @@ CL.define('Features.Sidebar', () => {
       <div class="sb-group${hasActive ? ' has-active' : ''}" data-gid="${group.id}">
         <button class="sb-group-header${hasActive ? ' has-active' : ''}"
           aria-haspopup="true"
-          data-gid="${group.id}"
-          onmouseenter="CL.Features.Sidebar._showFlyout('${group.id}', this)"
-          onmouseleave="CL.Features.Sidebar._hideFlyout('${group.id}')"
           onclick="CL.Features.Sidebar.groupHeaderClick('${group.id}')">
           <span class="sb-icon">${group.icon}</span>
           <span class="sb-label">${group.label}</span>
           <span class="sb-group-arrow">›</span>
         </button>
-        <div class="sb-flyout" id="sbf-${group.id}" role="menu"
-          onmouseenter="CL.Features.Sidebar._keepFlyout('${group.id}')"
-          onmouseleave="CL.Features.Sidebar._hideFlyout('${group.id}')">
-          <div class="sb-flyout-label">${group.icon} ${group.label}</div>
+        <div class="sb-dropdown" role="menu">
+          <div class="sb-dropdown-label">${group.label}</div>
           ${group.children.map(c => _childHtml(c)).join('')}
         </div>
       </div>`;
   }
 
   function _childHtml(item) {
-    // Check if item has children (level 3)
-    if (item.children && item.children.length > 0) {
-      const hasActive = item.children.some(c => c.id === _active);
-      return `
-        <div class="sb-child-group${hasActive ? ' has-active' : ''}" data-cgid="${item.id}">
-          <button class="sb-child-header${hasActive ? ' has-active' : ''}"
-            data-cgid="${item.id}"
-            onclick="CL.Features.Sidebar._toggleChildGroup('${item.id}'); event.stopPropagation();">
-            <span class="sb-child-icon">${item.icon}</span>
-            <span class="sb-label">${item.label}</span>
-            <span class="sb-child-arrow">›</span>
-          </button>
-          <div class="sb-child-flyout" id="sbcf-${item.id}">
-            ${item.children.map(c => _grandchildHtml(c)).join('')}
-          </div>
-        </div>`;
-    }
-    
-    // Regular level 2 item
     return `
       <button class="sb-child${_active === item.id ? ' active' : ''}"
         data-id="${item.id}" data-section="${item.section}"
-        onclick="CL.Features.Sidebar.navigate('${item.id}'); event.stopPropagation();"
+        onclick="CL.Features.Sidebar.navigate('${item.id}')"
         title="${item.label}">
         <span class="sb-child-icon">${item.icon}</span>
-        <span class="sb-label">${item.label}</span>
-      </button>`;
-  }
-
-  function _grandchildHtml(item) {
-    return `
-      <button class="sb-grandchild${_active === item.id ? ' active' : ''}"
-        data-id="${item.id}" data-section="${item.section}"
-        onclick="CL.Features.Sidebar.navigate('${item.id}'); event.stopPropagation();"
-        title="${item.label}">
-        <span class="sb-grandchild-icon">${item.icon}</span>
         <span class="sb-label">${item.label}</span>
       </button>`;
   }
@@ -15231,63 +15167,25 @@ CL.define('Features.Sidebar', () => {
     _active = id;
     if (save) localStorage.setItem('cl_sb_active', id);
 
-    // Update active state for level 2 items
+    // Update active state
     document.querySelectorAll('.sb-child[data-id]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.id === id);
     });
 
-    // Update active state for level 3 items (grandchildren)
-    document.querySelectorAll('.sb-grandchild[data-id]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.id === id);
-    });
-
-    // Find item across all groups (including level 3)
+    // Find item across all groups
     const groups = MENUS[_role] || MENUS.student;
     let item = null;
-    let parentGroup = null;
-    
     for (const g of groups) {
-      // Check level 2 items
       item = g.children.find(c => c.id === id);
       if (item) {
-        parentGroup = g;
+        // Expand parent group
+        document.querySelector(`.sb-group[data-gid="${g.id}"]`)?.classList.add('expanded');
         break;
       }
-      
-      // Check level 3 items (grandchildren)
-      for (const child of g.children) {
-        if (child.children) {
-          item = child.children.find(gc => gc.id === id);
-          if (item) {
-            parentGroup = g;
-            // Expand the parent child-group (level 2 with children)
-            const childGroupEl = document.querySelector(`.sb-child-group[data-cgid="${child.id}"]`);
-            if (childGroupEl) {
-              childGroupEl.classList.add('expanded');
-            }
-            break;
-          }
-        }
-      }
-      if (item) break;
     }
-    
     if (!item) return;
-    
-    // Expand parent group and persist it
-    if (parentGroup) {
-      const grpEl = document.querySelector(`.sb-group[data-gid="${parentGroup.id}"]`);
-      if (grpEl) {
-        grpEl.classList.add('expanded');
-        const sb = document.getElementById('sidebar');
-        const expGroups = [...(sb?.querySelectorAll('.sb-group.expanded') || [])]
-          .map(g => g.dataset.gid).filter(Boolean);
-        localStorage.setItem('cl_sb_expanded', JSON.stringify(expGroups));
-      }
-    }
 
     closeMobile();
-    _hideAllFlyouts();
 
     const section = item.section;
 
@@ -15297,8 +15195,7 @@ CL.define('Features.Sidebar', () => {
       CL.Features.Profile?.open();
       return;
     } else if (section === 'exam') {
-      _showSection('panel-view');
-      _renderPanel('exam');
+      _showSection('workspace-view');
     } else if (section === 'history') {
       _showSection('panel-view');
       _renderStudentHistory();
@@ -15309,22 +15206,7 @@ CL.define('Features.Sidebar', () => {
       const sub = section.replace('tp:users:', '');
       _showSection('panel-view');
       _renderUsersPanel(sub);
-    } else if (section.startsWith('tp:logs:')) {
-      // Handle logs sections (tp:logs:system, tp:logs:user, tp:logs:audit)
-      const logType = section.replace('tp:logs:', '');
-      _showSection('panel-view');
-      _renderPanel(`logs:${logType}`);
-    } else if (section.startsWith('tp:config:')) {
-      // Handle config sections (tp:config:theme, tp:config:api)
-      const configType = section.replace('tp:config:', '');
-      _showSection('panel-view');
-      _renderPanel(`config:${configType}`);
-    } else if (section === 'tp:exams:create') {
-      // Handle exam creation
-      _showSection('panel-view');
-      _renderPanel('exams:create');
     } else if (section.startsWith('tp:')) {
-      // Generic handler for all other tp:* sections
       const tabId = section.replace('tp:', '');
       _showSection('panel-view');
       _renderPanel(tabId);
@@ -15340,117 +15222,26 @@ CL.define('Features.Sidebar', () => {
   }
 
   // When narrow sidebar: clicking group header navigates to its first child
-  let _flyoutTimers = {};
-
   function groupHeaderClick(gid) {
-    const sidebar  = document.getElementById('sidebar');
+    const sidebar = document.getElementById('sidebar');
     const isPinned = sidebar?.classList.contains('pinned');
-
-    if (isPinned) {
-      // Pinned: toggle inline accordion
-      const grpEl = sidebar?.querySelector(`.sb-group[data-gid="${gid}"]`);
-      if (grpEl) {
-        grpEl.classList.toggle('expanded');
-        // Persist expanded state
-        const expGroups = [...(sidebar?.querySelectorAll('.sb-group.expanded') || [])]
-          .map(g => g.dataset.gid).filter(Boolean);
-        localStorage.setItem('cl_sb_expanded', JSON.stringify(expGroups));
-      }
-      return;
+    const isHovered = sidebar?.matches(':hover');
+    // If sidebar is expanded (pinned or hovered), let hover show dropdown
+    // If narrow, navigate directly to first child
+    if (!isPinned && !isHovered) {
+      const groups = MENUS[_role] || MENUS.student;
+      const g = groups.find(x => x.id === gid);
+      if (g?.children?.length) navigate(g.children[0].id);
     }
-
-    // Collapsed/hover mode: always show flyout on click
-    // (don't toggle based on .open state — hover may have already added .open via rAF,
-    //  causing isOpen=true → close-without-reopen bug)
-    _hideAllFlyouts();
-    const btn = sidebar?.querySelector(`.sb-group-header[data-gid="${gid}"]`)
-             || sidebar?.querySelector(`.sb-group[data-gid="${gid}"] .sb-group-header`);
-    _positionAndShowFlyout(gid, btn);
-    // Prevent event propagation to avoid closing flyout immediately
-    event?.stopPropagation?.();
-  }
-
-  function _positionAndShowFlyout(gid, refEl) {
-    const flyout = document.getElementById('sbf-' + gid);
-    if (!flyout) return;
-    clearTimeout(_flyoutTimers[gid]);
-    // Use requestAnimationFrame to ensure DOM is painted before measuring
-    requestAnimationFrame(() => {
-      const sb   = document.getElementById('sidebar');
-      const sbW  = sb ? sb.getBoundingClientRect().width : 52;
-      // Minimum 52px (collapsed width)
-      const left = Math.max(sbW, 52) + 4;
-      const rect = refEl ? refEl.getBoundingClientRect() : null;
-      const top  = rect ? rect.top : 80;
-      flyout.style.top  = top + 'px';
-      flyout.style.left = left + 'px';
-      flyout.classList.add('open');
-    });
-  }
-
-  function _showFlyout(gid, btn) {
-    // Pinned = accordion mode: ignore hover flyout completely
-    if (document.getElementById('sidebar')?.classList.contains('pinned')) return;
-    clearTimeout(_flyoutTimers[gid]);
-    document.querySelectorAll('.sb-flyout.open').forEach(f => {
-      if (f.id !== 'sbf-' + gid) f.classList.remove('open');
-    });
-    _positionAndShowFlyout(gid, btn);
-  }
-
-  function _keepFlyout(gid) {
-    if (document.getElementById('sidebar')?.classList.contains('pinned')) return;
-    clearTimeout(_flyoutTimers[gid]);
-  }
-
-  function _hideFlyout(gid) {
-    if (document.getElementById('sidebar')?.classList.contains('pinned')) return;
-    _flyoutTimers[gid] = setTimeout(() => {
-      document.getElementById('sbf-' + gid)?.classList.remove('open');
-    }, 180);
-  }
-
-  function _hideAllFlyouts() {
-    document.querySelectorAll('.sb-flyout.open').forEach(f => f.classList.remove('open'));
   }
 
   function _showSection(which) {
-    const wv      = document.getElementById('workspace-view');
-    const pv      = document.getElementById('panel-view');
-    const cBar    = document.getElementById('content-bar');
-    
-    // Show/hide workspace-view (code editor)
-    if (wv) {
-      if (which === 'workspace-view') {
-        wv.style.display = 'flex';
-        wv.style.visibility = 'visible';
-        wv.style.position = 'relative';
-        wv.style.zIndex = 'auto';
-      } else {
-        wv.style.display = 'none';
-        wv.style.visibility = 'hidden';
-        wv.style.position = 'absolute';
-        wv.style.zIndex = '-1';
-      }
-    }
-    
-    // Show/hide panel-view
-    if (pv) {
-      if (which === 'panel-view') {
-        pv.style.display = 'flex';
-        pv.style.visibility = 'visible';
-        pv.style.position = 'relative';
-        pv.style.zIndex = 'auto';
-      } else {
-        pv.style.display = 'none';
-        pv.style.visibility = 'hidden';
-        pv.style.position = 'absolute';
-        pv.style.zIndex = '-1';
-      }
-    }
-    
-    // Show/hide content-bar
-    if (cBar) cBar.style.display = which === 'workspace-view' ? '' : 'none';
+    const wv = document.getElementById('workspace-view');
+    const pv = document.getElementById('panel-view');
+    const exBar = document.getElementById('tb-ex-bar');
+    if (wv) wv.style.display = which === 'workspace-view' ? 'flex' : 'none';
+    if (pv) pv.style.display = which === 'panel-view'    ? 'flex' : 'none';
+    if (exBar) exBar.style.display = which === 'workspace-view' ? '' : 'none';
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -15596,16 +15387,6 @@ CL.define('Features.Sidebar', () => {
     document.getElementById('app-shell')?.classList.toggle('sb-pinned', _pinned);
     const icon = document.getElementById('sb-pin')?.querySelector('.sb-pin-icon');
     if (icon) icon.textContent = _pinned ? '◀' : '▶';
-    // When pinning: expand first group automatically
-    if (_pinned) {
-      const firstGroup = sb?.querySelector('.sb-group');
-      if (firstGroup && !firstGroup.classList.contains('expanded')) {
-        firstGroup.classList.add('expanded');
-      }
-    } else {
-      // When unpinning: close all flyouts
-      _hideAllFlyouts();
-    }
   }
 
   function openMobile() {
@@ -15620,16 +15401,10 @@ CL.define('Features.Sidebar', () => {
     document.body.style.overflow = '';
   }
 
-  function _toggleChildGroup(cgid) {
-    const childGroup = document.querySelector(`.sb-child-group[data-cgid="${cgid}"]`);
-    if (!childGroup) return;
-    childGroup.classList.toggle('expanded');
-  }
-
-  return { init, navigate, toggleGroup, groupHeaderClick, togglePin, openMobile, closeMobile, _showFlyout, _keepFlyout, _hideFlyout, _hideAllFlyouts, _toggleChildGroup };
+  return { init, navigate, toggleGroup, groupHeaderClick, togglePin, openMobile, closeMobile };
 });
 
-// ─── js/features/changelog-ui.js ───────────────────────────
+// --- js/features/changelog-ui.js ---
 /**
  * features/changelog-ui.js — Changelog viewer trong Teacher Panel
  * Xem lịch sử phiên bản từ Google Sheets (tab [Changelog])
@@ -15835,1414 +15610,7 @@ CL.define('Features.Changelog', () => {
   return { render };
 });
 
-// ─── js/features/teacher/ai-client.js ───────────────────────────
-/**
- * features/teacher/ai-client.js — Universal AI Client
- * ═══════════════════════════════════════════════════════════════
- * Adapter pattern: 1 interface thống nhất cho Claude / OpenAI / Gemini
- *
- * Usage:
- *   const client = AIClient.create();          // dùng provider đang active
- *   const client = AIClient.create('openai');  // chỉ định provider
- *
- *   const resp = await client.chat({
- *     system: '...',
- *     messages: [{role:'user', content:'...'}],
- *     max_tokens: 2048,
- *   });
- *   // resp.text = string output
- *   // resp.model, resp.latency, resp.tokens_used
- *
- * ═══════════════════════════════════════════════════════════════
- * Bug fixes so với code cũ:
- *   - ai-generator.js luôn gọi Anthropic dù đổi provider ✓ (fixed)
- *   - testActiveAI đọc localStorage nhưng UI chưa set ✓ (fixed)
- *   - Gemini/OpenAI không được dùng khi sinh bài ✓ (fixed)
- * ═══════════════════════════════════════════════════════════════
- */
-'use strict';
-
-CL.define('Teacher.AIClient', () => {
-
-  // ── Provider registry ────────────────────────────────────────
-  // Dữ liệu tĩnh: endpoint, headers, request/response schema
-  const PROVIDERS = {
-
-    claude: {
-      name:       'Claude (Anthropic)',
-      icon:       '🧠',
-      ls_key:     'cl_claude_key',
-      ls_model:   'cl_claude_model',
-      key_url:    'https://platform.claude.com/api-keys',
-      key_prefix: 'sk-ant-',
-      models: [
-        { id:'claude-haiku-4-5-20251001', label:'Haiku 4.5',  note:'Nhanh · ~$0.01/bài',  default: true },
-        { id:'claude-sonnet-4-6',         label:'Sonnet 4.6', note:'Tốt hơn · ~$0.06/bài' },
-        { id:'claude-opus-4-6',           label:'Opus 4.6',   note:'Mạnh nhất · ~$0.20/bài'},
-      ],
-      // Xây request body theo format Claude Messages API
-      buildRequest({ model, system, messages, max_tokens }) {
-        return {
-          url: 'https://api.anthropic.com/v1/messages',
-          headers: (key) => ({
-            'Content-Type': 'application/json',
-            'x-api-key': key,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
-          }),
-          body: { model, max_tokens: max_tokens || 4096, system, messages },
-        };
-      },
-      // Trích text từ response Claude
-      parseResponse(data) {
-        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-        return {
-          text:         data.content?.[0]?.text || '',
-          tokens_input: data.usage?.input_tokens  || 0,
-          tokens_output:data.usage?.output_tokens || 0,
-        };
-      },
-    },
-
-    openai: {
-      name:       'ChatGPT (OpenAI)',
-      icon:       '🤖',
-      ls_key:     'cl_openai_key',
-      ls_model:   'cl_openai_model',
-      key_url:    'https://platform.openai.com/api-keys',
-      key_prefix: 'sk-',
-      models: [
-        { id:'gpt-4o-mini',  label:'GPT-4o Mini',  note:'Nhanh · ~$0.01/bài', default: true },
-        { id:'gpt-4o',       label:'GPT-4o',        note:'Tốt hơn · ~$0.08/bài' },
-        { id:'o3-mini',      label:'o3-mini',       note:'Lập luận · ~$0.05/bài' },
-      ],
-      buildRequest({ model, system, messages, max_tokens }) {
-        // OpenAI: system message là 1 element đầu tiên trong messages array
-        const msgs = system
-          ? [{ role: 'system', content: system }, ...messages]
-          : messages;
-        return {
-          url: 'https://api.openai.com/v1/chat/completions',
-          headers: (key) => ({
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + key,
-          }),
-          body: { model, max_tokens: max_tokens || 4096, messages: msgs },
-        };
-      },
-      parseResponse(data) {
-        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-        return {
-          text:         data.choices?.[0]?.message?.content || '',
-          tokens_input: data.usage?.prompt_tokens     || 0,
-          tokens_output:data.usage?.completion_tokens || 0,
-        };
-      },
-    },
-
-    gemini: {
-      name:       'Gemini (Google)',
-      icon:       '✨',
-      ls_key:     'cl_gemini_key',
-      ls_model:   'cl_gemini_model',
-      key_url:    'https://aistudio.google.com/app/apikey',
-      key_prefix: 'AIza',
-      models: [
-        { id:'gemini-2.0-flash',        label:'Gemini 2.0 Flash', note:'Miễn phí · nhanh', default: true },
-        { id:'gemini-2.5-pro-preview',  label:'Gemini 2.5 Pro',   note:'Mạnh nhất' },
-      ],
-      buildRequest({ model, system, messages, max_tokens }) {
-        // Gemini: system instruction riêng, contents format khác
-        const contents = messages.map(m => ({
-          role:  m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }],
-        }));
-        const body = { contents };
-        if (system) body.system_instruction = { parts: [{ text: system }] };
-        if (max_tokens) body.generationConfig = { maxOutputTokens: max_tokens };
-        return {
-          // key được append vào URL (Gemini dùng ?key= thay vì header)
-          url: (key) =>
-            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-          headers: () => ({ 'Content-Type': 'application/json' }),
-          body,
-        };
-      },
-      parseResponse(data) {
-        if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const usage = data.usageMetadata || {};
-        return {
-          text,
-          tokens_input:  usage.promptTokenCount      || 0,
-          tokens_output: usage.candidatesTokenCount  || 0,
-        };
-      },
-    },
-  };
-
-  // ── State helpers ────────────────────────────────────────────
-  function getProviderIds()  { return Object.keys(PROVIDERS); }
-  function getProviderDef(id){ return PROVIDERS[id] || null; }
-
-  function getActiveId() {
-    return localStorage.getItem('cl_ai_provider') || 'claude';
-  }
-  function setActiveId(id) {
-    if (PROVIDERS[id]) localStorage.setItem('cl_ai_provider', id);
-  }
-
-  function getKey(providerId) {
-    const p = PROVIDERS[providerId];
-    return p ? (localStorage.getItem(p.ls_key) || '') : '';
-  }
-  function setKey(providerId, key) {
-    const p = PROVIDERS[providerId];
-    if (!p) return;
-    localStorage.setItem(p.ls_key, key);
-    // Backward compat: cl_claude_key still used by older code
-    if (providerId === 'claude') localStorage.setItem('cl_claude_key', key);
-  }
-  function clearKey(providerId) {
-    const p = PROVIDERS[providerId];
-    if (!p) return;
-    localStorage.removeItem(p.ls_key);
-    if (providerId === 'claude') localStorage.removeItem('cl_claude_key');
-  }
-
-  function getModel(providerId) {
-    const p = PROVIDERS[providerId];
-    if (!p) return '';
-    return localStorage.getItem(p.ls_model)
-      || p.models.find(m => m.default)?.id
-      || p.models[0]?.id || '';
-  }
-  function setModel(providerId, modelId) {
-    const p = PROVIDERS[providerId];
-    if (p) localStorage.setItem(p.ls_model, modelId);
-  }
-
-  function hasKey(providerId) { return !!getKey(providerId); }
-
-  // ── Core: unified HTTP call ──────────────────────────────────
-  /**
-   * call(providerId, { system, messages, max_tokens, model? })
-   * → { text, model, latency, tokens_input, tokens_output }
-   */
-  async function call(providerId, { system = '', messages, max_tokens, model }) {
-    const p = PROVIDERS[providerId];
-    if (!p) throw new Error(`Unknown AI provider: ${providerId}`);
-
-    const key = getKey(providerId);
-    if (!key) throw new Error(`Chưa cấu hình API key cho ${p.name}`);
-
-    const activeModel = model || getModel(providerId);
-    const req = p.buildRequest({ model: activeModel, system, messages, max_tokens });
-
-    // Resolve URL (Gemini đặt key trong URL)
-    const url = typeof req.url === 'function' ? req.url(key) : req.url;
-
-    const t0 = Date.now();
-    const resp = await fetch(url, {
-      method:  'POST',
-      headers: req.headers(key),
-      body:    JSON.stringify(req.body),
-    });
-
-    const data = await resp.json();
-
-    // Throw on HTTP error (parse error message from body)
-    if (!resp.ok) {
-      const msg = data?.error?.message
-        || data?.error?.errors?.[0]?.message
-        || `HTTP ${resp.status}`;
-      throw new Error(msg);
-    }
-
-    const parsed = p.parseResponse(data);
-    return {
-      ...parsed,
-      model:   activeModel,
-      latency: Date.now() - t0,
-      provider: providerId,
-    };
-  }
-
-  /**
-   * callActive({ system, messages, max_tokens, model? })
-   * Gọi provider đang active (cl_ai_provider localStorage)
-   */
-  async function callActive(opts) {
-    return call(getActiveId(), opts);
-  }
-
-  /**
-   * test(providerId?) — Ping test với 1 token
-   * → { ok, latency, model, provider, error? }
-   */
-  async function test(providerId) {
-    const id = providerId || getActiveId();
-    const p  = PROVIDERS[id];
-    if (!p) return { ok: false, error: 'Unknown provider: ' + id };
-    if (!getKey(id)) return { ok: false, error: `Chưa nhập API key cho ${p.name}` };
-
-    try {
-      const r = await call(id, {
-        messages:   [{ role: 'user', content: 'Respond with only the word OK' }],
-        max_tokens: 10,
-      });
-      return { ok: true, latency: r.latency, model: r.model, provider: id, text: r.text };
-    } catch(e) {
-      return { ok: false, error: e.message, provider: id };
-    }
-  }
-
-  // ── Factory ──────────────────────────────────────────────────
-  /**
-   * create(providerId?) → { chat, test, provider, model, key }
-   * Simple wrapper object bound to 1 provider
-   */
-  function create(providerId) {
-    const id = providerId || getActiveId();
-    return {
-      provider: id,
-      get model() { return getModel(id); },
-      get key()   { return getKey(id); },
-      chat:  (opts) => call(id, opts),
-      test:  ()     => test(id),
-    };
-  }
-
-  return {
-    // Provider info
-    PROVIDERS,
-    getProviderIds, getProviderDef,
-    // Active provider
-    getActiveId, setActiveId,
-    // Key management
-    getKey, setKey, clearKey, hasKey,
-    // Model management
-    getModel, setModel,
-    // Core API calls
-    call, callActive, test,
-    // Factory
-    create,
-  };
-});
-
-// ─── js/features/teacher/ai-generator.js ───────────────────────────
-/**
- * features/teacher/ai-generator.js — AI Sinh bài tập từ nội dung SGK
- * ═══════════════════════════════════════════════════════════════
- * Dùng Claude API (claude-haiku-4-5 để parse, claude-sonnet-4-6 để sinh)
- * Không cần server — gọi trực tiếp từ browser với API key của GV
- *
- * Luồng:
- *   1. GV nhập API key (lưu localStorage cl_claude_key)
- *   2. GV nhập/paste nội dung bài SGK (text hoặc upload PDF→text)
- *   3. Cấu hình: lớp, bài, số câu/Bloom, loại bài (python/html/sql)
- *   4. AI sinh → stream kết quả từng câu
- *   5. GV review inline, sửa nếu cần
- *   6. Validate: chạy Pyodide để verify expected output
- *   7. Lưu vào ngân hàng bài (Sheets)
- * ═══════════════════════════════════════════════════════════════
- */
-'use strict';
-
-CL.define('Teacher.AIGenerator', () => {
-  const Utils    = CL.require('Utils');
-  const Toast    = CL.require('UI.Toast');
-  const Registry = CL.require('Exercises.Registry');
-
-  const LS_KEY = 'cl_claude_key';
-  const MODEL  = 'claude-haiku-4-5-20251001';   // haiku: nhanh + rẻ (~$0.01/bài)
-  const MODEL_SMART = 'claude-sonnet-4-6';       // sonnet: khi cần chất lượng cao
-
-  let _generated = [];   // { exercise, status:'pending'|'ok'|'edit'|'skip' }
-  let _isRunning = false;
-
-  // ══════════════════════════════════════════════════════════════
-  //  MAIN RENDER
-  // ══════════════════════════════════════════════════════════════
-  function render(el) {
-    const hasKey = !!_getKey();
-    el.innerHTML = `
-      <div class="aig-wrap">
-
-        <!-- API Key setup -->
-        <div class="aig-key-bar ${hasKey ? 'aig-key-ok' : ''}">
-          <div class="aig-key-left">
-            ${hasKey
-              ? `<span class="aig-key-status">🔑 API Key đã cấu hình</span>`
-              : `<span class="aig-key-status aig-key-missing">⚠️ Chưa có API Key</span>`}
-          </div>
-          <button class="aig-btn-ghost" onclick="CL.Teacher.AIGenerator.showKeyDialog()">
-            ${hasKey ? '✏️ Đổi key' : '+ Thêm API Key'}
-          </button>
-        </div>
-
-        <!-- Content input -->
-        <div class="aig-section">
-          <div class="aig-section-title">📄 1. Nội dung bài học</div>
-          <div class="aig-hint">
-            Paste nội dung từ SGK, slide, hoặc gõ trực tiếp. AI sẽ hiểu và sinh bài tập phù hợp.
-          </div>
-          <textarea id="aig-content" class="aig-textarea"
-            placeholder="Ví dụ: Bài 17 — Biến và lệnh gán&#10;&#10;1. Biến (Variable)&#10;Biến là tên đại diện cho một giá trị trong bộ nhớ...&#10;&#10;Ví dụ: x = 10, ten = 'An', diem = 8.5&#10;&#10;2. Kiểu dữ liệu: int, float, str, bool..."
-            rows="8">${_lastContent || ''}</textarea>
-          <div class="aig-char-count" id="aig-char-count">0 ký tự</div>
-        </div>
-
-        <!-- Config -->
-        <div class="aig-section">
-          <div class="aig-section-title">⚙️ 2. Cấu hình</div>
-          <div class="aig-config-grid">
-
-            <div class="aig-field">
-              <label class="aig-label">Lớp</label>
-              <select id="aig-grade" class="aig-select">
-                <option value="K10">🐍 Lớp 10 – Python</option>
-                <option value="K11">🐍 Lớp 11 – Python</option>
-                <option value="K11-SQL">🗃 Lớp 11 – SQL</option>
-                <option value="K12-CTST">🌐 Lớp 12 – HTML (CTST)</option>
-                <option value="K12-KNTT">🌐 Lớp 12 – HTML (KNTT)</option>
-              </select>
-            </div>
-
-            <div class="aig-field">
-              <label class="aig-label">Tên bài/chương</label>
-              <input id="aig-chapter" class="aig-input" type="text"
-                placeholder="VD: Bài 17: Biến và lệnh gán">
-            </div>
-
-            <div class="aig-field">
-              <label class="aig-label">Mô hình AI</label>
-              <select id="aig-model" class="aig-select">
-                <option value="claude-haiku-4-5-20251001">⚡ Haiku (~$0.01/bài, nhanh)</option>
-                <option value="claude-sonnet-4-6">🧠 Sonnet (~$0.06/bài, chất lượng cao)</option>
-              </select>
-            </div>
-
-            <div class="aig-field">
-              <label class="aig-label">Số câu mỗi mức Bloom</label>
-              <select id="aig-per-bloom" class="aig-select">
-                <option value="1">1 câu × 6 mức = 6 câu</option>
-                <option value="2" selected>2 câu × 6 mức = 12 câu</option>
-                <option value="3">3 câu × 6 mức = 18 câu</option>
-              </select>
-            </div>
-
-          </div>
-
-          <!-- Bloom level selection -->
-          <div class="aig-bloom-row">
-            <label class="aig-label">Mức Bloom cần sinh</label>
-            <div class="aig-bloom-checks">
-              ${['B1 – Nhận biết','B2 – Hiểu','B3 – Áp dụng','B4 – Phân tích','B5 – Đánh giá','B6 – Sáng tạo'].map((lv,i) => `
-                <label class="aig-bloom-check">
-                  <input type="checkbox" value="B${i+1}" ${i<4?'checked':''} id="aig-b${i+1}">
-                  <span class="aig-bloom-tag aig-b${i+1}">B${i+1}</span>
-                  <span class="aig-bloom-lv">${lv.split(' – ')[1]}</span>
-                </label>`).join('')}
-            </div>
-          </div>
-        </div>
-
-        <!-- Generate button -->
-        <div class="aig-generate-bar">
-          <button class="aig-btn-generate" id="aig-gen-btn"
-            onclick="CL.Teacher.AIGenerator.generate()">
-            ✨ Sinh bài tập với AI
-          </button>
-          <div class="aig-cost-preview" id="aig-cost-preview">
-            Ước tính: ~2 câu × 6 mức = 12 câu · ~$0.02
-          </div>
-        </div>
-
-        <!-- Progress -->
-        <div class="aig-progress" id="aig-progress" style="display:none">
-          <div class="aig-progress-bar"><div id="aig-pbar" style="width:0%"></div></div>
-          <div class="aig-progress-text" id="aig-progress-text">Đang kết nối Claude API...</div>
-        </div>
-
-        <!-- Results -->
-        <div id="aig-results" style="display:none">
-          <div class="aig-results-header">
-            <div class="aig-results-title" id="aig-results-title">Kết quả</div>
-            <div class="aig-results-actions">
-              <button class="aig-btn-ghost" onclick="CL.Teacher.AIGenerator.selectAll()">
-                Chọn tất cả
-              </button>
-              <button class="aig-btn-primary" onclick="CL.Teacher.AIGenerator.saveSelected()">
-                💾 Lưu vào ngân hàng
-              </button>
-            </div>
-          </div>
-          <div id="aig-cards"></div>
-        </div>
-
-      </div>`;
-
-    // Wire textarea counter
-    const ta = document.getElementById('aig-content');
-    if (ta) {
-      ta.addEventListener('input', () => {
-        const n = ta.value.length;
-        document.getElementById('aig-char-count').textContent =
-          `${n.toLocaleString()} ký tự (~${Math.round(n/4)} tokens)`;
-        _updateCostPreview();
-      });
-    }
-
-    // Wire config changes
-    ['aig-per-bloom','aig-model'].forEach(id => {
-      document.getElementById(id)?.addEventListener('change', _updateCostPreview);
-    });
-    document.querySelectorAll('[id^="aig-b"]').forEach(cb => {
-      cb.addEventListener('change', _updateCostPreview);
-    });
-    _updateCostPreview();
-  }
-
-  function _updateCostPreview() {
-    const perBloom  = parseInt(document.getElementById('aig-per-bloom')?.value) || 2;
-    const model     = document.getElementById('aig-model')?.value || MODEL;
-    const bloomSel  = [...document.querySelectorAll('[id^="aig-b"]:checked')].length;
-    const total     = perBloom * bloomSel;
-    const costPer   = model.includes('haiku') ? 0.001 : 0.006;  // per câu estimate
-    const totalCost = (total * costPer).toFixed(3);
-    const el = document.getElementById('aig-cost-preview');
-    if (el) el.textContent =
-      `Ước tính: ${perBloom} câu × ${bloomSel} mức = ${total} câu · ~$${totalCost}`;
-  }
-
-  let _lastContent = '';
-
-  // ══════════════════════════════════════════════════════════════
-  //  API KEY DIALOG
-  // ══════════════════════════════════════════════════════════════
-  function showKeyDialog() {
-    const cur = _getKey();
-    const masked = cur ? cur.slice(0,12) + '...' + cur.slice(-4) : '';
-
-    Toast.dialog?.(`
-      <div style="padding:4px 0">
-        <div style="font-size:13px;font-weight:700;margin-bottom:8px">🔑 Claude API Key</div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:12px">
-          Lấy tại: <a href="https://platform.claude.com/api-keys" target="_blank"
-          style="color:var(--accent)">platform.claude.com/api-keys</a><br>
-          Key được lưu trong localStorage của trình duyệt này, không gửi về server.
-        </div>
-        <input id="aig-key-input" type="password"
-          style="width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border);
-          border-radius:8px;color:var(--text);font-size:13px;font-family:var(--mono);outline:none"
-          placeholder="sk-ant-api03-..."
-          value="${masked}">
-      </div>
-    `, [
-      { label: 'Lưu', action: () => {
-        const v = document.getElementById('aig-key-input')?.value?.trim();
-        if (v && !v.includes('...')) {
-          localStorage.setItem(LS_KEY, v);
-          Toast.success('✅ Đã lưu API key');
-          // Re-render to update key bar
-          const el = document.querySelector('.aig-wrap')?.parentElement;
-          if (el) render(el);
-        }
-      }},
-      { label: 'Xóa key', action: () => {
-        localStorage.removeItem(LS_KEY);
-        Toast.info('Key đã xóa');
-        const el = document.querySelector('.aig-wrap')?.parentElement;
-        if (el) render(el);
-      }},
-    ]) || alert('Nhập API key của bạn:\n\nLấy tại platform.claude.com/api-keys');
-  }
-
-  function _getKey() {
-    // Prefer Config module (multi-provider) if available
-    if (CL.require && CL.require('Teacher.Config')?.getApiKey) {
-      const cfg = CL.require('Teacher.Config');
-      const provider = cfg.getActiveProvider?.();
-      if (provider?.key) return provider.key;
-    }
-    return localStorage.getItem(LS_KEY) || '';
-  }
-
-  function _getActiveModel(override) {
-    if (override) return override;
-    if (CL.require && CL.require('Teacher.Config')?.getActiveProvider) {
-      const cfg = CL.require('Teacher.Config');
-      const provider = cfg.getActiveProvider?.();
-      if (provider?.active_model) return provider.active_model;
-    }
-    return MODEL;
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  GENERATE
-  // ══════════════════════════════════════════════════════════════
-  async function generate() {
-    if (_isRunning) return;
-
-    const key     = _getKey();
-    if (!key) { Toast.error('⚠️ Cần nhập API Key trước'); showKeyDialog(); return; }
-
-    const content = document.getElementById('aig-content')?.value?.trim();
-    if (!content || content.length < 30) {
-      Toast.warn('⚠️ Vui lòng nhập nội dung bài học (ít nhất 30 ký tự)'); return;
-    }
-
-    const grade    = document.getElementById('aig-grade')?.value || 'K10';
-    const chapter  = document.getElementById('aig-chapter')?.value?.trim() || 'Bài học';
-    const model    = _getActiveModel(document.getElementById('aig-model')?.value);
-    const perBloom = parseInt(document.getElementById('aig-per-bloom')?.value) || 2;
-    const blooms   = [...document.querySelectorAll('[id^="aig-b"]:checked')].map(cb => cb.value);
-
-    if (!blooms.length) { Toast.warn('⚠️ Chọn ít nhất 1 mức Bloom'); return; }
-
-    _isRunning  = true;
-    _generated  = [];
-    _lastContent = content;
-
-    const genBtn   = document.getElementById('aig-gen-btn');
-    const progress = document.getElementById('aig-progress');
-    const pbar     = document.getElementById('aig-pbar');
-    const ptext    = document.getElementById('aig-progress-text');
-    const results  = document.getElementById('aig-results');
-    const cards    = document.getElementById('aig-cards');
-
-    if (genBtn)   { genBtn.disabled = true; genBtn.textContent = '⏳ Đang sinh...'; }
-    if (progress) progress.style.display = '';
-    if (results)  results.style.display  = 'none';
-    if (cards)    cards.innerHTML = '';
-
-    const typeMap = { K10:'python', K11:'python', 'K11-SQL':'sql',
-                      'K12-CTST':'html', 'K12-KNTT':'html' };
-    const exType  = typeMap[grade] || 'python';
-
-    try {
-      // Process blooms in batches of 2 (to keep prompts focused)
-      const total  = blooms.length;
-      let   done   = 0;
-
-      for (const bloom of blooms) {
-        if (ptext) ptext.textContent = `Đang sinh ${bloom} (${done+1}/${total})...`;
-        if (pbar)  pbar.style.width = `${Math.round(done/total*100)}%`;
-
-        const exercises = await _callClaude(key, model, {
-          content, chapter, grade, bloom, perBloom, exType,
-        });
-
-        for (const ex of exercises) {
-          const item = { exercise: ex, status: 'ok' };
-          _generated.push(item);
-          _appendCard(item, cards);
-        }
-
-        done++;
-        if (pbar) pbar.style.width = `${Math.round(done/total*100)}%`;
-      }
-
-      if (pbar)   pbar.style.width = '100%';
-      if (ptext)  ptext.textContent = `✅ Đã sinh ${_generated.length} câu hỏi`;
-
-      const titleEl = document.getElementById('aig-results-title');
-      if (titleEl) titleEl.textContent =
-        `✨ ${_generated.length} câu hỏi đã sinh — Review và lưu vào ngân hàng`;
-
-      if (results) results.style.display = '';
-
-    } catch(e) {
-      Toast.error('❌ ' + (e.message || String(e)));
-      if (ptext) ptext.textContent = '❌ ' + e.message;
-    } finally {
-      _isRunning = false;
-      if (genBtn) { genBtn.disabled = false; genBtn.textContent = '✨ Sinh bài tập với AI'; }
-    }
-  }
-
-  // ── Call Claude API ──────────────────────────────────────────
-  async function _callClaude(key, model, { content, chapter, grade, bloom, perBloom, exType }) {
-    // ── Use PromptConfig (2-tier: system + template + few-shot) if available ──
-    const PromptCfg = (() => { try { return CL.require('Teacher.PromptConfig'); } catch { return null; } })();
-
-    if (PromptCfg?.buildPrompt) {
-      const { systemMsg, userMsg } = PromptCfg.buildPrompt({
-        type: exType, bloom, grade, chapter, content, count: perBloom,
-      });
-
-      // ✅ FIX: Dùng AIClient — tự route đến đúng provider
-      let raw = '';
-      if (AIClient) {
-        const result = await AIClient.callActive({
-          system: systemMsg,
-          messages: [{ role: 'user', content: userMsg }],
-          max_tokens: 4096,
-        });
-        raw = result.text;
-      } else {
-        // Last resort fallback: hardcoded Claude
-        const resp = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json','x-api-key':key,
-            'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
-          body: JSON.stringify({ model, max_tokens:4096, system:systemMsg,
-            messages:[{role:'user',content:userMsg}] }),
-        });
-        if (!resp.ok) { const e=await resp.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${resp.status}`); }
-        const data = await resp.json();
-        raw = data.content?.[0]?.text || '';
-      }
-      const clean = raw.replace(/^```json\s*/,'').replace(/```\s*$/,'').trim();
-      let parsed;
-      try { parsed = JSON.parse(clean); }
-      catch { throw new Error(`AI trả về không phải JSON. Raw: ${raw.slice(0,200)}`); }
-      if (!Array.isArray(parsed)) throw new Error('AI không trả về array');
-      return _formatExercises(parsed, { grade, bloom, chapter, exType, perBloom });
-    }
-
-    // ── Fallback: legacy hardcoded prompt ───────────────────────
-    const BLOOM_DESC = {
-      B1: 'Nhận biết — câu hỏi đơn giản, nhận dạng cú pháp, điền vào chỗ trống, đọc code đơn giản',
-      B2: 'Hiểu — giải thích khái niệm, dự đoán output khi đọc code, phân biệt đúng/sai',
-      B3: 'Áp dụng — viết code hoàn chỉnh để giải bài toán cụ thể có input/output rõ ràng',
-      B4: 'Phân tích — tìm lỗi trong code, so sánh 2 cách viết, phân tích độ phức tạp',
-      B5: 'Đánh giá — chọn giải pháp tốt nhất, đánh giá hiệu quả, tối ưu code',
-      B6: 'Sáng tạo — thiết kế giải pháp tổng hợp, mở rộng bài toán thực tế',
-    };
-
-    const TYPE_GUIDE = {
-      python: 'Python 3, dùng print() để xuất, input() nếu cần nhận dữ liệu',
-      sql:    'SQL (SQLite), viết câu truy vấn SELECT/INSERT/CREATE TABLE',
-      html:   'HTML5 + CSS3, viết code tạo giao diện web đơn giản',
-    };
-
-    const prompt = `Bạn là chuyên gia giáo dục Tin học THPT Việt Nam (CT GDPT 2018).
-
-Tạo CHÍNH XÁC ${perBloom} bài tập ${exType.toUpperCase()} mức độ ${bloom} – ${BLOOM_DESC[bloom]} cho:
-- Lớp: ${grade}  
-- Bài: ${chapter}
-- Ngôn ngữ/loại: ${TYPE_GUIDE[exType]}
-
-NỘI DUNG BÀI HỌC:
-${content}
-
-YÊU CẦU ĐỊNH DẠNG — Trả về JSON array, KHÔNG có markdown, KHÔNG có text thêm:
-[
-  {
-    "title": "Tiêu đề ngắn gọn 5-8 từ",
-    "desc": "HTML đề bài: <b>Đề bài:</b> ... <br><b>Input:</b> ...<br><b>Output:</b><pre class=\\"ex-code\\">...</pre>",
-    "solution": "code mẫu ${exType} đúng, chạy được",
-    "expected_output": "output chính xác khi chạy code mẫu với input mẫu (chỉ text thuần, không HTML)",
-    "sample_input": "input mẫu để test (rỗng nếu không có input)",
-    "keywords": ["từ_khóa_1", "từ_khóa_2"],
-    "nl": "${bloom.startsWith('B1')||bloom.startsWith('B2') ? 'NL2a' : bloom.startsWith('B3')||bloom.startsWith('B4') ? 'NL2c' : 'NL1c'}"
-  }
-]
-
-QUAN TRỌNG:
-- solution phải chạy được và cho đúng expected_output
-- Nếu bài không có input: sample_input = "", expected_output phải chính xác 100%
-- Viết bằng tiếng Việt, phù hợp học sinh THPT
-- Chỉ trả về JSON array, KHÔNG thêm bất kỳ text nào khác`;
-
-    // ✅ FIX: Dùng AIClient — tự route đến đúng provider
-    let raw = '';
-    if (AIClient) {
-      const result = await AIClient.callActive({
-        messages:   [{ role: 'user', content: prompt }],
-        max_tokens: 4096,
-        model,
-      });
-      raw = result.text;
-    } else {
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json','x-api-key':key,
-          'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true' },
-        body: JSON.stringify({ model, max_tokens:4096, messages:[{role:'user',content:prompt}] }),
-      });
-      if (!resp.ok) { const e=await resp.json().catch(()=>({})); throw new Error(e?.error?.message||`HTTP ${resp.status}`); }
-      const d = await resp.json();
-      raw = d.content?.[0]?.text || '';
-    }
-
-    // Parse JSON — strip any markdown fences
-    const clean = raw.replace(/^```json\s*/,'').replace(/```\s*$/,'').trim();
-    let parsed;
-    try {
-      parsed = JSON.parse(clean);
-    } catch {
-      throw new Error(`AI trả về không phải JSON hợp lệ. Raw: ${raw.slice(0,200)}`);
-    }
-
-    if (!Array.isArray(parsed)) throw new Error('AI không trả về array');
-
-    // Convert to CodeLab exercise format
-    const grade_code = grade.replace('-','').toLowerCase();
-    const chapterSlug = chapter.replace(/[^a-zA-Z0-9]/g,'').toLowerCase().slice(0,8);
-    const bloomNum = bloom.replace('B','');
-
-    return _formatExercises(parsed.slice(0, perBloom), { grade, bloom, chapter, exType, perBloom });
-  }
-
-  function _formatExercises(parsed, { grade, bloom, chapter, exType, perBloom }) {
-    const grade_code  = grade.replace('-','').toLowerCase();
-    const chapterSlug = chapter.replace(/[^a-zA-Z0-9]/g,'').toLowerCase().slice(0,8);
-    const bloomNum    = (bloom||'B3').replace('B','');
-
-    return parsed.slice(0, perBloom).map((ex, i) => ({
-      id:       `ai-${grade_code}-${chapterSlug}-b${bloomNum}-${Date.now()%10000}-${i+1}`,
-      g:        grade.split('-')[0],   // K10, K11, K12
-      bo:       grade.includes('-') ? grade.split('-')[1] : 'KNTT',
-      ch:       chapter,
-      lv:       `B${bloomNum} – ${['Nhận biết','Hiểu','Áp dụng','Phân tích','Đánh giá','Sáng tạo'][bloomNum-1]}`,
-      type:     exType,
-      num:      `${bloomNum}.${i+1}`,
-      title:    ex.title || 'Bài tập',
-      desc:     ex.desc  || '',
-      theory:   '',
-      solution: ex.solution || '',
-      nl:       [ex.nl || 'NL2c'],
-      chu_de:   chapter.replace(/^Bài \d+[:\s]+/i,'').trim(),
-      rb: (ex.keywords || []).map((kw, ki) => ({
-        desc: `Dùng ${kw}`, kw, pts: Math.floor(10/(ex.keywords?.length||1)), hint: '',
-      })),
-      tc: ex.expected_output && ex.solution ? [{
-        input:    ex.sample_input || '',
-        expected: ex.expected_output,
-        pts:      10,
-        desc:     'Output đúng',
-      }] : [],
-      _ai_generated: true,
-      _solution: ex.solution,
-      _sample_input: ex.sample_input || '',
-      _expected_output: ex.expected_output || '',
-    }));
-  }
-
-  // ── Render result card ───────────────────────────────────────
-  function _appendCard(item, container) {
-    const ex   = item.exercise;
-    const BCOL = {b1:'#6366f1',b2:'#3b82f6',b3:'#10b981',b4:'#f59e0b',b5:'#ef4444',b6:'#8b5cf6'};
-    const bn   = ex.lv?.match(/B(\d)/)?.[1] || '3';
-    const bcol = BCOL['b'+bn] || '#888';
-
-    const card = document.createElement('div');
-    card.className = 'aig-card';
-    card.id = 'aig-card-' + ex.id;
-    card.innerHTML = `
-      <div class="aig-card-header">
-        <label class="aig-card-check-label">
-          <input type="checkbox" class="aig-card-check" data-id="${Utils.escHtml(ex.id)}" checked>
-        </label>
-        <span class="aig-bloom-tag" style="background:${bcol}18;color:${bcol};border:1px solid ${bcol}40">
-          ${Utils.escHtml(ex.lv?.split(' – ')[0]||'')}
-        </span>
-        <span class="aig-card-title">${Utils.escHtml(ex.title)}</span>
-        <div class="aig-card-badges">
-          ${ex.tc?.length ? '<span class="aig-badge aig-badge-tc">✓ test case</span>' : ''}
-          <span class="aig-badge">${ex.type||'python'}</span>
-        </div>
-        <div class="aig-card-actions">
-          <button class="aig-card-btn" onclick="CL.Teacher.AIGenerator.previewCard('${ex.id}')"
-            title="Xem đề">👁</button>
-          <button class="aig-card-btn" onclick="CL.Teacher.AIGenerator.runCard('${ex.id}')"
-            title="Chạy thử code mẫu">▶</button>
-          <button class="aig-card-btn aig-card-btn-del"
-            onclick="CL.Teacher.AIGenerator.removeCard('${ex.id}')" title="Bỏ">✕</button>
-        </div>
-      </div>
-      <div class="aig-card-body" id="aig-card-body-${ex.id}" style="display:none">
-        <div class="aig-card-desc">${ex.desc}</div>
-        ${ex._solution ? `
-        <div class="aig-card-code-wrap">
-          <div class="aig-card-code-label">💡 Code mẫu</div>
-          <pre class="aig-card-code">${Utils.escHtml(ex._solution)}</pre>
-        </div>` : ''}
-        <div id="aig-card-run-${ex.id}" class="aig-card-run"></div>
-      </div>`;
-
-    container?.appendChild(card);
-  }
-
-  function previewCard(id) {
-    const body = document.getElementById('aig-card-body-' + id);
-    if (body) body.style.display = body.style.display === 'none' ? '' : 'none';
-  }
-
-  async function runCard(id) {
-    const item = _generated.find(g => g.exercise.id === id);
-    if (!item) return;
-    const ex  = item.exercise;
-    const out = document.getElementById('aig-card-run-' + id);
-    if (!out) return;
-
-    // Show the card body if hidden
-    const body = document.getElementById('aig-card-body-' + id);
-    if (body) body.style.display = '';
-
-    out.innerHTML = '<span style="color:var(--text3)">⏳ Đang chạy code mẫu...</span>';
-
-    const code = ex._solution;
-    if (!code) { out.textContent = '⚠️ Không có code mẫu'; return; }
-
-    try {
-      if (ex.type === 'python') {
-        // Use PyInterp for quick validation
-        let stdout = '';
-        const toks   = PyInterp.tokenize(code);
-        const parser = new PyInterp.Parser(toks);
-        const ast    = parser.parse();
-        const interp = new PyInterp.Interp(
-          t => { stdout += t; },
-          () => ex._sample_input?.split('\n').shift() || ''
-        );
-        interp.run(ast);
-        const expected = (ex._expected_output || '').trim();
-        const actual   = stdout.trim();
-        const ok       = actual === expected;
-        out.innerHTML = ok
-          ? `<span style="color:var(--accent2)">✅ Output khớp: <code>${Utils.escHtml(actual)}</code></span>`
-          : `<span style="color:var(--warn)">⚠️ Expected: <code>${Utils.escHtml(expected)}</code><br>
-             Got: <code>${Utils.escHtml(actual)}</code></span>`;
-
-        // Update tc[] with actual output if different
-        if (!ok && actual) {
-          item.exercise.tc = [{ input: ex._sample_input||'', expected: actual, pts:10, desc:'Output đúng' }];
-          item.exercise._expected_output = actual;
-          out.innerHTML += '<br><span style="font-size:11px;color:var(--text3)">→ Đã cập nhật expected output</span>';
-        }
-      } else {
-        out.textContent = `ℹ️ Validate ${ex.type} cần chạy trong editor. Câu này sẽ lưu mà không có tc[].`;
-      }
-    } catch(e) {
-      out.innerHTML = `<span style="color:var(--error)">❌ ${Utils.escHtml(e.message||String(e))}</span>`;
-    }
-  }
-
-  function removeCard(id) {
-    const idx = _generated.findIndex(g => g.exercise.id === id);
-    if (idx >= 0) _generated.splice(idx, 1);
-    document.getElementById('aig-card-' + id)?.remove();
-  }
-
-  function selectAll() {
-    document.querySelectorAll('.aig-card-check').forEach(cb => { cb.checked = true; });
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  SAVE TO EXERCISE BANK
-  // ══════════════════════════════════════════════════════════════
-  async function saveSelected() {
-    const checked = [...document.querySelectorAll('.aig-card-check:checked')].map(cb => cb.dataset.id);
-    if (!checked.length) { Toast.warn('⚠️ Chưa chọn câu nào để lưu'); return; }
-
-    const toSave = _generated.filter(g => checked.includes(g.exercise.id));
-    let saved = 0, errors = 0;
-
-    Toast.info(`Đang lưu ${toSave.length} bài tập...`);
-
-    for (const item of toSave) {
-      const ex = item.exercise;
-      try {
-        // Save desc HTML to Sheets NoiDung
-        await CL.API.saveExerciseContent(ex.id, 'desc', ex.desc);
-
-        // Save solution as code mẫu if exists
-        if (ex._solution) {
-          await CL.API.saveCodeMau(ex.id, ex.type || 'python', ex._solution, 'AI generated');
-        }
-
-        // Save BaiTap record
-        if (CL.API.saveBaiTapRecord) {
-          await CL.API.saveBaiTapRecord({
-            id:         ex.id,
-            lop:        ex.g,
-            bo_sach:    ex.bo || 'KNTT',
-            chuong:     ex.ch,
-            muc_bloom:  ex.lv,
-            so_bai:     ex.num,
-            tieu_de:    ex.title,
-            type:       ex.type || 'python',
-            nguon:      'AI',
-          });
-        }
-
-        // Mark card as saved
-        const card = document.getElementById('aig-card-' + ex.id);
-        if (card) {
-          card.style.opacity = '0.6';
-          card.querySelector('.aig-card-title').textContent += ' ✅';
-        }
-        saved++;
-      } catch(e) {
-        errors++;
-        console.error('Save failed:', ex.id, e.message);
-      }
-    }
-
-    if (saved)  Toast.success(`✅ Đã lưu ${saved} bài tập vào ngân hàng`);
-    if (errors) Toast.error(`❌ ${errors} bài không lưu được (xem console)`);
-  }
-
-  return { render, showKeyDialog, generate, previewCard, runCard, removeCard, selectAll, saveSelected };
-});
-
-// ─── js/features/teacher/prompt-config.js ───────────────────────────
-/**
- * features/teacher/prompt-config.js — Quản lý Prompt Templates
- * ═══════════════════════════════════════════════════════════════
- * Kiến trúc 2 tầng:
- *   Tầng 1 — System Prompt (ẩn, chuẩn CT2018, hardcode)
- *     → Không cần GV quan tâm, đảm bảo chất lượng baseline
- *   Tầng 2 — User Template (GV chỉnh trong ⚙️)
- *     → Biến: {{bloom}}, {{bloom_desc}}, {{grade}}, {{type}}
- *             {{content}}, {{count}}, {{chapter}}, {{examples}}
- *
- * Few-shot: tự động lấy 2 bài mẫu từ ngân hàng đúng type + bloom
- *   → AI học phong cách viết bài của ngân hàng hiện có
- * ═══════════════════════════════════════════════════════════════
- */
-'use strict';
-
-CL.define('Teacher.PromptConfig', () => {
-  const Utils    = CL.require('Utils');
-  const Toast    = CL.require('UI.Toast');
-  const Registry = CL.require('Exercises.Registry');
-
-  const LS_PREFIX = 'cl_prompt_';
-
-  // ══════════════════════════════════════════════════════════════
-  //  SYSTEM PROMPTS (Tầng 1 — ẩn, chuẩn CT GDPT 2018)
-  //  Cố định, đảm bảo output đúng định dạng + ngữ cảnh
-  // ══════════════════════════════════════════════════════════════
-  const SYSTEM_PROMPTS = {
-    python: `Bạn là chuyên gia giáo dục Tin học THPT Việt Nam, chuyên soạn bài tập lập trình Python theo Chương trình GDPT 2018.
-
-NGUYÊN TẮC SOẠN BÀI:
-• Ngôn ngữ Python 3, phù hợp THPT — dùng input(), print(), f-string, list, dict, hàm
-• Bài tập phải có ứng dụng thực tế, gần gũi với học sinh Việt Nam
-• Đề bài rõ ràng: Input → Processing → Output
-• Câu hỏi theo Bloom: B1(nhận biết) → B6(sáng tạo), tăng dần độ phức tạp
-• Mỗi bài có code mẫu chạy được 100%, có expected_output chính xác
-• Tích hợp các năng lực CT2018: NL1(tư duy máy tính), NL2(giải quyết vấn đề), NL3(ứng dụng)
-
-ĐỊNH DẠNG OUTPUT — Chỉ trả về JSON array, không markdown, không giải thích:`,
-
-    html: `Bạn là chuyên gia giáo dục Tin học THPT Việt Nam, chuyên soạn bài tập HTML/CSS theo Chương trình GDPT 2018.
-
-NGUYÊN TẮC SOẠN BÀI:
-• HTML5 + CSS3 thuần, không dùng JavaScript (trừ B5-B6)
-• Bài tập thiết kế giao diện web thực tế: trang cá nhân, sản phẩm, trường học
-• Tăng dần: B1(nhận dạng tag) → B6(thiết kế layout hoàn chỉnh)
-• Code mẫu phải render được ngay trong browser
-• Chú trọng semantic HTML, accessibility, responsive cơ bản
-
-ĐỊNH DẠNG OUTPUT — Chỉ trả về JSON array, không markdown, không giải thích:`,
-
-    sql: `Bạn là chuyên gia giáo dục Tin học THPT Việt Nam, chuyên soạn bài tập SQL/CSDL theo Chương trình GDPT 2018.
-
-NGUYÊN TẮC SOẠN BÀI:
-• SQL chuẩn SQLite, phù hợp SGK Tin học 11 KNTT
-• CSDL thực tế: quản lý học sinh, bán hàng, thư viện, âm nhạc
-• B1-B2: SELECT cơ bản; B3-B4: JOIN, GROUP BY; B5-B6: subquery, DDL
-• Cung cấp sẵn CSDL mẫu (CREATE TABLE + INSERT) trong sample_db
-• Code mẫu là câu SQL đúng, chạy được trên SQLite
-
-ĐỊNH DẠNG OUTPUT — Chỉ trả về JSON array, không markdown, không giải thích:`,
-  };
-
-  // Schema JSON output (nhúng vào system prompt)
-  const JSON_SCHEMA = `
-[
-  {
-    "title": "Tiêu đề 5-8 từ",
-    "desc": "<b>Đề bài:</b> HTML mô tả...<br><b>Input:</b> ...<br><b>Output:</b><pre class=\\"ex-code\\">...</pre>",
-    "solution": "code mẫu chạy được",
-    "expected_output": "output thuần text khi chạy code với sample_input",
-    "sample_input": "input mẫu (rỗng nếu không có)",
-    "keywords": ["từ_khóa_kỹ_thuật"],
-    "nl": "NL2c"
-  }
-]`;
-
-  // ══════════════════════════════════════════════════════════════
-  //  DEFAULT USER TEMPLATES (Tầng 2 — GV chỉnh được)
-  // ══════════════════════════════════════════════════════════════
-  const DEFAULT_TEMPLATES = {
-    python: `Tạo CHÍNH XÁC {{count}} bài tập Python mức {{bloom}} – {{bloom_desc}} cho:
-• Lớp: {{grade}}
-• Bài/Chủ đề: {{chapter}}
-
-NỘI DUNG BÀI HỌC:
-{{content}}
-
-{{examples}}
-
-YÊU CẦU:
-• Số câu: đúng {{count}} câu, không hơn không kém
-• Độ khó: phù hợp {{bloom}} ({{bloom_desc}})
-• Ngữ cảnh: gần gũi học sinh THPT Việt Nam
-• Code mẫu: chạy được, ngắn gọn, dễ hiểu`,
-
-    html: `Tạo CHÍNH XÁC {{count}} bài tập HTML/CSS mức {{bloom}} – {{bloom_desc}} cho:
-• Lớp: {{grade}}
-• Bài/Chủ đề: {{chapter}}
-
-NỘI DUNG BÀI HỌC:
-{{content}}
-
-{{examples}}
-
-YÊU CẦU:
-• Số câu: đúng {{count}} câu
-• Code mẫu HTML/CSS đầy đủ, render được ngay
-• Mô tả giao diện rõ ràng (màu sắc, layout, nội dung mẫu)`,
-
-    sql: `Tạo CHÍNH XÁC {{count}} bài tập SQL mức {{bloom}} – {{bloom_desc}} cho:
-• Lớp: {{grade}}
-• Bài/Chủ đề: {{chapter}}
-
-NỘI DUNG BÀI HỌC:
-{{content}}
-
-{{examples}}
-
-YÊU CẦU:
-• Số câu: đúng {{count}} câu
-• Dùng CSDL mẫu đã cung cấp ở phần few-shot (nếu có)
-• SQL chuẩn SQLite, không dùng function đặc thù MySQL/PostgreSQL`,
-  };
-
-  // ══════════════════════════════════════════════════════════════
-  //  LOAD / SAVE TEMPLATES
-  // ══════════════════════════════════════════════════════════════
-  function getTemplate(type) {
-    return localStorage.getItem(LS_PREFIX + type) || DEFAULT_TEMPLATES[type] || DEFAULT_TEMPLATES.python;
-  }
-
-  function saveTemplate(type, tmpl) {
-    localStorage.setItem(LS_PREFIX + type, tmpl);
-  }
-
-  function resetTemplate(type) {
-    localStorage.removeItem(LS_PREFIX + type);
-  }
-
-  function isCustomized(type) {
-    return !!localStorage.getItem(LS_PREFIX + type);
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  FEW-SHOT BUILDER
-  //  Tự động chọn 2 bài mẫu từ ngân hàng đúng type + bloom gần
-  // ══════════════════════════════════════════════════════════════
-  function buildFewShot(type, bloom, count = 2) {
-    try {
-      const all = Registry.getAll();
-      const bloomNum = parseInt(bloom.replace('B','')) || 3;
-
-      // Tìm bài cùng type + bloom gần nhất, ưu tiên có tc[]
-      const candidates = all.filter(ex => {
-        const exType  = ex.type || 'python';
-        const exBloom = parseInt((ex.lv||'').match(/B(\d)/)?.[1] || '3');
-        const typeMismatch = exType !== type;
-        const bloomDiff    = Math.abs(exBloom - bloomNum);
-        return !typeMismatch && bloomDiff <= 1;
-      });
-
-      // Ưu tiên: có tc[] > có rb[] > bất kỳ
-      const sorted = candidates.sort((a, b) => {
-        const scoreA = (a.tc?.length ? 3 : 0) + (a.rb?.length ? 1 : 0);
-        const scoreB = (b.tc?.length ? 3 : 0) + (b.rb?.length ? 1 : 0);
-        return scoreB - scoreA;
-      });
-
-      const picked = sorted.slice(0, count);
-      if (!picked.length) return '';
-
-      // Format thành few-shot block
-      const examplesStr = picked.map((ex, i) => {
-        // Làm sạch desc
-        const cleanDesc = (ex.desc||'').replace(/<[^>]+>/g, '')
-          .replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&')
-          .replace(/\s+/g,' ').trim().slice(0, 300);
-
-        const obj = {
-          title:           ex.title || '',
-          desc:            ex.desc  || '',
-          solution:        ex.solution || ex._solution || '',
-          expected_output: ex.tc?.[0]?.expected || '',
-          sample_input:    ex.tc?.[0]?.input    || '',
-          keywords:        ex.rb?.map(r => r.kw).filter(Boolean) || [],
-          nl:              ex.nl?.[0] || 'NL2c',
-        };
-        return JSON.stringify(obj, null, 2);
-      }).join(',\n');
-
-      return `VÍ DỤ BÀI TẬP MẪU (phong cách tương tự — KHÔNG copy, chỉ tham khảo):
-\`\`\`json
-[
-${examplesStr}
-]
-\`\`\``;
-    } catch(e) {
-      console.warn('Few-shot build failed:', e.message);
-      return '';
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  BUILD FULL PROMPT (kết hợp system + template + few-shot)
-  // ══════════════════════════════════════════════════════════════
-  const BLOOM_DESCS = {
-    B1:'Nhận biết — nhận dạng cú pháp, điền vào chỗ trống, đọc code đơn giản',
-    B2:'Hiểu — giải thích khái niệm, dự đoán output, phân biệt đúng/sai',
-    B3:'Áp dụng — viết code hoàn chỉnh giải bài toán cụ thể có I/O rõ',
-    B4:'Phân tích — tìm lỗi, so sánh giải pháp, phân tích độ phức tạp',
-    B5:'Đánh giá — chọn giải pháp tốt nhất, tối ưu code, đánh giá hiệu quả',
-    B6:'Sáng tạo — thiết kế tổng hợp, mở rộng bài toán thực tế, kết hợp kỹ năng',
-  };
-
-  function buildPrompt({ type, bloom, grade, chapter, content, count }) {
-    const bloomDesc = BLOOM_DESCS[bloom] || bloom;
-    const fewShot   = buildFewShot(type, bloom, 2);
-    const tmpl      = getTemplate(type);
-
-    // Render template variables
-    const userMsg = tmpl
-      .replace(/\{\{bloom\}\}/g,       bloom)
-      .replace(/\{\{bloom_desc\}\}/g,  bloomDesc)
-      .replace(/\{\{grade\}\}/g,       grade)
-      .replace(/\{\{chapter\}\}/g,     chapter)
-      .replace(/\{\{content\}\}/g,     content)
-      .replace(/\{\{count\}\}/g,       String(count))
-      .replace(/\{\{type\}\}/g,        type)
-      .replace(/\{\{examples\}\}/g,    fewShot);
-
-    const systemMsg = (SYSTEM_PROMPTS[type] || SYSTEM_PROMPTS.python) + '\n' + JSON_SCHEMA;
-
-    return { systemMsg, userMsg };
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  RENDER — Tab Prompt trong config
-  // ══════════════════════════════════════════════════════════════
-  function renderTab(el) {
-    const types = [
-      { id:'python', icon:'🐍', label:'Python (K10/K11)' },
-      { id:'html',   icon:'🌐', label:'HTML/CSS (K12)'   },
-      { id:'sql',    icon:'🗃', label:'SQL (K11)'         },
-    ];
-    let activeType = 'python';
-
-    el.innerHTML = `
-      <div class="prc-wrap">
-        <div class="prc-header">
-          <div class="prc-title">📝 Cấu hình Prompt AI</div>
-          <div class="prc-subtitle">
-            Kiến trúc 2 tầng: System Prompt (ẩn, chuẩn CT2018) + Template (GV tùy chỉnh)
-          </div>
-        </div>
-
-        <!-- Type tabs -->
-        <div class="prc-type-tabs">
-          ${types.map(t => `
-            <button class="prc-type-tab ${t.id==='python'?'active':''}"
-              id="prc-tab-${t.id}"
-              onclick="CL.Teacher.PromptConfig.switchType('${t.id}')">
-              ${t.icon} ${t.label}
-              ${isCustomized(t.id) ? '<span class="prc-custom-badge">✏️</span>' : ''}
-            </button>`).join('')}
-        </div>
-
-        <!-- System prompt preview (readonly) -->
-        <div class="prc-section">
-          <div class="prc-section-header">
-            <span class="prc-section-title">🔒 System Prompt (tự động, ẩn với GV)</span>
-            <button class="prc-btn-ghost prc-toggle-sys"
-              onclick="CL.Teacher.PromptConfig.toggleSystem()">👁 Xem</button>
-          </div>
-          <div id="prc-system-body" style="display:none">
-            <div class="prc-system-hint">
-              Context cố định về CT GDPT 2018, chuẩn đầu ra JSON. GV không cần sửa.
-            </div>
-            <pre class="prc-system-pre" id="prc-system-content"></pre>
-          </div>
-        </div>
-
-        <!-- User template editor -->
-        <div class="prc-section">
-          <div class="prc-section-header">
-            <span class="prc-section-title">✏️ Template người dùng</span>
-            <div style="display:flex;gap:6px">
-              <button class="prc-btn-ghost" onclick="CL.Teacher.PromptConfig.previewFewShot()">
-                🔍 Xem few-shot
-              </button>
-              <button class="prc-btn-ghost" onclick="CL.Teacher.PromptConfig.resetCurrent()">
-                ↺ Về mặc định
-              </button>
-              <button class="prc-btn-primary" onclick="CL.Teacher.PromptConfig.saveCurrent()">
-                💾 Lưu
-              </button>
-            </div>
-          </div>
-
-          <div class="prc-vars">
-            <span class="prc-var-label">Biến có sẵn:</span>
-            ${['{{bloom}}','{{bloom_desc}}','{{grade}}','{{chapter}}',
-               '{{content}}','{{count}}','{{examples}}'].map(v =>
-              `<code class="prc-var">${v}</code>`).join('')}
-          </div>
-
-          <textarea id="prc-editor" class="prc-editor"
-            spellcheck="false" rows="18"></textarea>
-        </div>
-
-        <!-- Few-shot preview -->
-        <div class="prc-section" id="prc-fewshot-section" style="display:none">
-          <div class="prc-section-title">🎯 Few-shot preview (2 bài mẫu từ ngân hàng)</div>
-          <div class="prc-fewshot-hint">
-            Hệ thống tự động chọn 2 bài có cùng type + Bloom gần nhất làm ví dụ.
-            AI học phong cách từ đây, không copy nguyên bài.
-          </div>
-          <pre class="prc-fewshot-pre" id="prc-fewshot-content"></pre>
-        </div>
-
-        <!-- Test prompt -->
-        <div class="prc-section">
-          <div class="prc-section-title">🧪 Preview prompt đầy đủ</div>
-          <div class="prc-test-row">
-            <input id="prc-test-content" class="prc-test-input" type="text"
-              placeholder="Nhập 1-2 câu nội dung bài học để xem prompt thực tế..."
-              value="Biến là tên đại diện cho giá trị. Python tự nhận kiểu: x=10 (int), s='hello' (str)">
-            <select id="prc-test-bloom" class="prc-test-sel">
-              ${['B1','B2','B3','B4','B5','B6'].map(b =>
-                `<option ${b==='B3'?'selected':''}>${b}</option>`).join('')}
-            </select>
-            <button class="prc-btn-primary" onclick="CL.Teacher.PromptConfig.previewFull()">
-              🔍 Preview
-            </button>
-          </div>
-          <div id="prc-preview-out" style="display:none">
-            <div class="prc-preview-tabs">
-              <button class="prc-ptab active" onclick="CL.Teacher.PromptConfig.switchPreview('system',this)">System</button>
-              <button class="prc-ptab" onclick="CL.Teacher.PromptConfig.switchPreview('user',this)">User</button>
-            </div>
-            <pre class="prc-preview-pre" id="prc-preview-system"></pre>
-            <pre class="prc-preview-pre" id="prc-preview-user" style="display:none"></pre>
-          </div>
-        </div>
-
-      </div>`;
-
-    // Load initial content
-    _loadEditorContent('python');
-  }
-
-  let _currentType = 'python';
-
-  function switchType(type) {
-    _currentType = type;
-    document.querySelectorAll('.prc-type-tab').forEach(b =>
-      b.classList.toggle('active', b.id === 'prc-tab-' + type));
-    _loadEditorContent(type);
-    document.getElementById('prc-fewshot-section').style.display = 'none';
-  }
-
-  function _loadEditorContent(type) {
-    const ed = document.getElementById('prc-editor');
-    if (ed) ed.value = getTemplate(type);
-    const sysEl = document.getElementById('prc-system-content');
-    if (sysEl) sysEl.textContent = (SYSTEM_PROMPTS[type]||'') + '\n[JSON Schema...]\n';
-  }
-
-  function toggleSystem() {
-    const body = document.getElementById('prc-system-body');
-    if (body) body.style.display = body.style.display === 'none' ? '' : 'none';
-  }
-
-  function saveCurrent() {
-    const ed  = document.getElementById('prc-editor');
-    if (!ed?.value?.trim()) return;
-    saveTemplate(_currentType, ed.value);
-    // Update badge
-    const tab = document.getElementById('prc-tab-' + _currentType);
-    if (tab && !tab.querySelector('.prc-custom-badge')) {
-      const b = document.createElement('span');
-      b.className = 'prc-custom-badge'; b.textContent = '✏️';
-      tab.appendChild(b);
-    }
-    Toast.success(`✅ Đã lưu template ${_currentType.toUpperCase()}`);
-  }
-
-  function resetCurrent() {
-    resetTemplate(_currentType);
-    const ed = document.getElementById('prc-editor');
-    if (ed) ed.value = DEFAULT_TEMPLATES[_currentType] || '';
-    // Remove badge
-    document.getElementById('prc-tab-' + _currentType)
-      ?.querySelector('.prc-custom-badge')?.remove();
-    Toast.info('↺ Đã reset về mặc định');
-  }
-
-  function previewFewShot() {
-    const section = document.getElementById('prc-fewshot-section');
-    const content = document.getElementById('prc-fewshot-content');
-    if (!section || !content) return;
-    const bloom   = document.getElementById('prc-test-bloom')?.value || 'B3';
-    const fewShot = buildFewShot(_currentType, bloom, 2);
-    content.textContent = fewShot || '(Chưa có bài mẫu phù hợp trong ngân hàng)';
-    section.style.display = '';
-  }
-
-  function previewFull() {
-    const content = document.getElementById('prc-test-content')?.value || '';
-    const bloom   = document.getElementById('prc-test-bloom')?.value  || 'B3';
-    const out     = document.getElementById('prc-preview-out');
-    const sysPre  = document.getElementById('prc-preview-system');
-    const usrPre  = document.getElementById('prc-preview-user');
-    if (!out || !sysPre || !usrPre) return;
-
-    const { systemMsg, userMsg } = buildPrompt({
-      type: _currentType, bloom, grade: 'K10',
-      chapter: 'Bài 17: Biến và lệnh gán',
-      content, count: 2,
-    });
-
-    sysPre.textContent = systemMsg;
-    usrPre.textContent = userMsg;
-    out.style.display  = '';
-
-    // Token estimate
-    const totalChars = systemMsg.length + userMsg.length;
-    const est = Math.round(totalChars / 4);
-    const AIClient = (() => { try { return CL.require('Teacher.AIClient'); } catch { return null; } })();
-    const activeId  = AIClient?.getActiveId() || 'claude';
-    const provName  = AIClient?.getProviderDef(activeId)?.icon || '🧠';
-    // Rough cost estimate per provider
-    const costPer1M = { claude: 3, openai: 3, gemini: 0.35 };
-    const cost = (est / 1000000 * (costPer1M[activeId] || 3)).toFixed(4);
-    Toast.info(`${provName} ~${est.toLocaleString()} tokens · ước tính $${cost}`);
-  }
-
-  function switchPreview(which, btn) {
-    document.querySelectorAll('.prc-ptab').forEach(b => b.classList.toggle('active', b === btn));
-    document.getElementById('prc-preview-system').style.display = which==='system' ? '' : 'none';
-    document.getElementById('prc-preview-user').style.display   = which==='user'   ? '' : 'none';
-  }
-
-  return {
-    renderTab, switchType, toggleSystem, saveCurrent, resetCurrent,
-    previewFewShot, previewFull, switchPreview,
-    // Public API for ai-generator.js
-    buildPrompt, getTemplate, buildFewShot, BLOOM_DESCS, JSON_SCHEMA,
-  };
-});
-
-// ─── js/features/teacher/dot-kiemtra.js ───────────────────────────
+// --- js/features/teacher/dot-kiemtra.js ---
 /**
  * features/teacher/dot-kiemtra.js — Quản lý Đợt kiểm tra
  * ═══════════════════════════════════════════════════════════════

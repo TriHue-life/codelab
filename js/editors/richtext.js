@@ -153,6 +153,8 @@ CL.define('Editors.RichText', () => {
       </div>
       <div class="rte-actions-right">
         <span class="rte-hint">Ctrl+S lưu · Kéo thả ảnh để upload</span>
+        <button class="rte-btn" id="rte-cancel-${containerId}">Hủy</button>
+        <button class="rte-btn rte-btn-primary" id="rte-save-${containerId}">💾 Lưu</button>
       </div>`;
 
     wrapper.appendChild(uploadBar);
@@ -205,6 +207,8 @@ CL.define('Editors.RichText', () => {
     // Save
     const doSave = async () => {
       const html = getHtml(containerId);
+      const btn  = document.getElementById(`rte-save-${containerId}`);
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu...'; }
       try {
         if (onSave) await onSave(html);
         // Update display
@@ -213,13 +217,18 @@ CL.define('Editors.RichText', () => {
         _renderMath(container);
       } catch(e) {
         alert('Lỗi lưu: ' + e.message);
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Lưu'; }
         return;
       }
       unmount(containerId);
       container.style.display = '';
     };
 
-    // Event listeners for save/cancel buttons removed (buttons hidden)
+    document.getElementById(`rte-save-${containerId}`)?.addEventListener('click', doSave);
+    document.getElementById(`rte-cancel-${containerId}`)?.addEventListener('click', () => {
+      unmount(containerId);
+      container.style.display = '';
+    });
 
     // Ctrl+S
     quill.root.addEventListener('keydown', e => {

@@ -52,9 +52,6 @@ CL.define('API', () => {
   async function getExerciseDetail(id, force) {
     return Cache.swr('exercise_'+id, cfg.CACHE_TTL.EXERCISE_DETAIL, () => _get({ action: 'getExercise', bai_id: id }), force);
   }
-  async function getExercises(force) {
-    return Cache.swr('exercises_all', cfg.CACHE_TTL.EXAMS, () => _get({ action: 'getExercises' }), force);
-  }
 
   // Scores & History
   function submitScore(baiId, tieuDe, diem, thoiGian, kyKtId) {
@@ -112,7 +109,7 @@ CL.define('API', () => {
 
   // Lưu nội dung đề bài/lý thuyết (teacher/admin)
   async function saveExerciseContent(baiId, field, html) {
-    const url = _url();
+    const url = localStorage.getItem(cfg.LS.SCRIPT_URL);
     if (!url) throw new Error('Chưa cấu hình server URL');
     return Http.post(url, { action: 'saveExerciseContent', token: _tok(), bai_id: baiId, field, html });
   }
@@ -297,7 +294,7 @@ CL.define('API', () => {
   }
 
     const facade = { setUrl, getUrl, isReady, getToken: _tok,
-    login, logout, changePassword, updateProfile, getExerciseDetail, getExercises,
+    login, logout, changePassword, updateProfile, getExerciseDetail,
     submitScore, submitPracticeScore, saveExerciseContent,
     saveBaiTapRecord, getItemAnalysis, getExamMatrix, getBaiLamForStudent,
     getImageConfig, saveImageConfig, getNamHocInfo, yearTransition, importStudents, getLichSuLop,

@@ -210,7 +210,7 @@
     /* All panels hidden by default on mobile — JS (mobilePanel) controls which is active */
     .panel {
       display: none;
-      height: calc(100dvh - 52px); /* 52px topbar (mobile-nav hidden) */
+      height: calc(100dvh - 52px - 56px); /* 52px topbar + 56px mobile-nav */
       height: calc(100vh - 52px - 56px);  /* fallback */
       min-height: 0;
       border-right: none !important;
@@ -749,16 +749,9 @@ body.has-tp-bar .workspace {
 .tp-action-btn:hover { border-color:var(--accent);color:var(--accent) }
 
 /* Edit tab */
-.tp-edit-container { display:flex;height:100%;gap:0 }
-.tp-edit-sidebar { flex:0 0 280px;border-right:1px solid var(--border);display:flex;flex-direction:column;transition:flex 0.3s ease;overflow:hidden }
-.tp-edit-sidebar.collapsed { flex:0 0 40px }
-.tp-edit-toggle-btn { width:40px;height:40px;border:none;background:var(--surface2);border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text);font-size:16px;transition:0.2s }
-.tp-edit-toggle-btn:hover { background:var(--surface3) }
-.tp-edit-content { flex:1;display:flex;flex-direction:column;overflow:hidden }
 .tp-edit-toolbar { display:flex;gap:8px;padding:12px 14px;border-bottom:1px solid var(--border) }
 .tp-edit-toolbar select { flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 10px;color:var(--text);font-size:12px;outline:none }
-.tp-edit-list { padding:8px 14px;display:flex;flex-direction:column;gap:4px;overflow-y:auto;flex:1 }
-.tp-edit-list.hidden { display:none }
+.tp-edit-list { padding:8px 14px;display:flex;flex-direction:column;gap:4px }
 
 .ed-lv.b1,.ed-lv.b1--nhậnbiết { background:rgba(79,158,255,.1);color:#4f9eff;border-color:rgba(79,158,255,.3) }
 .ed-lv.b3,.ed-lv.b3--ápdụng { background:rgba(251,191,36,.1);color:#fbbf24;border-color:rgba(251,191,36,.3) }
@@ -3571,15 +3564,9 @@ body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; 
 
 /* ── Panel view (admin/teacher sections) ─────────────────────── */
 #panel-view {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
   padding: 20px;
   overflow-y: auto;
   background: var(--bg);
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 0 !important;
 }
 .pv-loading { text-align:center; padding:60px; color:var(--text3); font-size:14px; }
 .pv-empty   { text-align:center; padding:60px 20px; color:var(--text3); font-size:13px; }
@@ -6871,7 +6858,6 @@ tr.item-warn td { background:rgba(248,113,113,.04); }
    12. MOBILE BOTTOM NAV — 56px Canvas standard
    ══════════════════════════════════════════════════════════════════ */
 .mobile-nav {
-  display:     none !important; /* Hide mobile nav */
   height:      56px !important;
   min-height:  56px !important;
   background:  var(--surface) !important;
@@ -8667,128 +8653,4 @@ body.view-practice  .ex-bar { display: flex; }
   background:  rgba(79,158,255,.1) !important;
   color:       var(--accent) !important;
   font-weight: 700 !important;
-}
-
-
-/* ════════════════════════════════════════════════════════════════
-   SIDEBAR LEVEL 3 (Grandchildren) - Menu cấp 3
-   ════════════════════════════════════════════════════════════════ */
-
-/* Child group (level 2 that has children) */
-.sb-child-group {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-}
-
-.sb-child-header {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  width: 100% !important;
-  padding: 9px 16px !important;
-  background: none !important;
-  border: none !important;
-  color: var(--text2) !important;
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  font-family: var(--sans) !important;
-  cursor: pointer !important;
-  transition: background .1s, color .1s !important;
-  text-align: left !important;
-  border-radius: 0 !important;
-  margin: 0 !important;
-  white-space: nowrap !important;
-}
-
-.sb-child-header:hover {
-  background: var(--surface2) !important;
-  color: var(--text) !important;
-}
-
-.sb-child-header.has-active {
-  background: rgba(79,158,255,.05) !important;
-  color: var(--accent) !important;
-}
-
-.sb-child-arrow {
-  margin-left: auto;
-  transition: transform .2s;
-  font-size: 12px;
-}
-
-.sb-child-group.expanded .sb-child-arrow {
-  transform: rotate(90deg);
-}
-
-/* Flyout for level 3 items */
-.sb-child-flyout {
-  display: none;
-  flex-direction: column;
-  padding-left: 24px;
-  background: transparent;
-}
-
-.sb-child-group.expanded .sb-child-flyout {
-  display: flex;
-}
-
-/* Level 3 items (grandchildren) */
-.sb-grandchild {
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  width: 100% !important;
-  padding: 7px 8px 7px 10px !important;
-  background: none !important;
-  border: none !important;
-  color: var(--text3) !important;
-  font-size: 12px !important;
-  font-weight: 400 !important;
-  font-family: var(--sans) !important;
-  cursor: pointer !important;
-  transition: background .1s, color .1s !important;
-  text-align: left !important;
-  border-radius: 6px !important;
-  margin: 1px 0 !important;
-  white-space: nowrap !important;
-}
-
-.sb-grandchild:hover {
-  background: var(--surface2) !important;
-  color: var(--text) !important;
-}
-
-.sb-grandchild.active {
-  background: rgba(79,158,255,.15) !important;
-  color: var(--accent) !important;
-  font-weight: 600 !important;
-}
-
-.sb-grandchild-icon {
-  font-size: 13px !important;
-  width: 18px !important;
-  text-align: center !important;
-  flex-shrink: 0 !important;
-}
-
-/* Pinned mode adjustments */
-.sidebar.pinned .sb-child-group {
-  display: flex;
-}
-
-.sidebar.pinned .sb-child-header {
-  padding: 7px 8px 7px 10px !important;
-  font-size: 12.5px !important;
-  border-radius: 6px !important;
-  margin: 1px 0 !important;
-}
-
-.sidebar.pinned .sb-child-flyout {
-  padding-left: 32px;
-}
-
-.sidebar.pinned .sb-grandchild {
-  padding: 6px 6px 6px 8px !important;
-  font-size: 11.5px !important;
 }

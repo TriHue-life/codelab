@@ -1,7 +1,7 @@
 /**
  * ═══════════════════════════════════════════════════════════════════
- *  CODELAB — Google Apps Script Backend v5.9.0
- *  THPT THỦ THIÊM
+ *  PYTHON GRADER — Google Apps Script Backend v2.0
+ *  THPT
  *
  *  Deploy: Web App → Execute as: Me → Who has access: Anyone
  *
@@ -17,11 +17,11 @@
 
 // ── Cấu hình: điền Spreadsheet IDs sau khi tạo ──────────────────
 const DB_IDS = {
-  TAIKHOAN: '15OnCggy6VkBxlrZOeazX60L9WiBk0GhIM2Y-J3Wom_M',   // 01_TaiKhoan.gsheet ID
-  BAITAP:   '11E2r82W6shX-V5Za_BxTNhn9dvDbQn9w6SLuo4WaPhQ',   // 02_BaiTap.gsheet ID
-  KIEMTRA:  '1axTBho-UIouommu3jtmq_EjlJmTYxFpBzKVP2rQ6Pvc',   // 03_KiemTra.gsheet ID
-  KETQUA:   '1G_pBJ-vmifRmKTNcNMrYaQGdmLl5U5kO7m6jizeMIVE',   // 04_KetQua.gsheet ID
-  NHATKY:   '1TBe09A0XMKGADxZvVaAqHToQrZML5DURMhJBrAxF5kc',   // 05_NhatKy.gsheet ID
+  TAIKHOAN: '',   // 01_TaiKhoan.gsheet ID
+  BAITAP:   '',   // 02_BaiTap.gsheet ID
+  KIEMTRA:  '',   // 03_KiemTra.gsheet ID
+  KETQUA:   '',   // 04_KetQua.gsheet ID
+  NHATKY:   '',   // 05_NhatKy.gsheet ID
 };
 
 // ── Constants ────────────────────────────────────────────────────
@@ -944,7 +944,7 @@ function _getImageFolder() {
 }
 
 function handleUploadImage(body) {
-  const session = verifyToken(body.token);
+  const session = validateToken(body.token);
   if (session.error) return session;
   if (session.role !== 'teacher' && session.role !== 'admin') {
     return error('Không có quyền upload ảnh');
@@ -976,7 +976,7 @@ function handleUploadImage(body) {
 //  CẤU HÌNH ẢNH — Admin đặt thư mục Drive lưu ảnh
 // ══════════════════════════════════════════════════════════════════
 function handleGetImageConfig(body) {
-  const session = verifyToken(body.token);
+  const session = validateToken(body.token);
   if (session.error) return session;
   if (session.role !== 'admin') return error('Chỉ Admin mới xem cấu hình ảnh');
 
@@ -1002,8 +1002,8 @@ function handleGetImageConfig(body) {
   return ok({ folderId, folderName, folderUrl });
 }
 
-function handleSaveMinhChung(body) {
-  const session = verifyToken(body.token);
+function handleSaveImageConfig(body) {
+  const session = validateToken(body.token);
   if (session.error) return session;
   if (session.role !== 'admin') return error('Chỉ Admin mới thay đổi cấu hình ảnh');
 
@@ -1034,7 +1034,7 @@ function handleSaveMinhChung(body) {
 //  ĐIỂM LUYỆN TẬP — Ghi riêng vào sheet DiemLuyenTap
 // ══════════════════════════════════════════════════════════════════
 function handleSubmitPracticeScore(body) {
-  const session = verifyToken(body.token);
+  const session = validateToken(body.token);
   if (session.error) return session;
 
   const { bai_id, tieu_de, diem } = body;
@@ -1087,7 +1087,7 @@ function handleSubmitPracticeScore(body) {
 //  LƯU NỘI DUNG ĐỀ BÀI / LÝ THUYẾT (Teacher/Admin)
 // ══════════════════════════════════════════════════════════════════
 function handleSaveExerciseContent(body) {
-  const session = verifyToken(body.token);
+  const session = validateToken(body.token);
   if (session.error) return session;
   if (session.role !== 'teacher' && session.role !== 'admin') {
     return error('Không có quyền chỉnh sửa nội dung');

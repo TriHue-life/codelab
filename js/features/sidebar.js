@@ -96,13 +96,7 @@ CL.define('Features.Sidebar', () => {
       {
         id:'exam-mgmt', icon:'📋', label:'Kiểm tra',
         children:[
-          {
-            id:'exams-group', icon:'📋', label:'Kỳ kiểm tra',
-            children:[
-              { id:'exams-list',   icon:'📋', label:'Kỳ kiểm tra',      section:'tp:exams'       },
-              { id:'exams-create', icon:'➕', label:'Tạo kỳ kiểm tra', section:'tp:exams:create' },
-            ]
-          },
+          { id:'exams', icon:'📋', label:'Kỳ kiểm tra', section:'tp:exams' },
         ]
       },
       {
@@ -118,24 +112,9 @@ CL.define('Features.Sidebar', () => {
       {
         id:'sys', icon:'⚙️', label:'Hệ thống',
         children:[
-          {
-            id:'config-group', icon:'⚙️', label:'Cấu hình',
-            children:[
-              { id:'config',       icon:'⚙️', label:'Cấu hình hệ thống', section:'tp:config'       },
-              { id:'config-theme', icon:'🎨', label:'Giao diện',        section:'tp:config:theme' },
-              { id:'config-api',   icon:'🔌', label:'API & Tích hợp',   section:'tp:config:api'   },
-            ]
-          },
-          {
-            id:'logs-group', icon:'📋', label:'Nhật ký',
-            children:[
-              { id:'logs-system',  icon:'⚙️', label:'Nhật ký hệ thống',  section:'tp:logs:system'  },
-              { id:'logs-user',    icon:'👤', label:'Nhật ký người dùng', section:'tp:logs:user'    },
-              { id:'logs-audit',   icon:'🔒', label:'Nhật ký kiểm toán',  section:'tp:logs:audit'   },
-            ]
-          },
+          { id:'config',    icon:'⚙️', label:'Cấu hình',       section:'tp:config'    },
         ]
-      }
+      },
     ],
   };
 
@@ -152,10 +131,6 @@ CL.define('Features.Sidebar', () => {
 
     const sb = document.getElementById('sidebar');
     if (!sb) return;
-    
-    // Đảm bảo xóa class auth-pending nếu vẫn còn (fix F5 bug)
-    document.body.classList.remove('auth-pending');
-    document.documentElement.classList.remove('auth-required');
 
     const groups = MENUS[_role] || MENUS.student;
 
@@ -239,16 +214,9 @@ CL.define('Features.Sidebar', () => {
       }
     }
 
-    // Restore last active - IMPORTANT: restore state after init to fix F5 bug
+    // Restore last active
     const saved = localStorage.getItem('cl_sb_active') || _getDefaultId();
     navigate(saved, false);
-    
-    // Ensure app-shell is visible after sidebar init
-    const appShell = document.getElementById('app-shell');
-    if (appShell) {
-      appShell.style.removeProperty('visibility');
-      appShell.style.removeProperty('display');
-    }
 
     const wv = document.getElementById('workspace-view');
     if (wv && wv.style.display === '') wv.style.display = 'flex';
@@ -283,42 +251,12 @@ CL.define('Features.Sidebar', () => {
   }
 
   function _childHtml(item) {
-    // Check if item has children (level 3)
-    if (item.children && item.children.length > 0) {
-      const hasActive = item.children.some(c => c.id === _active);
-      return `
-        <div class="sb-child-group${hasActive ? ' has-active' : ''}" data-cgid="${item.id}">
-          <button class="sb-child-header${hasActive ? ' has-active' : ''}"
-            data-cgid="${item.id}"
-            onclick="CL.Features.Sidebar._toggleChildGroup('${item.id}'); event.stopPropagation();">
-            <span class="sb-child-icon">${item.icon}</span>
-            <span class="sb-label">${item.label}</span>
-            <span class="sb-child-arrow">›</span>
-          </button>
-          <div class="sb-child-flyout" id="sbcf-${item.id}">
-            ${item.children.map(c => _grandchildHtml(c)).join('')}
-          </div>
-        </div>`;
-    }
-    
-    // Regular level 2 item
     return `
       <button class="sb-child${_active === item.id ? ' active' : ''}"
         data-id="${item.id}" data-section="${item.section}"
-        onclick="CL.Features.Sidebar.navigate('${item.id}'); event.stopPropagation();"
+        onclick="CL.Features.Sidebar.navigate('${item.id}')"
         title="${item.label}">
         <span class="sb-child-icon">${item.icon}</span>
-        <span class="sb-label">${item.label}</span>
-      </button>`;
-  }
-
-  function _grandchildHtml(item) {
-    return `
-      <button class="sb-grandchild${_active === item.id ? ' active' : ''}"
-        data-id="${item.id}" data-section="${item.section}"
-        onclick="CL.Features.Sidebar.navigate('${item.id}'); event.stopPropagation();"
-        title="${item.label}">
-        <span class="sb-grandchild-icon">${item.icon}</span>
         <span class="sb-label">${item.label}</span>
       </button>`;
   }
@@ -331,60 +269,30 @@ CL.define('Features.Sidebar', () => {
     _active = id;
     if (save) localStorage.setItem('cl_sb_active', id);
 
-    // Update active state for level 2 items
+    // Update active state
     document.querySelectorAll('.sb-child[data-id]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.id === id);
     });
 
-    // Update active state for level 3 items (grandchildren)
-    document.querySelectorAll('.sb-grandchild[data-id]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.id === id);
-    });
-
-    // Find item across all groups (including level 3)
+    // Find item across all groups
     const groups = MENUS[_role] || MENUS.student;
     let item = null;
-    let parentGroup = null;
-    
     for (const g of groups) {
-      // Check level 2 items
       item = g.children.find(c => c.id === id);
       if (item) {
-        parentGroup = g;
+        // Expand parent group and always persist it (fixes F5 restore)
+        const grpEl = document.querySelector(`.sb-group[data-gid="${g.id}"]`);
+        if (grpEl) {
+          grpEl.classList.add('expanded');
+          const sb = document.getElementById('sidebar');
+          const expGroups = [...(sb?.querySelectorAll('.sb-group.expanded') || [])]
+            .map(g => g.dataset.gid).filter(Boolean);
+          localStorage.setItem('cl_sb_expanded', JSON.stringify(expGroups));
+        }
         break;
       }
-      
-      // Check level 3 items (grandchildren)
-      for (const child of g.children) {
-        if (child.children) {
-          item = child.children.find(gc => gc.id === id);
-          if (item) {
-            parentGroup = g;
-            // Expand the parent child-group (level 2 with children)
-            const childGroupEl = document.querySelector(`.sb-child-group[data-cgid="${child.id}"]`);
-            if (childGroupEl) {
-              childGroupEl.classList.add('expanded');
-            }
-            break;
-          }
-        }
-      }
-      if (item) break;
     }
-    
     if (!item) return;
-    
-    // Expand parent group and persist it
-    if (parentGroup) {
-      const grpEl = document.querySelector(`.sb-group[data-gid="${parentGroup.id}"]`);
-      if (grpEl) {
-        grpEl.classList.add('expanded');
-        const sb = document.getElementById('sidebar');
-        const expGroups = [...(sb?.querySelectorAll('.sb-group.expanded') || [])]
-          .map(g => g.dataset.gid).filter(Boolean);
-        localStorage.setItem('cl_sb_expanded', JSON.stringify(expGroups));
-      }
-    }
 
     closeMobile();
     _hideAllFlyouts();
@@ -397,8 +305,7 @@ CL.define('Features.Sidebar', () => {
       CL.Features.Profile?.open();
       return;
     } else if (section === 'exam') {
-      _showSection('panel-view');
-      _renderPanel('exam');
+      _showSection('workspace-view');
     } else if (section === 'history') {
       _showSection('panel-view');
       _renderStudentHistory();
@@ -409,22 +316,7 @@ CL.define('Features.Sidebar', () => {
       const sub = section.replace('tp:users:', '');
       _showSection('panel-view');
       _renderUsersPanel(sub);
-    } else if (section.startsWith('tp:logs:')) {
-      // Handle logs sections (tp:logs:system, tp:logs:user, tp:logs:audit)
-      const logType = section.replace('tp:logs:', '');
-      _showSection('panel-view');
-      _renderPanel(`logs:${logType}`);
-    } else if (section.startsWith('tp:config:')) {
-      // Handle config sections (tp:config:theme, tp:config:api)
-      const configType = section.replace('tp:config:', '');
-      _showSection('panel-view');
-      _renderPanel(`config:${configType}`);
-    } else if (section === 'tp:exams:create') {
-      // Handle exam creation
-      _showSection('panel-view');
-      _renderPanel('exams:create');
     } else if (section.startsWith('tp:')) {
-      // Generic handler for all other tp:* sections
       const tabId = section.replace('tp:', '');
       _showSection('panel-view');
       _renderPanel(tabId);
@@ -466,8 +358,6 @@ CL.define('Features.Sidebar', () => {
     const btn = sidebar?.querySelector(`.sb-group-header[data-gid="${gid}"]`)
              || sidebar?.querySelector(`.sb-group[data-gid="${gid}"] .sb-group-header`);
     _positionAndShowFlyout(gid, btn);
-    // Prevent event propagation to avoid closing flyout immediately
-    event?.stopPropagation?.();
   }
 
   function _positionAndShowFlyout(gid, refEl) {
@@ -518,39 +408,9 @@ CL.define('Features.Sidebar', () => {
     const wv      = document.getElementById('workspace-view');
     const pv      = document.getElementById('panel-view');
     const cBar    = document.getElementById('content-bar');
-    
-    // Show/hide workspace-view (code editor)
-    if (wv) {
-      if (which === 'workspace-view') {
-        wv.style.display = 'flex';
-        wv.style.visibility = 'visible';
-        wv.style.position = 'relative';
-        wv.style.zIndex = 'auto';
-      } else {
-        wv.style.display = 'none';
-        wv.style.visibility = 'hidden';
-        wv.style.position = 'absolute';
-        wv.style.zIndex = '-1';
-      }
-    }
-    
-    // Show/hide panel-view
-    if (pv) {
-      if (which === 'panel-view') {
-        pv.style.display = 'flex';
-        pv.style.visibility = 'visible';
-        pv.style.position = 'relative';
-        pv.style.zIndex = 'auto';
-      } else {
-        pv.style.display = 'none';
-        pv.style.visibility = 'hidden';
-        pv.style.position = 'absolute';
-        pv.style.zIndex = '-1';
-      }
-    }
-    
-    // Show/hide content-bar
-    if (cBar) cBar.style.display = which === 'workspace-view' ? '' : 'none';
+    if (wv)   wv.style.display   = which === 'workspace-view' ? 'flex' : 'none';
+    if (pv)   pv.style.display   = which === 'panel-view'     ? 'flex' : 'none';
+    if (cBar) cBar.style.display = which === 'workspace-view' ? ''     : 'none';
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -720,11 +580,5 @@ CL.define('Features.Sidebar', () => {
     document.body.style.overflow = '';
   }
 
-  function _toggleChildGroup(cgid) {
-    const childGroup = document.querySelector(`.sb-child-group[data-cgid="${cgid}"]`);
-    if (!childGroup) return;
-    childGroup.classList.toggle('expanded');
-  }
-
-  return { init, navigate, toggleGroup, groupHeaderClick, togglePin, openMobile, closeMobile, _showFlyout, _keepFlyout, _hideFlyout, _hideAllFlyouts, _toggleChildGroup };
+  return { init, navigate, toggleGroup, groupHeaderClick, togglePin, openMobile, closeMobile, _showFlyout, _keepFlyout, _hideFlyout, _hideAllFlyouts };
 });
