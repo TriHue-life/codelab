@@ -7306,9 +7306,8 @@ tr.item-warn td { background:rgba(248,113,113,.04); }
    Chọn lớp · Chọn chủ đề · Chọn bài tập
    ══════════════════════════════════════════════════════════════════ */
 
-/* Hide old inline tb-ex-bar if still in topbar */
-.tb-ex-bar { display: none !important; }
-.tb-ex-label, .tb-ex-sep, .tb-ex-group { display: none !important; }
+/* tb-ex-bar is now standalone below topbar — no longer hidden */
+/* .tb-ex-bar visibility controlled by cl-hidden class via JS */
 
 /* New standalone bar */
 .ex-bar {
@@ -7649,7 +7648,7 @@ body.view-practice  .ex-bar { display: flex; }
 
 /* ── Hide the old standalone ex-bar and old rp-tabbar at bottom ── */
 /* Old ex-bar reference styles — superseded by .content-bar */
-#tb-ex-bar:not(.content-bar) { display: none !important; }
+/* #tb-ex-bar visibility via .cl-hidden class */
 /* Old rp-tabbar inside grade-panel — now in content-bar */
 #grade-panel > .rp-tabbar  { display: none !important; }
 #grade-panel > #rp-tabbar  { display: none !important; }
@@ -8652,3 +8651,11 @@ body.view-practice  .ex-bar { display: flex; }
   animation: sb-shimmer 1.2s infinite;
 }
 @keyframes sb-shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+/* ── Sidebar loading state: ẩn skeleton trước khi sidebar.init() chạy ──── */
+.sidebar.sb-init-pending .sb-nav,
+.sidebar.sb-init-pending .sb-header,
+.sidebar.sb-init-pending .sb-bottom,
+.sidebar.sb-init-pending .sb-top {
+  visibility: hidden;
+}
