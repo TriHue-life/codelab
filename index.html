@@ -70,7 +70,7 @@
 <div id="app-shell">
 
   <!-- ① LEFT SIDEBAR -->
-  <aside id="sidebar" class="sidebar">
+  <aside id="sidebar" class="sidebar sb-init-pending">
     <div class="sb-top">
       <button class="sb-pin-btn" id="sb-pin" title="Ghim/Thu menu"
         onclick="CL.Features.Sidebar.togglePin()">
@@ -117,65 +117,44 @@
           style="flex-shrink:0">
           🎨
         </button>
-        <!-- Exercise selector moved to ex-bar below topbar -->
+        <div class="tb-ex-bar cl-hidden" id="tb-ex-bar">
+          <div class="tb-ex-group">
+            <span class="tb-ex-label">Lớp</span>
+            <div class="cdd" id="cdd-grade">
+              <button class="cdd-btn tb-cdd-btn" id="cdd-grade-btn" onclick="cddOpen('grade')" type="button">
+                <span id="cdd-grade-label">— Chọn lớp —</span>
+                <span class="cdd-arrow">▾</span>
+              </button>
+            </div>
+          </div>
+          <div class="tb-ex-sep"></div>
+          <div class="tb-ex-group">
+            <span class="tb-ex-label">Chủ đề</span>
+            <div class="cdd cdd-locked" id="cdd-chap">
+              <button class="cdd-btn tb-cdd-btn" id="cdd-chap-btn" onclick="cddOpen('chap')" type="button" disabled>
+                <span id="cdd-chap-label">—</span>
+                <span class="cdd-arrow">▾</span>
+              </button>
+            </div>
+          </div>
+          <div class="tb-ex-sep"></div>
+          <div class="tb-ex-group">
+            <span class="tb-ex-label">Bài tập</span>
+            <div class="cdd cdd-locked" id="cdd-ex" style="max-width:260px">
+              <button class="cdd-btn tb-cdd-btn" id="cdd-ex-btn" onclick="cddOpen('ex')" type="button" disabled>
+                <span id="cdd-ex-label">— Chọn bài —</span>
+                <span class="cdd-arrow">▾</span>
+              </button>
+            </div>
+          </div>
+        </div>
         <!-- User badge -->
         <div id="user-badge-area"></div>
       </div>
     </header>
 
     <!-- ── CONTENT BAR: Exercise Selectors + Content Tabs ── -->
-    <div class="content-bar" id="content-bar">
-      <!-- LEFT: Exercise selectors -->
-      <div class="cb-selectors" id="cb-selectors">
-        <div class="cb-group">
-          <span class="cb-label">📚 Lớp</span>
-          <div class="cdd" id="cdd-grade">
-            <button class="cdd-btn cb-cdd-btn" id="cdd-grade-btn" onclick="cddOpen('grade')" type="button">
-              <span id="cdd-grade-label">— Chọn lớp —</span>
-              <span class="cdd-arrow">▾</span>
-            </button>
-          </div>
-        </div>
-        <div class="cb-sep"></div>
-        <div class="cb-group">
-          <span class="cb-label">📂 Chủ đề</span>
-          <div class="cdd cdd-locked" id="cdd-chap">
-            <button class="cdd-btn cb-cdd-btn" id="cdd-chap-btn" onclick="cddOpen('chap')" type="button" disabled>
-              <span id="cdd-chap-label">— Chủ đề —</span>
-              <span class="cdd-arrow">▾</span>
-            </button>
-          </div>
-        </div>
-        <div class="cb-sep"></div>
-        <div class="cb-group cb-group-ex">
-          <span class="cb-label">📝 Bài tập</span>
-          <div class="cdd cdd-locked" id="cdd-ex">
-            <button class="cdd-btn cb-cdd-btn cb-cdd-btn-ex" id="cdd-ex-btn" onclick="cddOpen('ex')" type="button" disabled>
-              <span id="cdd-ex-label">— Chọn bài tập —</span>
-              <span class="cdd-arrow">▾</span>
-            </button>
-          </div>
-        </div>
-      </div>
-      <!-- DIVIDER -->
-      <div class="cb-divider"></div>
-      <!-- RIGHT: Content tabs — Đề bài + Lý thuyết only -->
-      <div class="cb-tabs" id="rp-tabbar">
-        <button class="rp-tab on" id="rp-tab-desc" onclick="window.rpTab('desc')">
-          <span class="dot dot-b"></span>Đề bài
-        </button>
-        <button class="rp-tab" id="rp-tab-theory" onclick="window.rpTab('theory')" data-hide-exam="1">
-          <span class="dot dot-g"></span>Lý thuyết
-        </button>
-        <!-- Kết quả + Phân tích tabs hidden here; they live in grade-panel right column -->
-        <button class="rp-tab" id="rp-tab-result" onclick="window.rpTab('result')" style="display:none">
-          <span class="dot dot-w"></span>Kết quả
-        </button>
-        <button class="rp-tab" id="rp-tab-analysis" onclick="window.rpTab('analysis')" style="display:none">
-          <span class="dot" style="background:#f87171"></span>Phân tích
-        </button>
-      </div>
-    </div>
+    <!-- content-bar removed -->
 
     <!-- CONTENT -->
     <div class="content-area" id="content-area" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
