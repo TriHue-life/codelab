@@ -136,6 +136,20 @@ CL.define('Auth.UI', () => {
 
 
 
+        <div class="auth-server-row" id="auth-server-row">
+          <div class="auth-server-label" onclick="CL.Auth.UI._toggleServerInput()">
+            <span id="auth-server-icon">⚙️</span>
+            <span id="auth-server-status"></span>
+          </div>
+          <div class="auth-server-input" id="auth-server-input" style="display:none">
+            <input id="in-server-url" type="url"
+              placeholder="https://script.google.com/macros/s/.../exec"
+              autocomplete="off" spellcheck="false"
+              onkeydown="if(event.key==='Enter')CL.Auth.UI._saveServerUrl()">
+            <button onclick="CL.Auth.UI._saveServerUrl()">Lưu</button>
+          </div>
+        </div>
+
         <div class="auth-footer">
           <span>CodeLab v${cfg.APP_VERSION}</span>
           <span>THPT Thủ Thiêm · ${new Date().getFullYear()}</span>
@@ -149,6 +163,7 @@ CL.define('Auth.UI', () => {
       if (el) { el.value = ''; el.focus(); }
       const pw = document.getElementById('in-pw');
       if (pw) pw.value = '';
+      _updateServerStatus();
     }, 400);
   }
   // ── Auto-detect user type from input ────────────────────────
@@ -276,6 +291,55 @@ CL.define('Auth.UI', () => {
   window.Auth = { init, logout, setConfig: setScriptUrl,
                   getSession: Session.get, getConfig: () => ({ scriptUrl: localStorage.getItem(cfg.LS.SCRIPT_URL) || '' }) };
 
+  function _toggleServerInput() {
+    const row = document.getElementById('auth-server-input');
+    const icon = document.getElementById('auth-server-icon');
+    if (!row) return;
+    const showing = row.style.display !== 'none';
+    row.style.display = showing ? 'none' : 'flex';
+    icon.textContent = showing ? '⚙️' : '🔼';
+    if (!showing) {
+      const inp = document.getElementById('in-server-url');
+      const cur = localStorage.getItem(cfg.LS.SCRIPT_URL) || '';
+      if (inp) { inp.value = cur; inp.focus(); }
+    }
+    _updateServerStatus();
+  }
+
+  function _saveServerUrl() {
+    const inp = document.getElementById('in-server-url');
+    const url = (inp?.value || '').trim();
+    if (!url || !url.startsWith('http')) {
+      return _showError('err-main', 'URL không hợp lệ. Phải bắt đầu bằng https://');
+    }
+    localStorage.setItem(cfg.LS.SCRIPT_URL, url);
+    const row = document.getElementById('auth-server-input');
+    if (row) row.style.display = 'none';
+    document.getElementById('auth-server-icon').textContent = '⚙️';
+    _updateServerStatus();
+    _showError('err-main', '✅ Đã lưu URL server!');
+    setTimeout(() => {
+      const el = document.getElementById('err-main');
+      if (el) { el.style.color = 'var(--green, #3fb950)'; }
+    }, 10);
+  }
+
+  function _updateServerStatus() {
+    const status = document.getElementById('auth-server-status');
+    if (!status) return;
+    const url = (cfg.DEPLOY_URL && cfg.DEPLOY_URL.startsWith('http'))
+      ? cfg.DEPLOY_URL
+      : localStorage.getItem(cfg.LS.SCRIPT_URL);
+    if (url) {
+      const short = url.replace('https://script.google.com/macros/s/','').substring(0,20)+'...';
+      status.textContent = '✅ ' + short;
+      status.style.color = 'var(--green, #3fb950)';
+    } else {
+      status.textContent = '⚠️ Chưa cấu hình — nhấn để nhập URL';
+      status.style.color = 'var(--warning, #f0a500)';
+    }
+  }
+
   function _togglePw(id, btn) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -283,5 +347,6 @@ CL.define('Auth.UI', () => {
     btn.textContent = el.type === 'password' ? '👁' : '🙈';
   }
 
-  return { init, logout, setScriptUrl, _switchTab, _submit, _openSetup, _togglePw, _detectType };
+  return { init, logout, setScriptUrl, _switchTab, _submit, _openSetup, _togglePw, _detectType,
+           _toggleServerInput, _saveServerUrl };
 });
