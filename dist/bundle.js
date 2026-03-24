@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-24 13:07
+/* CodeLab Bundle — built 2026-03-24 13:20
  * 47 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -13950,6 +13950,1055 @@ CL.define('Editors.RichText', () => {
   return { mount, unmount, getHtml, renderMath };
 });
 
+// ─── js/features/theme.js ───────────────────────────
+/**
+ * features/theme.js — Theme & Editor Settings
+ * ═══════════════════════════════════════════════════════════════
+ * 8 themes: Dark Navy, One Dark, Dracula, Monokai,
+ *           GitHub Dark, Solarized Dark, Light, Solarized Light
+ * + Editor font size, font family, line height settings
+ * Keyboard: Shift+T = toggle panel | Shift+click btn = quick toggle
+ */
+'use strict';
+
+CL.define('Features.Theme', () => {
+
+  const LS_KEY        = 'cl_theme';
+  const LS_FONT_SIZE  = 'cl_editor_fontsize';
+  const LS_FONT_FAM   = 'cl_editor_fontfam';
+  const LS_LINE_HT    = 'cl_editor_lineheight';
+
+  const THEMES = [
+    { id: 'dark-navy',      name: 'Dark Navy',       dark: true,  preview: ['#0a0e1a','#4f9eff','#34d399','#a78bfa'] },
+    { id: 'one-dark',       name: 'One Dark',        dark: true,  preview: ['#282c34','#61afef','#98c379','#c678dd'] },
+    { id: 'dracula',        name: 'Dracula',         dark: true,  preview: ['#282a36','#8be9fd','#50fa7b','#bd93f9'] },
+    { id: 'monokai',        name: 'Monokai',         dark: true,  preview: ['#272822','#66d9e8','#a6e22e','#ae81ff'] },
+    { id: 'github-dark',    name: 'GitHub Dark',     dark: true,  preview: ['#0d1117','#58a6ff','#3fb950','#bc8cff'] },
+    { id: 'solarized-dark', name: 'Solarized Dark',  dark: true,  preview: ['#002b36','#268bd2','#859900','#6c71c4'] },
+    { id: 'light',          name: 'Light',           dark: false, preview: ['#f3f3f3','#0969da','#1a7f37','#8250df'] },
+    { id: 'solarized-light',name: 'Solarized Light', dark: false, preview: ['#fdf6e3','#268bd2','#859900','#6c71c4'] },
+  ];
+
+  const FONT_FAMILIES = [
+    { id: 'default',       name: 'Mặc định',         css: "'JetBrains Mono','Cascadia Code','Fira Code','Consolas',monospace" },
+    { id: 'jetbrains',     name: 'JetBrains Mono',   css: "'JetBrains Mono',monospace" },
+    { id: 'cascadia',      name: 'Cascadia Code',    css: "'Cascadia Code',monospace" },
+    { id: 'consolas',      name: 'Consolas',         css: "'Consolas','Courier New',monospace" },
+    { id: 'firacode',      name: 'Fira Code',        css: "'Fira Code',monospace" },
+    { id: 'sourcecodepro', name: 'Source Code Pro',  css: "'Source Code Pro',monospace" },
+  ];
+
+  const FONT_SIZES   = [11, 12, 13, 14, 15, 16, 18];
+  const LINE_HEIGHTS = [
+    { id: '1.4', name: 'Compact',  value: 1.4 },
+    { id: '1.6', name: 'Normal',   value: 1.6 },
+    { id: '1.8', name: 'Relaxed',  value: 1.8 },
+    { id: '2.0', name: 'Spacious', value: 2.0 },
+  ];
+
+  // ── Apply theme ───────────────────────────────────────────────
+  function apply(themeId) {
+    const theme = THEMES.find(t => t.id === themeId) || THEMES[0];
+    document.documentElement.setAttribute('data-theme', theme.id);
+    let meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta); }
+    meta.content = theme.preview[0];
+    localStorage.setItem(LS_KEY, theme.id);
+    _updateActiveCard(theme.id);
+  }
+
+  // ── Apply editor font/size settings via injected <style> ─────
+  function applyEditorSettings() {
+    const fs  = parseInt(localStorage.getItem(LS_FONT_SIZE)) || 13;
+    const fam = localStorage.getItem(LS_FONT_FAM) || 'default';
+    const lh  = parseFloat(localStorage.getItem(LS_LINE_HT)) || 1.6;
+    const famDef = FONT_FAMILIES.find(f => f.id === fam) || FONT_FAMILIES[0];
+
+    let s = document.getElementById('_cl_editor_style');
+    if (!s) { s = document.createElement('style'); s.id = '_cl_editor_style'; document.head.appendChild(s); }
+
+    s.textContent = `
+      #code-input, .editor-wrap textarea, .html-editor-wrap textarea,
+      .hl-kw,.hl-fn,.hl-cls,.hl-bi,.hl-str,.hl-num,.hl-cmt,.hl-self,.hl-bool,
+      .hl-deco,.hl-op,.hl-punc,.hl-plain,.hl-tag,.hl-attr,.hl-attrval,.hl-entity,
+      .hl-css-sel,.hl-css-prop,.hl-css-val,.hl-css-unit,.hl-css-color,.hl-css-at,
+      .hl-sql-kw,.hl-sql-fn,.hl-sql-type,.hl-sql-id {
+        font-size: ${fs}px !important;
+        font-family: ${famDef.css} !important;
+        line-height: ${lh} !important;
+      }
+      .lnums span { height: calc(${fs}px * ${lh}) !important; line-height: ${lh} !important; }
+    `;
+  }
+
+  function setFontSize(sz)  { localStorage.setItem(LS_FONT_SIZE, sz);  applyEditorSettings(); _updateEditorControls(); }
+  function setFontFamily(id){ localStorage.setItem(LS_FONT_FAM,  id);  applyEditorSettings(); _updateEditorControls(); }
+  function setLineHeight(v) { localStorage.setItem(LS_LINE_HT,   v);   applyEditorSettings(); _updateEditorControls(); }
+  function current()        { return localStorage.getItem(LS_KEY) || 'dark-navy'; }
+
+  // ── Init ─────────────────────────────────────────────────────
+  function init() {
+    apply(current());
+    applyEditorSettings();
+    _injectButton();
+    document.addEventListener('keydown', (e) => {
+      if (e.shiftKey && e.key === 'T' &&
+          !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName || '')) {
+        e.preventDefault();
+        togglePanel();
+      }
+    });
+  }
+
+  // ── Wire button ───────────────────────────────────────────────
+  function _injectButton() {
+    const btn = document.getElementById('theme-picker-btn');
+    if (btn) {
+      btn.title = 'Cài đặt giao diện & Editor (Shift+T)';
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:block;flex-shrink:0">
+        <circle cx="8" cy="8" r="2.2" fill="currentColor"/>
+        <path d="M8 1.5v1.8M8 12.7v1.8M1.5 8h1.8M12.7 8h1.8M3.4 3.4l1.27 1.27M11.33 11.33l1.27 1.27M3.4 12.6l1.27-1.27M11.33 4.67l1.27-1.27"
+          stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>`;
+      if (!btn._themeWired) {
+        btn._themeWired = true;
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (e.shiftKey) {
+            const isDark = THEMES.find(t => t.id === current())?.dark !== false;
+            apply(isDark ? 'light' : 'dark-navy');
+          } else {
+            togglePanel();
+          }
+        });
+      }
+    }
+    _buildPanel();
+  }
+
+  // ── Build panel HTML ─────────────────────────────────────────
+  function _buildPanel() {
+    document.getElementById('theme-picker-panel')?.remove();
+    const dark  = THEMES.filter(t =>  t.dark);
+    const light = THEMES.filter(t => !t.dark);
+    const cur   = current();
+    const curFs  = parseInt(localStorage.getItem(LS_FONT_SIZE)) || 13;
+    const curFam = localStorage.getItem(LS_FONT_FAM) || 'default';
+    const curLh  = localStorage.getItem(LS_LINE_HT) || '1.6';
+
+    const panel = document.createElement('div');
+    panel.id = 'theme-picker-panel';
+    panel.innerHTML = `
+      <div class="tp-header-row">
+        <span>⚙ Giao diện &amp; Editor</span>
+        <button class="tp-close-btn" id="tp-close-x" title="Đóng (Esc)">✕</button>
+      </div>
+
+      <div class="theme-section-label">🎨 Màu giao diện</div>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:4px">🌙 Tối</div>
+      <div class="theme-grid" id="theme-grid-dark">
+        ${dark.map(t => _cardHtml(t, cur)).join('')}
+      </div>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin:8px 0 4px">☀ Sáng</div>
+      <div class="theme-grid" id="theme-grid-light">
+        ${light.map(t => _cardHtml(t, cur)).join('')}
+      </div>
+
+      <div class="theme-section-label" style="margin-top:12px">✏ Cài đặt Editor</div>
+
+      <div class="tp-editor-row">
+        <span class="tp-editor-label">Cỡ chữ</span>
+        <div class="tp-font-btns" id="tp-font-size-btns">
+          ${FONT_SIZES.map(sz => `<button class="tp-sz-btn${sz === curFs ? ' active' : ''}" data-sz="${sz}">${sz}</button>`).join('')}
+        </div>
+      </div>
+
+      <div class="tp-editor-row">
+        <span class="tp-editor-label">Font</span>
+        <select class="tp-select" id="tp-font-fam">
+          ${FONT_FAMILIES.map(f => `<option value="${f.id}"${f.id === curFam ? ' selected' : ''}>${f.name}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="tp-editor-row">
+        <span class="tp-editor-label">Dãn dòng</span>
+        <div class="tp-seg" id="tp-lineht-btns">
+          ${LINE_HEIGHTS.map(lh => `<button class="tp-seg-btn${lh.id === curLh ? ' active' : ''}" data-lh="${lh.value}">${lh.name}</button>`).join('')}
+        </div>
+      </div>
+
+      <div class="tp-shortcut-hint">
+        <kbd>Shift</kbd>+<kbd>T</kbd> mở/đóng &nbsp;·&nbsp; <kbd>Shift</kbd>+click chuyển tối↔sáng
+      </div>
+    `;
+
+    document.body.appendChild(panel);
+
+    document.getElementById('tp-close-x')?.addEventListener('click', (e) => { e.stopPropagation(); _hidePanel(); });
+    panel.querySelectorAll('.theme-card').forEach(c => c.addEventListener('click', (e) => { e.stopPropagation(); apply(c.dataset.tid); }));
+    panel.querySelectorAll('.tp-sz-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); setFontSize(parseInt(b.dataset.sz)); }));
+    panel.querySelector('#tp-font-fam')?.addEventListener('change', (e) => setFontFamily(e.target.value));
+    panel.querySelectorAll('.tp-seg-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); setLineHeight(b.dataset.lh); }));
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && panel.classList.contains('show')) _hidePanel();
+    });
+
+    if (window._themeOutsideClose) document.removeEventListener('click', window._themeOutsideClose);
+    window._themeOutsideClose = (e) => {
+      if (!panel.contains(e.target) && e.target.id !== 'theme-picker-btn') _hidePanel();
+    };
+    setTimeout(() => document.addEventListener('click', window._themeOutsideClose), 0);
+  }
+
+  function _cardHtml(t, cur) {
+    return `<div class="theme-card${t.id === cur ? ' active' : ''}" data-tid="${t.id}" title="${t.name}">
+      <div class="theme-preview" style="background:${t.preview[0]}">
+        ${t.preview.slice(1).map(c => `<span style="background:${c}"></span>`).join('')}
+      </div>
+      <div class="theme-name">${t.name}</div>
+    </div>`;
+  }
+
+  function _hidePanel() {
+    const p = document.getElementById('theme-picker-panel');
+    if (!p) return;
+    p.classList.remove('show');
+    p.style.display = 'none';
+  }
+
+  function togglePanel() {
+    const panel = document.getElementById('theme-picker-panel');
+    const btn   = document.getElementById('theme-picker-btn');
+    if (!panel) { _buildPanel(); togglePanel(); return; }
+    if (panel.classList.contains('show')) { _hidePanel(); return; }
+
+    const rect = btn ? btn.getBoundingClientRect() : { bottom: 60, right: window.innerWidth - 16 };
+    const pw   = 296;
+    let left   = rect.right - pw;
+    if (left < 8) left = 8;
+    if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+    panel.style.top     = (rect.bottom + 6) + 'px';
+    panel.style.left    = left + 'px';
+    panel.style.right   = 'auto';
+    panel.style.width   = pw + 'px';
+    panel.style.display = 'block';
+    panel.classList.add('show');
+    _updateActiveCard(current());
+    _updateEditorControls();
+  }
+
+  function _updateActiveCard(themeId) {
+    document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c.dataset.tid === themeId));
+  }
+
+  function _updateEditorControls() {
+    const curFs = parseInt(localStorage.getItem(LS_FONT_SIZE)) || 13;
+    const curLh = localStorage.getItem(LS_LINE_HT) || '1.6';
+    const curFam = localStorage.getItem(LS_FONT_FAM) || 'default';
+    document.querySelectorAll('.tp-sz-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.sz) === curFs));
+    document.querySelectorAll('.tp-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.lh === curLh));
+    const sel = document.getElementById('tp-font-fam');
+    if (sel) sel.value = curFam;
+  }
+
+  return { init, apply, current, togglePanel };
+});
+
+// ─── js/features/sidebar.js ───────────────────────────
+/**
+ * features/sidebar.js — Sidebar + Panel Layout (Canvas LMS style)
+ * ═══════════════════════════════════════════════════════════════
+ * Cấu trúc 3 cột: Sidebar | Sub-nav | Content
+ *
+ * Phân quyền:
+ *   👑 Admin   : Tất cả chức năng + Quản lý hệ thống
+ *   👨‍🏫 Giáo viên: Dạy học + Theo dõi lớp (không có quản lý users)
+ *   🎓 Học sinh : Luyện tập + Xem điểm cá nhân
+ */
+'use strict';
+
+CL.define('Features.Sidebar', () => {
+  const Events = CL.require('Events');
+
+  let _role   = 'student';
+  let _active = '';
+  let _pinned = false;
+
+  // ══════════════════════════════════════════════════════════════
+  //  MENU DEFINITIONS (role-based)
+  // ══════════════════════════════════════════════════════════════
+
+  const MENUS = {
+
+    // ── HỌC SINH ──────────────────────────────────────────────
+    student: [
+      {
+        id:'learn', icon:'📚', label:'Học tập',
+        children:[
+          { id:'practice', icon:'✏️', label:'Luyện tập code',  section:'editor'     },
+          { id:'exam',     icon:'📋', label:'Vào phòng thi',   section:'exam'       },
+        ]
+      },
+      {
+        id:'results', icon:'📊', label:'Kết quả',
+        children:[
+          { id:'my-scores',  icon:'🏆', label:'Điểm của tôi',    section:'scores'  },
+          { id:'my-history', icon:'📖', label:'Lịch sử làm bài', section:'history' },
+        ]
+      },
+      {
+        id:'account', icon:'👤', label:'Tài khoản',
+        children:[
+          { id:'profile', icon:'🪪', label:'Hồ sơ cá nhân', section:'profile' },
+        ]
+      },
+    ],
+
+    // ── GIÁO VIÊN ─────────────────────────────────────────────
+    teacher: [
+      {
+        id:'teach', icon:'📚', label:'Giảng dạy',
+        children:[
+          { id:'practice',  icon:'✏️', label:'Luyện tập',      section:'editor'           },
+          { id:'exercises', icon:'📝', label:'Ngân hàng bài',  section:'tp:exercises'     },
+          { id:'ai-gen',    icon:'🤖', label:'AI Sinh bài tập', section:'tp:ai-gen'        },
+        ]
+      },
+      {
+        id:'monitor', icon:'📊', label:'Theo dõi lớp',
+        children:[
+          { id:'scores',     icon:'🏆', label:'Bảng điểm lớp',  section:'tp:scores'      },
+          { id:'history',    icon:'📖', label:'Lịch sử nộp bài',section:'tp:history'     },
+          { id:'violations', icon:'🚨', label:'Vi phạm',        section:'tp:violations'  },
+          { id:'analytics',  icon:'📈', label:'Thống kê',       section:'tp:analytics'   },
+        ]
+      },
+      {
+        id:'exam-mgmt', icon:'📋', label:'Kiểm tra',
+        children:[
+          { id:'exams', icon:'📋', label:'Kỳ kiểm tra',   section:'tp:exams'   },
+        ]
+      },
+      // Giáo viên không có menu Cấu hình (chỉ Admin mới có)
+    ],
+
+    // ── ADMIN (teacher + hệ thống) ─────────────────────────────
+    admin: [
+      {
+        id:'teach', icon:'📚', label:'Giảng dạy',
+        children:[
+          { id:'practice',  icon:'✏️', label:'Luyện tập',      section:'editor'       },
+          { id:'exercises', icon:'📝', label:'Ngân hàng bài',  section:'tp:exercises' },
+        ]
+      },
+      {
+        id:'monitor', icon:'📊', label:'Theo dõi',
+        children:[
+          { id:'scores',     icon:'🏆', label:'Bảng điểm',      section:'tp:scores'     },
+          { id:'history',    icon:'📖', label:'Lịch sử',        section:'tp:history'    },
+          { id:'violations', icon:'🚨', label:'Vi phạm',        section:'tp:violations' },
+          { id:'analytics',  icon:'📈', label:'Thống kê',       section:'tp:analytics'  },
+        ]
+      },
+      {
+        id:'exam-mgmt', icon:'📋', label:'Kiểm tra',
+        children:[
+          { id:'exams', icon:'📋', label:'Kỳ kiểm tra', section:'tp:exams' },
+        ]
+      },
+      {
+        id:'admin-mgmt', icon:'👥', label:'Quản lý hệ thống',
+        children:[
+          { id:'users-student',  icon:'🎓', label:'Học sinh',       section:'tp:users:student'  },
+          { id:'users-teacher',  icon:'👨‍🏫', label:'Giáo viên',     section:'tp:users:teacher'  },
+          { id:'users-admin',    icon:'⚡', label:'Quản trị viên',  section:'tp:users:admin'    },
+          { id:'scores-all',     icon:'📊', label:'Bảng điểm toàn trường', section:'tp:users:scores' },
+          { id:'year-mgr',       icon:'📅', label:'Quản lý năm học', section:'tp:year'           },
+        ]
+      },
+      {
+        id:'sys', icon:'⚙️', label:'Hệ thống',
+        children:[
+          { id:'config',    icon:'⚙️', label:'Cấu hình',       section:'tp:config'    },
+        ]
+      },
+    ],
+  };
+
+  // ══════════════════════════════════════════════════════════════
+  //  BUILD SIDEBAR
+  // ══════════════════════════════════════════════════════════════
+
+  function init(role) {
+    _role   = role || 'student';
+    // Default to pinned=true on first load (better UX: user sees functions immediately)
+    // Luôn pinned — menu inline, không dùng flyout
+    _pinned = true;
+    localStorage.setItem('cl_sb_pinned', '1');
+
+    const sb = document.getElementById('sidebar');
+    if (!sb) return;
+
+    const groups = MENUS[_role] || MENUS.student;
+
+    // Role badge
+    const roleInfo = {
+      admin:   { icon:'⚡', label:'Admin',      cls:'sb-role-admin'   },
+      teacher: { icon:'👨‍🏫', label:'Giáo viên', cls:'sb-role-teacher' },
+      student: { icon:'🎓', label:'Học sinh',   cls:'sb-role-student' },
+    }[_role] || { icon:'👤', label:'', cls:'' };
+
+    sb.innerHTML = `
+      <div class="sb-header">
+        <div class="sb-logo">
+          <span class="sb-logo-icon">🖥️</span>
+          <div class="sb-logo-text">
+            <div class="sb-logo-name">CodeLab</div>
+            <div class="sb-role-badge ${roleInfo.cls}">${roleInfo.icon} ${roleInfo.label}</div>
+          </div>
+        </div>
+        <button class="sb-pin-btn" id="sb-pin" title="Ghim/Thu menu"
+          onclick="CL.Features.Sidebar.togglePin()">
+          <span class="sb-pin-icon">${_pinned ? '◀' : '▶'}</span>
+        </button>
+      </div>
+
+      <nav class="sb-nav" role="navigation" aria-label="Menu chính">
+        ${groups.map(g => _groupHtml(g)).join('')}
+      </nav>
+
+      <div class="sb-bottom">
+        <button class="sb-item sb-profile-btn"
+          onclick="CL.Features.Profile?.open()"
+          title="Hồ sơ cá nhân">
+          <span class="sb-icon">👤</span>
+          <span class="sb-label">Hồ sơ</span>
+        </button>
+        <button class="sb-item sb-logout"
+          onclick="CL.Auth.UI.logout()"
+          title="Đăng xuất">
+          <span class="sb-icon">↩</span>
+          <span class="sb-label">Đăng xuất</span>
+        </button>
+      </div>`;
+
+    if (_pinned) {
+      sb.classList.add('pinned');
+      document.getElementById('app-shell')?.classList.add('sb-pinned');
+    }
+    // Restore expanded groups from localStorage
+    try {
+      const savedExp = JSON.parse(localStorage.getItem('cl_sb_expanded') || '[]');
+      savedExp.forEach(gid => {
+        sb.querySelector(`.sb-group[data-gid="${gid}"]`)?.classList.add('expanded');
+      });
+    } catch(e) {}
+    document.getElementById('app-shell')?.style.removeProperty('visibility');
+    document.getElementById('sb-overlay')?.addEventListener('click', closeMobile);
+
+    // Close flyouts when clicking outside sidebar
+    // Add document listeners only once (guard with flag)
+    if (!window._sbListenersAdded) {
+      window._sbListenersAdded = true;
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#sidebar') && !e.target.closest('.sb-flyout')) {
+          _hideAllFlyouts();
+        }
+      }, true);
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') _hideAllFlyouts();
+      });
+    }
+
+    // Pinned mode: restore expanded groups from localStorage.
+    // navigate() below will handle expanding the active group.
+    // Auto-expand first group only if nothing was saved (true first load).
+    if (_pinned) {
+      const savedExpArr = JSON.parse(localStorage.getItem('cl_sb_expanded') || '[]');
+      if (savedExpArr.length === 0) {
+        const firstGroup = sb.querySelector('.sb-group');
+        if (firstGroup) firstGroup.classList.add('expanded');
+      }
+    }
+
+    // Restore last active
+    const saved = localStorage.getItem('cl_sb_active') || _getDefaultId();
+    navigate(saved, false);
+
+    // _showSection() đã xử lý visibility qua classList.cl-hidden
+    // Xong init: bỏ trạng thái loading
+    sb.classList.remove('sb-init-pending');
+  }
+
+  function _getDefaultId() {
+    const groups = MENUS[_role] || MENUS.student;
+    return groups[0]?.children?.[0]?.id || 'practice';
+  }
+
+  function _groupHtml(group) {
+    const hasActive = group.children.some(c => c.id === _active);
+    return `
+      <div class="sb-group${hasActive ? ' has-active' : ''}" data-gid="${group.id}">
+        <button class="sb-group-header${hasActive ? ' has-active' : ''}"
+          aria-haspopup="true"
+          data-gid="${group.id}"
+          onclick="CL.Features.Sidebar.groupHeaderClick('${group.id}')">
+          <span class="sb-icon">${group.icon}</span>
+          <span class="sb-label">${group.label}</span>
+          <span class="sb-group-arrow">›</span>
+        </button>
+        <div class="sb-flyout" id="sbf-${group.id}" role="menu">
+          <div class="sb-flyout-label">${group.icon} ${group.label}</div>
+          ${group.children.map(c => _childHtml(c)).join('')}
+        </div>
+      </div>`;
+  }
+
+  function _childHtml(item) {
+    return `
+      <button class="sb-child${_active === item.id ? ' active' : ''}"
+        data-id="${item.id}" data-section="${item.section}"
+        onclick="CL.Features.Sidebar.navigate('${item.id}')"
+        title="${item.label}">
+        <span class="sb-child-icon">${item.icon}</span>
+        <span class="sb-label">${item.label}</span>
+      </button>`;
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  NAVIGATION
+  // ══════════════════════════════════════════════════════════════
+
+  function navigate(id, save = true) {
+    _active = id;
+    if (save) localStorage.setItem('cl_sb_active', id);
+
+    // Update active state
+    document.querySelectorAll('.sb-child[data-id]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.id === id);
+    });
+
+    // Find item across all groups
+    const groups = MENUS[_role] || MENUS.student;
+    let item = null;
+    for (const g of groups) {
+      item = g.children.find(c => c.id === id);
+      if (item) {
+        // Expand parent group and always persist it (fixes F5 restore)
+        const grpEl = document.querySelector(`.sb-group[data-gid="${g.id}"]`);
+        if (grpEl) {
+          grpEl.classList.add('expanded');
+          const sb = document.getElementById('sidebar');
+          const expGroups = [...(sb?.querySelectorAll('.sb-group.expanded') || [])]
+            .map(g => g.dataset.gid).filter(Boolean);
+          localStorage.setItem('cl_sb_expanded', JSON.stringify(expGroups));
+        }
+        break;
+      }
+    }
+    if (!item) return;
+
+    closeMobile();
+    _hideAllFlyouts();
+
+    const section = item.section;
+
+    if (section === 'editor') {
+      _showSection('workspace-view');
+    } else if (section === 'profile') {
+      CL.Features.Profile?.open();
+      return;
+    } else if (section === 'exam') {
+      _showSection('workspace-view');
+    } else if (section === 'history') {
+      _showSection('panel-view');
+      _renderStudentHistory();
+    } else if (section === 'scores') {
+      _showSection('panel-view');
+      _renderStudentScores();
+    } else if (section.startsWith('tp:users:')) {
+      const sub = section.replace('tp:users:', '');
+      _showSection('panel-view');
+      _renderUsersPanel(sub);
+    } else if (section.startsWith('tp:')) {
+      const tabId = section.replace('tp:', '');
+      _showSection('panel-view');
+      _renderPanel(tabId);
+    }
+
+    // Update breadcrumb
+    const bc = document.getElementById('breadcrumb-title');
+    if (bc) bc.textContent = item.label;
+  }
+
+  function toggleGroup(gid) {
+    // No-op: hover-based
+  }
+
+  // When narrow sidebar: clicking group header navigates to its first child
+  let _flyoutTimers = {};
+
+  function groupHeaderClick(gid) {
+    const sidebar  = document.getElementById('sidebar');
+    const isPinned = sidebar?.classList.contains('pinned');
+
+    if (isPinned) {
+      // Pinned: toggle inline accordion
+      const grpEl = sidebar?.querySelector(`.sb-group[data-gid="${gid}"]`);
+      if (grpEl) {
+        grpEl.classList.toggle('expanded');
+        // Persist expanded state
+        const expGroups = [...(sidebar?.querySelectorAll('.sb-group.expanded') || [])]
+          .map(g => g.dataset.gid).filter(Boolean);
+        localStorage.setItem('cl_sb_expanded', JSON.stringify(expGroups));
+      }
+      return;
+    }
+
+    // Collapsed/hover mode: always show flyout on click
+    // (don't toggle based on .open state — hover may have already added .open via rAF,
+    //  causing isOpen=true → close-without-reopen bug)
+    _hideAllFlyouts();
+    const btn = sidebar?.querySelector(`.sb-group-header[data-gid="${gid}"]`)
+             || sidebar?.querySelector(`.sb-group[data-gid="${gid}"] .sb-group-header`);
+    _positionAndShowFlyout(gid, btn);
+  }
+
+  function _positionAndShowFlyout(gid, refEl) {
+    const flyout = document.getElementById('sbf-' + gid);
+    if (!flyout) return;
+    clearTimeout(_flyoutTimers[gid]);
+    // Use requestAnimationFrame to ensure DOM is painted before measuring
+    requestAnimationFrame(() => {
+      const sb   = document.getElementById('sidebar');
+      const sbW  = sb ? sb.getBoundingClientRect().width : 52;
+      // Minimum 52px (collapsed width)
+      const left = Math.max(sbW, 52) + 4;
+      const rect = refEl ? refEl.getBoundingClientRect() : null;
+      const top  = rect ? rect.top : 80;
+      flyout.style.top  = top + 'px';
+      flyout.style.left = left + 'px';
+      flyout.classList.add('open');
+    });
+  }
+
+  function _showFlyout(gid, btn) {
+    // Pinned = accordion mode: ignore hover flyout completely
+    if (document.getElementById('sidebar')?.classList.contains('pinned')) return;
+    clearTimeout(_flyoutTimers[gid]);
+    document.querySelectorAll('.sb-flyout.open').forEach(f => {
+      if (f.id !== 'sbf-' + gid) f.classList.remove('open');
+    });
+    _positionAndShowFlyout(gid, btn);
+  }
+
+  function _keepFlyout(gid) {
+    if (document.getElementById('sidebar')?.classList.contains('pinned')) return;
+    clearTimeout(_flyoutTimers[gid]);
+  }
+
+  function _hideFlyout(gid) {
+    if (document.getElementById('sidebar')?.classList.contains('pinned')) return;
+    _flyoutTimers[gid] = setTimeout(() => {
+      document.getElementById('sbf-' + gid)?.classList.remove('open');
+    }, 180);
+  }
+
+  function _hideAllFlyouts() {
+    document.querySelectorAll('.sb-flyout.open').forEach(f => f.classList.remove('open'));
+  }
+
+  function _showSection(which) {
+    const wv      = document.getElementById('workspace-view');
+    const pv      = document.getElementById('panel-view');
+    const cBar    = document.getElementById('content-bar');
+    // Dùng class thay vì inline style để override CSS !important
+    if (wv)   wv.classList.toggle('cl-hidden',   which !== 'workspace-view');
+    if (pv)   pv.classList.toggle('cl-hidden',   which !== 'panel-view');
+    if (cBar) cBar.classList.toggle('cl-hidden', which !== 'workspace-view');
+    // Xoá inline style cũ nếu có (từ các lần trước)
+    if (wv)   wv.style.removeProperty('display');
+    if (pv)   pv.style.removeProperty('display');
+    if (cBar) cBar.style.removeProperty('display');
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  PANEL RENDERERS
+  // ══════════════════════════════════════════════════════════════
+
+  function _renderPanel(tabId) {
+    const pv = document.getElementById('panel-view');
+    if (!pv) return;
+    pv.innerHTML = '<div class="pv-loading">⏳ Đang tải...</div>';
+    const RENDERERS = {
+      scores:     () => CL.Teacher.Scores?.render(pv),
+      violations: () => CL.Teacher.Violations?.render(pv),
+      history:    () => CL.Teacher.History?.render(pv),
+      exams:      () => CL.Teacher.Exams?.render(pv),
+      analytics:  () => CL.Teacher.Analytics?.render(pv),
+      exercises:  () => CL.Teacher.ExEditor?.render(pv),
+      config:     () => CL.Teacher.Config?.render(pv),
+      changelog:  () => CL.Features.Changelog?.render(pv),
+    };
+    (RENDERERS[tabId] || (() => { pv.innerHTML = '<div class="pv-empty">Chức năng đang phát triển</div>'; }))();
+  }
+
+  async function _renderUsersPanel(sub) {
+    const pv = document.getElementById('panel-view');
+    if (!pv) return;
+
+    // ✅ Kiểm tra quyền admin ở frontend trước khi gọi API
+    const Session = CL.require('Auth.Session');
+    const user = Session?.get?.();
+    if (!user || user.role !== 'admin') {
+      pv.innerHTML = '<div class="tp-empty">❌ Chỉ Admin mới có quyền thực hiện thao tác này.</div>';
+      return;
+    }
+
+    const tabMap = { student:'students', teacher:'teachers', admin:'admins', scores:'scores' };
+    const tab = tabMap[sub] || 'students';
+
+    pv.innerHTML = '<div class="pv-loading">⏳ Đang tải...</div>';
+
+    // ✅ Chỉ gọi render() MỘT LẦN duy nhất, tránh double-render gây race condition
+    if (CL.Admin?.Users?.render) {
+      await CL.Admin.Users.render(pv);
+      CL.Admin.Users._auTab(null, tab);
+    } else {
+      pv.innerHTML = '<div class="tp-empty">⚠️ Module quản lý người dùng chưa được tải.</div>';
+    }
+  }
+
+  async function _renderStudentScores() {
+    const pv = document.getElementById('panel-view');
+    if (!pv) return;
+    pv.innerHTML = '<div class="pv-loading">⏳ Đang tải điểm...</div>';
+    try {
+      const history = await CL.API.getHistory?.();
+      if (!history?.length) {
+        pv.innerHTML = `<div class="pv-empty"><div style="font-size:40px;margin-bottom:12px">📊</div>Bạn chưa có bài nộp nào.</div>`;
+        return;
+      }
+      const avg = (history.reduce((s,r)=>s+(+r.diem||0),0)/history.length).toFixed(1);
+      const pass = history.filter(r=>(+r.diem||0)>=5).length;
+      pv.innerHTML = `
+        <div class="pv-page">
+          <div class="pv-page-header">
+            <h2>🏆 Điểm của tôi</h2>
+            <div class="pv-stats-row">
+              <div class="pv-stat"><span class="pv-stat-n">${history.length}</span><span class="pv-stat-l">Bài đã nộp</span></div>
+              <div class="pv-stat"><span class="pv-stat-n">${avg}</span><span class="pv-stat-l">Điểm TB</span></div>
+              <div class="pv-stat ok"><span class="pv-stat-n">${pass}</span><span class="pv-stat-l">Đạt ≥5</span></div>
+            </div>
+          </div>
+          <div class="pv-table-wrap">
+            <table class="au-table">
+              <thead><tr><th>Bài tập</th><th>Điểm</th><th>Lần</th><th>Thời gian</th></tr></thead>
+              <tbody>
+                ${history.slice(0,100).map(r => {
+                  const d = +r.diem || 0;
+                  const cls = d>=9?'sc-ex':d>=7?'sc-ok':d>=5?'sc-warn':'sc-bad';
+                  const ts = r.ts ? new Date(r.ts).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+                  return `<tr>
+                    <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.tieu_de||''}">${r.tieu_de||r.bai_id||'—'}</td>
+                    <td><span class="sc-badge ${cls}">${d.toFixed(1)}</span></td>
+                    <td style="text-align:center;color:var(--text3)">${r.lan_thu||1}</td>
+                    <td style="font-size:11px;color:var(--text3)">${ts}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    } catch(e) {
+      pv.innerHTML = `<div class="pv-empty">❌ ${e.message}</div>`;
+    }
+  }
+
+  async function _renderStudentHistory() {
+    const pv = document.getElementById('panel-view');
+    if (!pv) return;
+    pv.innerHTML = '<div class="pv-loading">⏳ Đang tải...</div>';
+    try {
+      const history = await CL.API.getHistory?.();
+      if (!history?.length) {
+        pv.innerHTML = `<div class="pv-empty">Chưa có lịch sử làm bài.</div>`;
+        return;
+      }
+      pv.innerHTML = `
+        <div class="pv-page">
+          <div class="pv-page-header"><h2>📖 Lịch sử làm bài</h2></div>
+          <div class="pv-table-wrap">
+            <table class="au-table">
+              <thead><tr><th>Bài tập</th><th>Loại</th><th>Điểm</th><th>Thời gian</th></tr></thead>
+              <tbody>
+                ${history.slice(0,200).map(r => {
+                  const d = +r.diem || 0;
+                  const cls = d>=9?'sc-ex':d>=7?'sc-ok':d>=5?'sc-warn':'sc-bad';
+                  const ts = r.ts ? new Date(r.ts).toLocaleString('vi-VN') : '—';
+                  const type = r.type==='html'?'🌐 HTML':r.type==='sql'?'🗃 SQL':'🐍 Python';
+                  return `<tr>
+                    <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.tieu_de||r.bai_id||'—'}</td>
+                    <td style="font-size:11px">${type}</td>
+                    <td><span class="sc-badge ${cls}">${d.toFixed(1)}</span></td>
+                    <td style="font-size:11px;color:var(--text3)">${ts}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    } catch(e) {
+      pv.innerHTML = `<div class="pv-empty">❌ ${e.message}</div>`;
+    }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  SIDEBAR CONTROLS
+  // ══════════════════════════════════════════════════════════════
+
+  function togglePin() {
+    _pinned = !_pinned;
+    localStorage.setItem('cl_sb_pinned', _pinned ? '1' : '0');
+    const sb = document.getElementById('sidebar');
+    sb?.classList.toggle('pinned', _pinned);
+    document.getElementById('app-shell')?.classList.toggle('sb-pinned', _pinned);
+    const icon = document.getElementById('sb-pin')?.querySelector('.sb-pin-icon');
+    if (icon) icon.textContent = _pinned ? '◀' : '▶';
+    // When pinning: expand first group automatically
+    if (_pinned) {
+      const firstGroup = sb?.querySelector('.sb-group');
+      if (firstGroup && !firstGroup.classList.contains('expanded')) {
+        firstGroup.classList.add('expanded');
+      }
+    } else {
+      // When unpinning: close all flyouts
+      _hideAllFlyouts();
+    }
+  }
+
+  function openMobile() {
+    document.getElementById('sidebar')?.classList.add('mobile-open');
+    document.getElementById('sb-overlay')?.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeMobile() {
+    document.getElementById('sidebar')?.classList.remove('mobile-open');
+    document.getElementById('sb-overlay')?.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+
+  return { init, navigate, toggleGroup, groupHeaderClick, togglePin, openMobile, closeMobile, _showFlyout, _keepFlyout, _hideFlyout, _hideAllFlyouts };
+});
+
+// ─── js/features/changelog-ui.js ───────────────────────────
+/**
+ * features/changelog-ui.js — Changelog viewer trong Teacher Panel
+ * Xem lịch sử phiên bản từ Google Sheets (tab [Changelog])
+ * BUGFIX: _get không exposed → dùng CL.API.getChangelog(); fallback hardcoded
+ */
+'use strict';
+
+CL.define('Features.Changelog', () => {
+
+  const Utils = CL.require('Utils');
+
+  // ── Bảng changelog cứng — luôn hiển thị dù server offline ──────
+  const BUILTIN_CHANGELOG = [
+    {
+      version: '5.15.0', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'v5.15.0: UI fixes - Sidebar redesign: hover dropdown menu (Canvas LMS style) thay collapsible div, submenu hien thi khi hover menu cap 1. Theme: bo sung day du vars cho solarized-light, them 32 override cho light theme components. Score panel: fix tp-bar-body overflow cho bang diem hien thi dung.'
+    },
+    {
+      version: '5.14.0', type: 'patch',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'v5.14.0 Final: Kiem tra toan dien - fix syntax error _formatExercises, AIClient vao bundle (fix CL.require not found), updateProfile -> updateMyProfile (fix API action mismatch), xoa file rac css/c. All JS syntax check: 0 errors.'
+    },
+    {
+      version: '5.14.0', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'v5.14.0: Tái cấu trúc AI API module - Universal AIClient (adapter pattern). Fix bug: test/sinh bai luon goi Anthropic du chon Gemini/OpenAI. AIClient.call(provider, opts) route dung endpoint cho tung provider. Config, ai-generator, prompt-config deu dung AIClient thay vi hardcode.'
+    },
+    {
+      version: '5.13.0', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'v5.13.0: Prompt Templates 2-tang: System Prompt an (chuan CT2018 + JSON schema) + User Template GV chinh (co bien {{bloom}}/{{content}}/{{count}}...). Few-shot tu dong chon 2 bai mau cung type+Bloom tu ngan hang. Tab Prompt AI trong menu Cau hinh voi editor, preview full prompt, token estimate. ai-generator.js dung PromptConfig.buildPrompt() thay vi hardcoded.'
+    },
+    {
+      version: '5.12.0', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'v5.12.0: Cau hinh da AI API trong menu Cau hinh - ho tro Claude/OpenAI/Gemini. Moi provider co card rieng voi: API key (masked), model selection, test connection. Provider mac dinh duoc chon, ai-generator.js tu dong dung key tu Config module.'
+    },
+    {
+      version: '5.11.0', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'v5.11.0: AI Sinh bai tap - Teacher Panel tab moi 🤖. Dung Claude API (Haiku $0.01 hoac Sonnet $0.06/bai). Tinh nang: nhap noi dung SGK, chon lop/bai/Bloom, AI sinh JSON structured, validate Pyodide, review + luu vao ngan hang. API key luu localStorage. Them saveBaiTapRecord endpoint Code.gs.'
+    },
+    {
+      version: '5.10.0', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'N6: Ma tran de live-update khi add/remove cau hoi (debounce 600ms). N5: Trang phu-huynh.html - xem ket qua con chi bang MSHS, Code.gs endpoint getStudentReport (rate-limited, no auth). N7: Export PDF bao cao lop (print-friendly HTML, mo tab moi).'
+    },
+    {
+      version: '5.9.0', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'N2: Ma tran de preview TT26/2022 trong exam creator - Bloom distribution, NL1/NL2/NL3, bang 2 chieu Chu de x Muc do, tu dong cap nhat. N3: Them tc[] cho 45 bai Python (tong 53 bai kich hoat Pyodide grading). N1: GitHub Actions CI auto-rebuild bundle.js khi push JS.'
+    },
+    {
+      version: '5.8.1', type: 'patch',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'Hotfix: F1 mobilePanel() thiếu định nghĩa (crash mobile nav). F2 api.js exports thiếu getItemAnalysis/getExamMatrix/getBaiLamForStudent. F4 analytics NL profile kết hợp cả dữ liệu luyện tập + thi. F5 GRADE_FILE_MAP thêm K12-CTST/K12-KNTT/K11-SQL. F7 CSS 0 duplicate selector còn lại.'
+    },
+    {
+      version: '5.8.0', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'Phase 2+3+4 CT GDPT 2018: Config BLOOM_NL_MAP (Bloom→NL1/NL2/NL3), Registry helpers getNL/getBloomGroup/buildExamMatrix. Analytics v2: Tab Tổng hợp lớp (early warning HS nguy cơ, so sánh lớp bar chart), Tab Năng lực HS (hồ sơ NL1/NL2/NL3 radar, Bloom 6 mức, trend chart, PC3 persistence), Tab Phân tích đề (Item Analysis p/D/r, Cronbach alpha, histogram phân phối, ma trận TT26/2022), Tab Xuất CSV hồ sơ năng lực CT2018.'
+    },
+    {
+      version: '5.7.0', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'Đợt 3 performance: P1 — Bundle 45 JS files → dist/bundle.js (1 HTTP request thay 45). P2 — Lazy load exercise data: 2MB exercise bundle chia thành 3 file, chỉ load khi chọn lớp (K10=784KB, K11=508KB, SQL=699KB). First paint tiết kiệm ~2s trên 3G. Thêm scripts/build.py + index.dev.html cho development workflow.'
+    },
+    {
+      version: '5.6.1', type: 'patch',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'Đợt 2 clean up: Xóa 9 legacy files (3099 dòng dead code). Dedup CSS: 326 rule trùng lặp → tiết kiệm 958 dòng / 43KB. Thêm tc[] test cases cho 8 bài Python mẫu (B1-B6) để kích hoạt Pyodide grading.'
+    },
+    {
+      version: '5.6.0', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'Phase 1 bugs: fix exam mode không kích hoạt (B1), gộp duplicate exercise:selected (B3), fix runCode/await graders (B5/B6), restore UI sau thi (B7), dedup verifyExamCode (B8). Phase 2 multi-year: thêm nam_hoc vào SCORE_H/BAIKT_H/BAILAM_H, LichSuLop schema, HOCSINH_H cập nhật, yearTransition()/importStudents() backend, Admin UI Quản lý năm học với CSV import.'
+    },
+    {
+      version: '5.5.2', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'Ngân hàng bài: Tab Đề bài + Lý thuyết dùng RichText editor (Quill + KaTeX + bảng + upload ảnh). Bỏ Tab Tiêu chí và Hướng dẫn lỗi (xử lý tự động bởi Python grader). Tab Code mẫu giữ nguyên textarea. Lưu về Sheets tương ứng.'
+    },
+    {
+      version: '5.5.1', type: 'patch',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'Hotfix: exam-result-modal hiện ngay khi load trang (CSS display:flex !important override). Fix lsSwitch và mobileRunGrade undefined. Fix null-safe addEventListener trong ui.js. Toàn bộ onclick handlers đã kiểm tra và đủ định nghĩa.'
+    },
+    {
+      version: '5.5.0', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'Canvas LMS-style Rich Editor: Quill 2 + quill-better-table + KaTeX math ($$...$$) + kéo thả ảnh upload Google Drive + dialog chèn ảnh URL/file + dialog công thức LaTeX + dialog chèn bảng + toggle HTML nguồn. Học sinh xem công thức toán tự động render KaTeX.'
+    },
+    {
+      version: '5.4.0', type: 'minor',
+      timestamp: '2026-03-22T00:00:00Z',
+      description: 'Rich editor: thêm nút toggle HTML nguồn (</> HTML). Admin: cho phép sửa MSHS/username. Theme: fix toggle light/dark. Xóa nút Lịch sử phiên bản khỏi sidebar. Giáo viên không có menu Cấu hình. Fix nút Cập nhật user không hoạt động.'
+    },
+    {
+      version: '4.8.0', type: 'minor',
+      timestamp: '2025-03-20T18:00:00Z',
+      description: 'Sửa bug đổi mật khẩu (admin/teacher/student), fix quản lý người dùng race condition, fix adminDeleteAdmin tham số sai, chuẩn hóa màu VS Code, theme toggle, score box interactive (count-up, confetti, glow).'
+    },
+    {
+      version: '4.7.0', type: 'minor',
+      timestamp: '2025-03-20T12:00:00Z',
+      description: 'Thêm tab Quản lý hệ thống cho Admin: CRUD học sinh, giáo viên, admin; reset mật khẩu, khoá/mở tài khoản, xuất CSV bảng điểm.'
+    },
+    {
+      version: '4.6.0', type: 'minor',
+      timestamp: '2025-03-19T10:00:00Z',
+      description: 'Thêm SQL Editor & SQL Grader. Ngân hàng bài tập SQL lớp 11 KNTT. Sidebar 3 cột chuẩn Canvas LMS. Profile panel với avatar.'
+    },
+    {
+      version: '4.5.0', type: 'minor',
+      timestamp: '2025-03-18T08:00:00Z',
+      description: 'HTML Editor & HTML Grader. Syntax highlighting real-time. Exam Mode chống gian lận. Anti-cheat fullscreen + tab-switch detection.'
+    },
+    {
+      version: '4.0.0', type: 'major',
+      timestamp: '2025-03-15T00:00:00Z',
+      description: 'Kiến trúc mô-đun CL.define / CL.require. Auth 2 lớp (Admin/Teacher dùng username, Student dùng MSHS+mật khẩu). Teacher Panel đầy đủ.'
+    },
+    {
+      version: '3.0.0', type: 'major',
+      timestamp: '2025-03-10T00:00:00Z',
+      description: 'Single-file grader v3. Pyodide WebAssembly Python runtime. Test case engine + Rubric engine. Submission queue offline.'
+    },
+  ];
+
+  async function render(el) {
+    el.innerHTML = '<div class="tp-loading">⏳ Đang tải lịch sử...</div>';
+    try {
+      const entries = await _fetchChangelog();
+      _renderList(el, entries);
+    } catch(e) {
+      // Nếu lỗi vẫn còn → render fallback hardcoded
+      _renderList(el, BUILTIN_CHANGELOG);
+    }
+  }
+
+  async function _fetchChangelog() {
+    // Ưu tiên: server → meta tag → hardcoded
+    if (CL.API?.isReady?.()) {
+      try {
+        const rows = await CL.API.getChangelog?.();
+        if (Array.isArray(rows) && rows.length) return rows;
+      } catch {}
+    }
+    // meta tag fallback (nếu build script inject)
+    const meta = document.querySelector('meta[name="cl-changelog"]');
+    if (meta) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(meta.content));
+        if (parsed.length) return parsed;
+      } catch {}
+    }
+    return BUILTIN_CHANGELOG;
+  }
+
+  function _renderList(el, entries) {
+    if (!entries.length) {
+      el.innerHTML = '<div class="tp-empty">📝 Chưa có lịch sử phiên bản.</div>';
+      return;
+    }
+    el.innerHTML = `
+      <div class="cl-header">
+        <h3>📋 Lịch sử phiên bản CodeLab</h3>
+        <span class="cl-count">${entries.length} phiên bản</span>
+      </div>
+      <div class="cl-list">
+        ${entries.map(_entryHtml).join('')}
+      </div>`;
+  }
+
+  function _entryHtml(e, i) {
+    const typeInfo = {
+      major: { icon: '🔴', label: 'Major', cls: 'cl-major' },
+      minor: { icon: '🟡', label: 'Minor', cls: 'cl-minor' },
+      patch: { icon: '🟢', label: 'Patch', cls: 'cl-patch' },
+    }[e.type] || { icon: '🔵', label: e.type||'Update', cls: 'cl-patch' };
+
+    const date = e.timestamp
+      ? new Date(e.timestamp).toLocaleDateString('vi-VN', {
+          day:'2-digit', month:'2-digit', year:'numeric'
+        })
+      : '—';
+
+    const isLatest = i === 0;
+
+    return `
+      <div class="cl-entry ${typeInfo.cls}${isLatest ? ' cl-latest' : ''}">
+        <div class="cl-entry-head">
+          <span class="cl-ver">v${Utils.escHtml(e.version||'?')}${isLatest ? ' <span class="cl-badge-latest">Hiện tại</span>' : ''}</span>
+          <span class="cl-type-badge">${typeInfo.icon} ${typeInfo.label}</span>
+          <span class="cl-date">${date}</span>
+          ${e.prev_version ? `<span class="cl-prev">← v${Utils.escHtml(e.prev_version)}</span>` : ''}
+        </div>
+        <div class="cl-desc">${Utils.escHtml(e.description||'Không có mô tả.')}</div>
+      </div>`;
+  }
+
+  return { render };
+});
+
 // ─── js/app.js ───────────────────────────
 /**
  * app.js — Application Bootstrap (Entry Point)
@@ -14861,1053 +15910,6 @@ Tải lại trang để về giao diện luyện tập?`)) {
   };
 
 })();
-
-// ─── js/features/theme.js ───────────────────────────
-/**
- * features/theme.js — Theme & Editor Settings
- * ═══════════════════════════════════════════════════════════════
- * 8 themes: Dark Navy, One Dark, Dracula, Monokai,
- *           GitHub Dark, Solarized Dark, Light, Solarized Light
- * + Editor font size, font family, line height settings
- * Keyboard: Shift+T = toggle panel | Shift+click btn = quick toggle
- */
-'use strict';
-
-CL.define('Features.Theme', () => {
-
-  const LS_KEY        = 'cl_theme';
-  const LS_FONT_SIZE  = 'cl_editor_fontsize';
-  const LS_FONT_FAM   = 'cl_editor_fontfam';
-  const LS_LINE_HT    = 'cl_editor_lineheight';
-
-  const THEMES = [
-    { id: 'dark-navy',      name: 'Dark Navy',       dark: true,  preview: ['#0a0e1a','#4f9eff','#34d399','#a78bfa'] },
-    { id: 'one-dark',       name: 'One Dark',        dark: true,  preview: ['#282c34','#61afef','#98c379','#c678dd'] },
-    { id: 'dracula',        name: 'Dracula',         dark: true,  preview: ['#282a36','#8be9fd','#50fa7b','#bd93f9'] },
-    { id: 'monokai',        name: 'Monokai',         dark: true,  preview: ['#272822','#66d9e8','#a6e22e','#ae81ff'] },
-    { id: 'github-dark',    name: 'GitHub Dark',     dark: true,  preview: ['#0d1117','#58a6ff','#3fb950','#bc8cff'] },
-    { id: 'solarized-dark', name: 'Solarized Dark',  dark: true,  preview: ['#002b36','#268bd2','#859900','#6c71c4'] },
-    { id: 'light',          name: 'Light',           dark: false, preview: ['#f3f3f3','#0969da','#1a7f37','#8250df'] },
-    { id: 'solarized-light',name: 'Solarized Light', dark: false, preview: ['#fdf6e3','#268bd2','#859900','#6c71c4'] },
-  ];
-
-  const FONT_FAMILIES = [
-    { id: 'default',       name: 'Mặc định',         css: "'JetBrains Mono','Cascadia Code','Fira Code','Consolas',monospace" },
-    { id: 'jetbrains',     name: 'JetBrains Mono',   css: "'JetBrains Mono',monospace" },
-    { id: 'cascadia',      name: 'Cascadia Code',    css: "'Cascadia Code',monospace" },
-    { id: 'consolas',      name: 'Consolas',         css: "'Consolas','Courier New',monospace" },
-    { id: 'firacode',      name: 'Fira Code',        css: "'Fira Code',monospace" },
-    { id: 'sourcecodepro', name: 'Source Code Pro',  css: "'Source Code Pro',monospace" },
-  ];
-
-  const FONT_SIZES   = [11, 12, 13, 14, 15, 16, 18];
-  const LINE_HEIGHTS = [
-    { id: '1.4', name: 'Compact',  value: 1.4 },
-    { id: '1.6', name: 'Normal',   value: 1.6 },
-    { id: '1.8', name: 'Relaxed',  value: 1.8 },
-    { id: '2.0', name: 'Spacious', value: 2.0 },
-  ];
-
-  // ── Apply theme ───────────────────────────────────────────────
-  function apply(themeId) {
-    const theme = THEMES.find(t => t.id === themeId) || THEMES[0];
-    document.documentElement.setAttribute('data-theme', theme.id);
-    let meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) { meta = document.createElement('meta'); meta.name = 'theme-color'; document.head.appendChild(meta); }
-    meta.content = theme.preview[0];
-    localStorage.setItem(LS_KEY, theme.id);
-    _updateActiveCard(theme.id);
-  }
-
-  // ── Apply editor font/size settings via injected <style> ─────
-  function applyEditorSettings() {
-    const fs  = parseInt(localStorage.getItem(LS_FONT_SIZE)) || 13;
-    const fam = localStorage.getItem(LS_FONT_FAM) || 'default';
-    const lh  = parseFloat(localStorage.getItem(LS_LINE_HT)) || 1.6;
-    const famDef = FONT_FAMILIES.find(f => f.id === fam) || FONT_FAMILIES[0];
-
-    let s = document.getElementById('_cl_editor_style');
-    if (!s) { s = document.createElement('style'); s.id = '_cl_editor_style'; document.head.appendChild(s); }
-
-    s.textContent = `
-      #code-input, .editor-wrap textarea, .html-editor-wrap textarea,
-      .hl-kw,.hl-fn,.hl-cls,.hl-bi,.hl-str,.hl-num,.hl-cmt,.hl-self,.hl-bool,
-      .hl-deco,.hl-op,.hl-punc,.hl-plain,.hl-tag,.hl-attr,.hl-attrval,.hl-entity,
-      .hl-css-sel,.hl-css-prop,.hl-css-val,.hl-css-unit,.hl-css-color,.hl-css-at,
-      .hl-sql-kw,.hl-sql-fn,.hl-sql-type,.hl-sql-id {
-        font-size: ${fs}px !important;
-        font-family: ${famDef.css} !important;
-        line-height: ${lh} !important;
-      }
-      .lnums span { height: calc(${fs}px * ${lh}) !important; line-height: ${lh} !important; }
-    `;
-  }
-
-  function setFontSize(sz)  { localStorage.setItem(LS_FONT_SIZE, sz);  applyEditorSettings(); _updateEditorControls(); }
-  function setFontFamily(id){ localStorage.setItem(LS_FONT_FAM,  id);  applyEditorSettings(); _updateEditorControls(); }
-  function setLineHeight(v) { localStorage.setItem(LS_LINE_HT,   v);   applyEditorSettings(); _updateEditorControls(); }
-  function current()        { return localStorage.getItem(LS_KEY) || 'dark-navy'; }
-
-  // ── Init ─────────────────────────────────────────────────────
-  function init() {
-    apply(current());
-    applyEditorSettings();
-    _injectButton();
-    document.addEventListener('keydown', (e) => {
-      if (e.shiftKey && e.key === 'T' &&
-          !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName || '')) {
-        e.preventDefault();
-        togglePanel();
-      }
-    });
-  }
-
-  // ── Wire button ───────────────────────────────────────────────
-  function _injectButton() {
-    const btn = document.getElementById('theme-picker-btn');
-    if (btn) {
-      btn.title = 'Cài đặt giao diện & Editor (Shift+T)';
-      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="display:block;flex-shrink:0">
-        <circle cx="8" cy="8" r="2.2" fill="currentColor"/>
-        <path d="M8 1.5v1.8M8 12.7v1.8M1.5 8h1.8M12.7 8h1.8M3.4 3.4l1.27 1.27M11.33 11.33l1.27 1.27M3.4 12.6l1.27-1.27M11.33 4.67l1.27-1.27"
-          stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-      </svg>`;
-      if (!btn._themeWired) {
-        btn._themeWired = true;
-        btn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (e.shiftKey) {
-            const isDark = THEMES.find(t => t.id === current())?.dark !== false;
-            apply(isDark ? 'light' : 'dark-navy');
-          } else {
-            togglePanel();
-          }
-        });
-      }
-    }
-    _buildPanel();
-  }
-
-  // ── Build panel HTML ─────────────────────────────────────────
-  function _buildPanel() {
-    document.getElementById('theme-picker-panel')?.remove();
-    const dark  = THEMES.filter(t =>  t.dark);
-    const light = THEMES.filter(t => !t.dark);
-    const cur   = current();
-    const curFs  = parseInt(localStorage.getItem(LS_FONT_SIZE)) || 13;
-    const curFam = localStorage.getItem(LS_FONT_FAM) || 'default';
-    const curLh  = localStorage.getItem(LS_LINE_HT) || '1.6';
-
-    const panel = document.createElement('div');
-    panel.id = 'theme-picker-panel';
-    panel.innerHTML = `
-      <div class="tp-header-row">
-        <span>⚙ Giao diện &amp; Editor</span>
-        <button class="tp-close-btn" id="tp-close-x" title="Đóng (Esc)">✕</button>
-      </div>
-
-      <div class="theme-section-label">🎨 Màu giao diện</div>
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:4px">🌙 Tối</div>
-      <div class="theme-grid" id="theme-grid-dark">
-        ${dark.map(t => _cardHtml(t, cur)).join('')}
-      </div>
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin:8px 0 4px">☀ Sáng</div>
-      <div class="theme-grid" id="theme-grid-light">
-        ${light.map(t => _cardHtml(t, cur)).join('')}
-      </div>
-
-      <div class="theme-section-label" style="margin-top:12px">✏ Cài đặt Editor</div>
-
-      <div class="tp-editor-row">
-        <span class="tp-editor-label">Cỡ chữ</span>
-        <div class="tp-font-btns" id="tp-font-size-btns">
-          ${FONT_SIZES.map(sz => `<button class="tp-sz-btn${sz === curFs ? ' active' : ''}" data-sz="${sz}">${sz}</button>`).join('')}
-        </div>
-      </div>
-
-      <div class="tp-editor-row">
-        <span class="tp-editor-label">Font</span>
-        <select class="tp-select" id="tp-font-fam">
-          ${FONT_FAMILIES.map(f => `<option value="${f.id}"${f.id === curFam ? ' selected' : ''}>${f.name}</option>`).join('')}
-        </select>
-      </div>
-
-      <div class="tp-editor-row">
-        <span class="tp-editor-label">Dãn dòng</span>
-        <div class="tp-seg" id="tp-lineht-btns">
-          ${LINE_HEIGHTS.map(lh => `<button class="tp-seg-btn${lh.id === curLh ? ' active' : ''}" data-lh="${lh.value}">${lh.name}</button>`).join('')}
-        </div>
-      </div>
-
-      <div class="tp-shortcut-hint">
-        <kbd>Shift</kbd>+<kbd>T</kbd> mở/đóng &nbsp;·&nbsp; <kbd>Shift</kbd>+click chuyển tối↔sáng
-      </div>
-    `;
-
-    document.body.appendChild(panel);
-
-    document.getElementById('tp-close-x')?.addEventListener('click', (e) => { e.stopPropagation(); _hidePanel(); });
-    panel.querySelectorAll('.theme-card').forEach(c => c.addEventListener('click', (e) => { e.stopPropagation(); apply(c.dataset.tid); }));
-    panel.querySelectorAll('.tp-sz-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); setFontSize(parseInt(b.dataset.sz)); }));
-    panel.querySelector('#tp-font-fam')?.addEventListener('change', (e) => setFontFamily(e.target.value));
-    panel.querySelectorAll('.tp-seg-btn').forEach(b => b.addEventListener('click', (e) => { e.stopPropagation(); setLineHeight(b.dataset.lh); }));
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && panel.classList.contains('show')) _hidePanel();
-    });
-
-    if (window._themeOutsideClose) document.removeEventListener('click', window._themeOutsideClose);
-    window._themeOutsideClose = (e) => {
-      if (!panel.contains(e.target) && e.target.id !== 'theme-picker-btn') _hidePanel();
-    };
-    setTimeout(() => document.addEventListener('click', window._themeOutsideClose), 0);
-  }
-
-  function _cardHtml(t, cur) {
-    return `<div class="theme-card${t.id === cur ? ' active' : ''}" data-tid="${t.id}" title="${t.name}">
-      <div class="theme-preview" style="background:${t.preview[0]}">
-        ${t.preview.slice(1).map(c => `<span style="background:${c}"></span>`).join('')}
-      </div>
-      <div class="theme-name">${t.name}</div>
-    </div>`;
-  }
-
-  function _hidePanel() {
-    const p = document.getElementById('theme-picker-panel');
-    if (!p) return;
-    p.classList.remove('show');
-    p.style.display = 'none';
-  }
-
-  function togglePanel() {
-    const panel = document.getElementById('theme-picker-panel');
-    const btn   = document.getElementById('theme-picker-btn');
-    if (!panel) { _buildPanel(); togglePanel(); return; }
-    if (panel.classList.contains('show')) { _hidePanel(); return; }
-
-    const rect = btn ? btn.getBoundingClientRect() : { bottom: 60, right: window.innerWidth - 16 };
-    const pw   = 296;
-    let left   = rect.right - pw;
-    if (left < 8) left = 8;
-    if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
-    panel.style.top     = (rect.bottom + 6) + 'px';
-    panel.style.left    = left + 'px';
-    panel.style.right   = 'auto';
-    panel.style.width   = pw + 'px';
-    panel.style.display = 'block';
-    panel.classList.add('show');
-    _updateActiveCard(current());
-    _updateEditorControls();
-  }
-
-  function _updateActiveCard(themeId) {
-    document.querySelectorAll('.theme-card').forEach(c => c.classList.toggle('active', c.dataset.tid === themeId));
-  }
-
-  function _updateEditorControls() {
-    const curFs = parseInt(localStorage.getItem(LS_FONT_SIZE)) || 13;
-    const curLh = localStorage.getItem(LS_LINE_HT) || '1.6';
-    const curFam = localStorage.getItem(LS_FONT_FAM) || 'default';
-    document.querySelectorAll('.tp-sz-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.sz) === curFs));
-    document.querySelectorAll('.tp-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.lh === curLh));
-    const sel = document.getElementById('tp-font-fam');
-    if (sel) sel.value = curFam;
-  }
-
-  return { init, apply, current, togglePanel };
-});
-
-// ─── js/features/sidebar.js ───────────────────────────
-/**
- * features/sidebar.js — Sidebar + Panel Layout (Canvas LMS style)
- * ═══════════════════════════════════════════════════════════════
- * Cấu trúc 3 cột: Sidebar | Sub-nav | Content
- *
- * Phân quyền:
- *   👑 Admin   : Tất cả chức năng + Quản lý hệ thống
- *   👨‍🏫 Giáo viên: Dạy học + Theo dõi lớp (không có quản lý users)
- *   🎓 Học sinh : Luyện tập + Xem điểm cá nhân
- */
-'use strict';
-
-CL.define('Features.Sidebar', () => {
-  const Events = CL.require('Events');
-
-  let _role   = 'student';
-  let _active = '';
-  let _pinned = false;
-
-  // ══════════════════════════════════════════════════════════════
-  //  MENU DEFINITIONS (role-based)
-  // ══════════════════════════════════════════════════════════════
-
-  const MENUS = {
-
-    // ── HỌC SINH ──────────────────────────────────────────────
-    student: [
-      {
-        id:'learn', icon:'📚', label:'Học tập',
-        children:[
-          { id:'practice', icon:'✏️', label:'Luyện tập code',  section:'editor'     },
-          { id:'exam',     icon:'📋', label:'Vào phòng thi',   section:'exam'       },
-        ]
-      },
-      {
-        id:'results', icon:'📊', label:'Kết quả',
-        children:[
-          { id:'my-scores',  icon:'🏆', label:'Điểm của tôi',    section:'scores'  },
-          { id:'my-history', icon:'📖', label:'Lịch sử làm bài', section:'history' },
-        ]
-      },
-      {
-        id:'account', icon:'👤', label:'Tài khoản',
-        children:[
-          { id:'profile', icon:'🪪', label:'Hồ sơ cá nhân', section:'profile' },
-        ]
-      },
-    ],
-
-    // ── GIÁO VIÊN ─────────────────────────────────────────────
-    teacher: [
-      {
-        id:'teach', icon:'📚', label:'Giảng dạy',
-        children:[
-          { id:'practice',  icon:'✏️', label:'Luyện tập',      section:'editor'           },
-          { id:'exercises', icon:'📝', label:'Ngân hàng bài',  section:'tp:exercises'     },
-          { id:'ai-gen',    icon:'🤖', label:'AI Sinh bài tập', section:'tp:ai-gen'        },
-        ]
-      },
-      {
-        id:'monitor', icon:'📊', label:'Theo dõi lớp',
-        children:[
-          { id:'scores',     icon:'🏆', label:'Bảng điểm lớp',  section:'tp:scores'      },
-          { id:'history',    icon:'📖', label:'Lịch sử nộp bài',section:'tp:history'     },
-          { id:'violations', icon:'🚨', label:'Vi phạm',        section:'tp:violations'  },
-          { id:'analytics',  icon:'📈', label:'Thống kê',       section:'tp:analytics'   },
-        ]
-      },
-      {
-        id:'exam-mgmt', icon:'📋', label:'Kiểm tra',
-        children:[
-          { id:'exams', icon:'📋', label:'Kỳ kiểm tra',   section:'tp:exams'   },
-        ]
-      },
-      // Giáo viên không có menu Cấu hình (chỉ Admin mới có)
-    ],
-
-    // ── ADMIN (teacher + hệ thống) ─────────────────────────────
-    admin: [
-      {
-        id:'teach', icon:'📚', label:'Giảng dạy',
-        children:[
-          { id:'practice',  icon:'✏️', label:'Luyện tập',      section:'editor'       },
-          { id:'exercises', icon:'📝', label:'Ngân hàng bài',  section:'tp:exercises' },
-        ]
-      },
-      {
-        id:'monitor', icon:'📊', label:'Theo dõi',
-        children:[
-          { id:'scores',     icon:'🏆', label:'Bảng điểm',      section:'tp:scores'     },
-          { id:'history',    icon:'📖', label:'Lịch sử',        section:'tp:history'    },
-          { id:'violations', icon:'🚨', label:'Vi phạm',        section:'tp:violations' },
-          { id:'analytics',  icon:'📈', label:'Thống kê',       section:'tp:analytics'  },
-        ]
-      },
-      {
-        id:'exam-mgmt', icon:'📋', label:'Kiểm tra',
-        children:[
-          { id:'exams', icon:'📋', label:'Kỳ kiểm tra', section:'tp:exams' },
-        ]
-      },
-      {
-        id:'admin-mgmt', icon:'👥', label:'Quản lý hệ thống',
-        children:[
-          { id:'users-student',  icon:'🎓', label:'Học sinh',       section:'tp:users:student'  },
-          { id:'users-teacher',  icon:'👨‍🏫', label:'Giáo viên',     section:'tp:users:teacher'  },
-          { id:'users-admin',    icon:'⚡', label:'Quản trị viên',  section:'tp:users:admin'    },
-          { id:'scores-all',     icon:'📊', label:'Bảng điểm toàn trường', section:'tp:users:scores' },
-          { id:'year-mgr',       icon:'📅', label:'Quản lý năm học', section:'tp:year'           },
-        ]
-      },
-      {
-        id:'sys', icon:'⚙️', label:'Hệ thống',
-        children:[
-          { id:'config',    icon:'⚙️', label:'Cấu hình',       section:'tp:config'    },
-        ]
-      },
-    ],
-  };
-
-  // ══════════════════════════════════════════════════════════════
-  //  BUILD SIDEBAR
-  // ══════════════════════════════════════════════════════════════
-
-  function init(role) {
-    _role   = role || 'student';
-    // Default to pinned=true on first load (better UX: user sees functions immediately)
-    // Luôn pinned — menu inline, không dùng flyout
-    _pinned = true;
-    localStorage.setItem('cl_sb_pinned', '1');
-
-    const sb = document.getElementById('sidebar');
-    if (!sb) return;
-
-    const groups = MENUS[_role] || MENUS.student;
-
-    // Role badge
-    const roleInfo = {
-      admin:   { icon:'⚡', label:'Admin',      cls:'sb-role-admin'   },
-      teacher: { icon:'👨‍🏫', label:'Giáo viên', cls:'sb-role-teacher' },
-      student: { icon:'🎓', label:'Học sinh',   cls:'sb-role-student' },
-    }[_role] || { icon:'👤', label:'', cls:'' };
-
-    sb.innerHTML = `
-      <div class="sb-header">
-        <div class="sb-logo">
-          <span class="sb-logo-icon">🖥️</span>
-          <div class="sb-logo-text">
-            <div class="sb-logo-name">CodeLab</div>
-            <div class="sb-role-badge ${roleInfo.cls}">${roleInfo.icon} ${roleInfo.label}</div>
-          </div>
-        </div>
-        <button class="sb-pin-btn" id="sb-pin" title="Ghim/Thu menu"
-          onclick="CL.Features.Sidebar.togglePin()">
-          <span class="sb-pin-icon">${_pinned ? '◀' : '▶'}</span>
-        </button>
-      </div>
-
-      <nav class="sb-nav" role="navigation" aria-label="Menu chính">
-        ${groups.map(g => _groupHtml(g)).join('')}
-      </nav>
-
-      <div class="sb-bottom">
-        <button class="sb-item sb-profile-btn"
-          onclick="CL.Features.Profile?.open()"
-          title="Hồ sơ cá nhân">
-          <span class="sb-icon">👤</span>
-          <span class="sb-label">Hồ sơ</span>
-        </button>
-        <button class="sb-item sb-logout"
-          onclick="CL.Auth.UI.logout()"
-          title="Đăng xuất">
-          <span class="sb-icon">↩</span>
-          <span class="sb-label">Đăng xuất</span>
-        </button>
-      </div>`;
-
-    if (_pinned) {
-      sb.classList.add('pinned');
-      document.getElementById('app-shell')?.classList.add('sb-pinned');
-    }
-    // Restore expanded groups from localStorage
-    try {
-      const savedExp = JSON.parse(localStorage.getItem('cl_sb_expanded') || '[]');
-      savedExp.forEach(gid => {
-        sb.querySelector(`.sb-group[data-gid="${gid}"]`)?.classList.add('expanded');
-      });
-    } catch(e) {}
-    document.getElementById('app-shell')?.style.removeProperty('visibility');
-    document.getElementById('sb-overlay')?.addEventListener('click', closeMobile);
-
-    // Close flyouts when clicking outside sidebar
-    // Add document listeners only once (guard with flag)
-    if (!window._sbListenersAdded) {
-      window._sbListenersAdded = true;
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('#sidebar') && !e.target.closest('.sb-flyout')) {
-          _hideAllFlyouts();
-        }
-      }, true);
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') _hideAllFlyouts();
-      });
-    }
-
-    // Pinned mode: restore expanded groups from localStorage.
-    // navigate() below will handle expanding the active group.
-    // Auto-expand first group only if nothing was saved (true first load).
-    if (_pinned) {
-      const savedExpArr = JSON.parse(localStorage.getItem('cl_sb_expanded') || '[]');
-      if (savedExpArr.length === 0) {
-        const firstGroup = sb.querySelector('.sb-group');
-        if (firstGroup) firstGroup.classList.add('expanded');
-      }
-    }
-
-    // Restore last active
-    const saved = localStorage.getItem('cl_sb_active') || _getDefaultId();
-    navigate(saved, false);
-
-    // _showSection() đã xử lý visibility qua classList.cl-hidden
-  }
-
-  function _getDefaultId() {
-    const groups = MENUS[_role] || MENUS.student;
-    return groups[0]?.children?.[0]?.id || 'practice';
-  }
-
-  function _groupHtml(group) {
-    const hasActive = group.children.some(c => c.id === _active);
-    return `
-      <div class="sb-group${hasActive ? ' has-active' : ''}" data-gid="${group.id}">
-        <button class="sb-group-header${hasActive ? ' has-active' : ''}"
-          aria-haspopup="true"
-          data-gid="${group.id}"
-          onclick="CL.Features.Sidebar.groupHeaderClick('${group.id}')">
-          <span class="sb-icon">${group.icon}</span>
-          <span class="sb-label">${group.label}</span>
-          <span class="sb-group-arrow">›</span>
-        </button>
-        <div class="sb-flyout" id="sbf-${group.id}" role="menu">
-          <div class="sb-flyout-label">${group.icon} ${group.label}</div>
-          ${group.children.map(c => _childHtml(c)).join('')}
-        </div>
-      </div>`;
-  }
-
-  function _childHtml(item) {
-    return `
-      <button class="sb-child${_active === item.id ? ' active' : ''}"
-        data-id="${item.id}" data-section="${item.section}"
-        onclick="CL.Features.Sidebar.navigate('${item.id}')"
-        title="${item.label}">
-        <span class="sb-child-icon">${item.icon}</span>
-        <span class="sb-label">${item.label}</span>
-      </button>`;
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  NAVIGATION
-  // ══════════════════════════════════════════════════════════════
-
-  function navigate(id, save = true) {
-    _active = id;
-    if (save) localStorage.setItem('cl_sb_active', id);
-
-    // Update active state
-    document.querySelectorAll('.sb-child[data-id]').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.id === id);
-    });
-
-    // Find item across all groups
-    const groups = MENUS[_role] || MENUS.student;
-    let item = null;
-    for (const g of groups) {
-      item = g.children.find(c => c.id === id);
-      if (item) {
-        // Expand parent group and always persist it (fixes F5 restore)
-        const grpEl = document.querySelector(`.sb-group[data-gid="${g.id}"]`);
-        if (grpEl) {
-          grpEl.classList.add('expanded');
-          const sb = document.getElementById('sidebar');
-          const expGroups = [...(sb?.querySelectorAll('.sb-group.expanded') || [])]
-            .map(g => g.dataset.gid).filter(Boolean);
-          localStorage.setItem('cl_sb_expanded', JSON.stringify(expGroups));
-        }
-        break;
-      }
-    }
-    if (!item) return;
-
-    closeMobile();
-    _hideAllFlyouts();
-
-    const section = item.section;
-
-    if (section === 'editor') {
-      _showSection('workspace-view');
-    } else if (section === 'profile') {
-      CL.Features.Profile?.open();
-      return;
-    } else if (section === 'exam') {
-      _showSection('workspace-view');
-    } else if (section === 'history') {
-      _showSection('panel-view');
-      _renderStudentHistory();
-    } else if (section === 'scores') {
-      _showSection('panel-view');
-      _renderStudentScores();
-    } else if (section.startsWith('tp:users:')) {
-      const sub = section.replace('tp:users:', '');
-      _showSection('panel-view');
-      _renderUsersPanel(sub);
-    } else if (section.startsWith('tp:')) {
-      const tabId = section.replace('tp:', '');
-      _showSection('panel-view');
-      _renderPanel(tabId);
-    }
-
-    // Update breadcrumb
-    const bc = document.getElementById('breadcrumb-title');
-    if (bc) bc.textContent = item.label;
-  }
-
-  function toggleGroup(gid) {
-    // No-op: hover-based
-  }
-
-  // When narrow sidebar: clicking group header navigates to its first child
-  let _flyoutTimers = {};
-
-  function groupHeaderClick(gid) {
-    const sidebar  = document.getElementById('sidebar');
-    const isPinned = sidebar?.classList.contains('pinned');
-
-    if (isPinned) {
-      // Pinned: toggle inline accordion
-      const grpEl = sidebar?.querySelector(`.sb-group[data-gid="${gid}"]`);
-      if (grpEl) {
-        grpEl.classList.toggle('expanded');
-        // Persist expanded state
-        const expGroups = [...(sidebar?.querySelectorAll('.sb-group.expanded') || [])]
-          .map(g => g.dataset.gid).filter(Boolean);
-        localStorage.setItem('cl_sb_expanded', JSON.stringify(expGroups));
-      }
-      return;
-    }
-
-    // Collapsed/hover mode: always show flyout on click
-    // (don't toggle based on .open state — hover may have already added .open via rAF,
-    //  causing isOpen=true → close-without-reopen bug)
-    _hideAllFlyouts();
-    const btn = sidebar?.querySelector(`.sb-group-header[data-gid="${gid}"]`)
-             || sidebar?.querySelector(`.sb-group[data-gid="${gid}"] .sb-group-header`);
-    _positionAndShowFlyout(gid, btn);
-  }
-
-  function _positionAndShowFlyout(gid, refEl) {
-    const flyout = document.getElementById('sbf-' + gid);
-    if (!flyout) return;
-    clearTimeout(_flyoutTimers[gid]);
-    // Use requestAnimationFrame to ensure DOM is painted before measuring
-    requestAnimationFrame(() => {
-      const sb   = document.getElementById('sidebar');
-      const sbW  = sb ? sb.getBoundingClientRect().width : 52;
-      // Minimum 52px (collapsed width)
-      const left = Math.max(sbW, 52) + 4;
-      const rect = refEl ? refEl.getBoundingClientRect() : null;
-      const top  = rect ? rect.top : 80;
-      flyout.style.top  = top + 'px';
-      flyout.style.left = left + 'px';
-      flyout.classList.add('open');
-    });
-  }
-
-  function _showFlyout(gid, btn) {
-    // Pinned = accordion mode: ignore hover flyout completely
-    if (document.getElementById('sidebar')?.classList.contains('pinned')) return;
-    clearTimeout(_flyoutTimers[gid]);
-    document.querySelectorAll('.sb-flyout.open').forEach(f => {
-      if (f.id !== 'sbf-' + gid) f.classList.remove('open');
-    });
-    _positionAndShowFlyout(gid, btn);
-  }
-
-  function _keepFlyout(gid) {
-    if (document.getElementById('sidebar')?.classList.contains('pinned')) return;
-    clearTimeout(_flyoutTimers[gid]);
-  }
-
-  function _hideFlyout(gid) {
-    if (document.getElementById('sidebar')?.classList.contains('pinned')) return;
-    _flyoutTimers[gid] = setTimeout(() => {
-      document.getElementById('sbf-' + gid)?.classList.remove('open');
-    }, 180);
-  }
-
-  function _hideAllFlyouts() {
-    document.querySelectorAll('.sb-flyout.open').forEach(f => f.classList.remove('open'));
-  }
-
-  function _showSection(which) {
-    const wv      = document.getElementById('workspace-view');
-    const pv      = document.getElementById('panel-view');
-    const cBar    = document.getElementById('content-bar');
-    // Dùng class thay vì inline style để override CSS !important
-    if (wv)   wv.classList.toggle('cl-hidden',   which !== 'workspace-view');
-    if (pv)   pv.classList.toggle('cl-hidden',   which !== 'panel-view');
-    if (cBar) cBar.classList.toggle('cl-hidden', which !== 'workspace-view');
-    // Xoá inline style cũ nếu có (từ các lần trước)
-    if (wv)   wv.style.removeProperty('display');
-    if (pv)   pv.style.removeProperty('display');
-    if (cBar) cBar.style.removeProperty('display');
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  PANEL RENDERERS
-  // ══════════════════════════════════════════════════════════════
-
-  function _renderPanel(tabId) {
-    const pv = document.getElementById('panel-view');
-    if (!pv) return;
-    pv.innerHTML = '<div class="pv-loading">⏳ Đang tải...</div>';
-    const RENDERERS = {
-      scores:     () => CL.Teacher.Scores?.render(pv),
-      violations: () => CL.Teacher.Violations?.render(pv),
-      history:    () => CL.Teacher.History?.render(pv),
-      exams:      () => CL.Teacher.Exams?.render(pv),
-      analytics:  () => CL.Teacher.Analytics?.render(pv),
-      exercises:  () => CL.Teacher.ExEditor?.render(pv),
-      config:     () => CL.Teacher.Config?.render(pv),
-      changelog:  () => CL.Features.Changelog?.render(pv),
-    };
-    (RENDERERS[tabId] || (() => { pv.innerHTML = '<div class="pv-empty">Chức năng đang phát triển</div>'; }))();
-  }
-
-  async function _renderUsersPanel(sub) {
-    const pv = document.getElementById('panel-view');
-    if (!pv) return;
-
-    // ✅ Kiểm tra quyền admin ở frontend trước khi gọi API
-    const Session = CL.require('Auth.Session');
-    const user = Session?.get?.();
-    if (!user || user.role !== 'admin') {
-      pv.innerHTML = '<div class="tp-empty">❌ Chỉ Admin mới có quyền thực hiện thao tác này.</div>';
-      return;
-    }
-
-    const tabMap = { student:'students', teacher:'teachers', admin:'admins', scores:'scores' };
-    const tab = tabMap[sub] || 'students';
-
-    pv.innerHTML = '<div class="pv-loading">⏳ Đang tải...</div>';
-
-    // ✅ Chỉ gọi render() MỘT LẦN duy nhất, tránh double-render gây race condition
-    if (CL.Admin?.Users?.render) {
-      await CL.Admin.Users.render(pv);
-      CL.Admin.Users._auTab(null, tab);
-    } else {
-      pv.innerHTML = '<div class="tp-empty">⚠️ Module quản lý người dùng chưa được tải.</div>';
-    }
-  }
-
-  async function _renderStudentScores() {
-    const pv = document.getElementById('panel-view');
-    if (!pv) return;
-    pv.innerHTML = '<div class="pv-loading">⏳ Đang tải điểm...</div>';
-    try {
-      const history = await CL.API.getHistory?.();
-      if (!history?.length) {
-        pv.innerHTML = `<div class="pv-empty"><div style="font-size:40px;margin-bottom:12px">📊</div>Bạn chưa có bài nộp nào.</div>`;
-        return;
-      }
-      const avg = (history.reduce((s,r)=>s+(+r.diem||0),0)/history.length).toFixed(1);
-      const pass = history.filter(r=>(+r.diem||0)>=5).length;
-      pv.innerHTML = `
-        <div class="pv-page">
-          <div class="pv-page-header">
-            <h2>🏆 Điểm của tôi</h2>
-            <div class="pv-stats-row">
-              <div class="pv-stat"><span class="pv-stat-n">${history.length}</span><span class="pv-stat-l">Bài đã nộp</span></div>
-              <div class="pv-stat"><span class="pv-stat-n">${avg}</span><span class="pv-stat-l">Điểm TB</span></div>
-              <div class="pv-stat ok"><span class="pv-stat-n">${pass}</span><span class="pv-stat-l">Đạt ≥5</span></div>
-            </div>
-          </div>
-          <div class="pv-table-wrap">
-            <table class="au-table">
-              <thead><tr><th>Bài tập</th><th>Điểm</th><th>Lần</th><th>Thời gian</th></tr></thead>
-              <tbody>
-                ${history.slice(0,100).map(r => {
-                  const d = +r.diem || 0;
-                  const cls = d>=9?'sc-ex':d>=7?'sc-ok':d>=5?'sc-warn':'sc-bad';
-                  const ts = r.ts ? new Date(r.ts).toLocaleString('vi-VN',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
-                  return `<tr>
-                    <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.tieu_de||''}">${r.tieu_de||r.bai_id||'—'}</td>
-                    <td><span class="sc-badge ${cls}">${d.toFixed(1)}</span></td>
-                    <td style="text-align:center;color:var(--text3)">${r.lan_thu||1}</td>
-                    <td style="font-size:11px;color:var(--text3)">${ts}</td>
-                  </tr>`;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>`;
-    } catch(e) {
-      pv.innerHTML = `<div class="pv-empty">❌ ${e.message}</div>`;
-    }
-  }
-
-  async function _renderStudentHistory() {
-    const pv = document.getElementById('panel-view');
-    if (!pv) return;
-    pv.innerHTML = '<div class="pv-loading">⏳ Đang tải...</div>';
-    try {
-      const history = await CL.API.getHistory?.();
-      if (!history?.length) {
-        pv.innerHTML = `<div class="pv-empty">Chưa có lịch sử làm bài.</div>`;
-        return;
-      }
-      pv.innerHTML = `
-        <div class="pv-page">
-          <div class="pv-page-header"><h2>📖 Lịch sử làm bài</h2></div>
-          <div class="pv-table-wrap">
-            <table class="au-table">
-              <thead><tr><th>Bài tập</th><th>Loại</th><th>Điểm</th><th>Thời gian</th></tr></thead>
-              <tbody>
-                ${history.slice(0,200).map(r => {
-                  const d = +r.diem || 0;
-                  const cls = d>=9?'sc-ex':d>=7?'sc-ok':d>=5?'sc-warn':'sc-bad';
-                  const ts = r.ts ? new Date(r.ts).toLocaleString('vi-VN') : '—';
-                  const type = r.type==='html'?'🌐 HTML':r.type==='sql'?'🗃 SQL':'🐍 Python';
-                  return `<tr>
-                    <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.tieu_de||r.bai_id||'—'}</td>
-                    <td style="font-size:11px">${type}</td>
-                    <td><span class="sc-badge ${cls}">${d.toFixed(1)}</span></td>
-                    <td style="font-size:11px;color:var(--text3)">${ts}</td>
-                  </tr>`;
-                }).join('')}
-              </tbody>
-            </table>
-          </div>
-        </div>`;
-    } catch(e) {
-      pv.innerHTML = `<div class="pv-empty">❌ ${e.message}</div>`;
-    }
-  }
-
-  // ══════════════════════════════════════════════════════════════
-  //  SIDEBAR CONTROLS
-  // ══════════════════════════════════════════════════════════════
-
-  function togglePin() {
-    _pinned = !_pinned;
-    localStorage.setItem('cl_sb_pinned', _pinned ? '1' : '0');
-    const sb = document.getElementById('sidebar');
-    sb?.classList.toggle('pinned', _pinned);
-    document.getElementById('app-shell')?.classList.toggle('sb-pinned', _pinned);
-    const icon = document.getElementById('sb-pin')?.querySelector('.sb-pin-icon');
-    if (icon) icon.textContent = _pinned ? '◀' : '▶';
-    // When pinning: expand first group automatically
-    if (_pinned) {
-      const firstGroup = sb?.querySelector('.sb-group');
-      if (firstGroup && !firstGroup.classList.contains('expanded')) {
-        firstGroup.classList.add('expanded');
-      }
-    } else {
-      // When unpinning: close all flyouts
-      _hideAllFlyouts();
-    }
-  }
-
-  function openMobile() {
-    document.getElementById('sidebar')?.classList.add('mobile-open');
-    document.getElementById('sb-overlay')?.classList.add('show');
-    document.body.style.overflow = 'hidden';
-  }
-
-  function closeMobile() {
-    document.getElementById('sidebar')?.classList.remove('mobile-open');
-    document.getElementById('sb-overlay')?.classList.remove('show');
-    document.body.style.overflow = '';
-  }
-
-  return { init, navigate, toggleGroup, groupHeaderClick, togglePin, openMobile, closeMobile, _showFlyout, _keepFlyout, _hideFlyout, _hideAllFlyouts };
-});
-
-// ─── js/features/changelog-ui.js ───────────────────────────
-/**
- * features/changelog-ui.js — Changelog viewer trong Teacher Panel
- * Xem lịch sử phiên bản từ Google Sheets (tab [Changelog])
- * BUGFIX: _get không exposed → dùng CL.API.getChangelog(); fallback hardcoded
- */
-'use strict';
-
-CL.define('Features.Changelog', () => {
-
-  const Utils = CL.require('Utils');
-
-  // ── Bảng changelog cứng — luôn hiển thị dù server offline ──────
-  const BUILTIN_CHANGELOG = [
-    {
-      version: '5.15.0', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'v5.15.0: UI fixes - Sidebar redesign: hover dropdown menu (Canvas LMS style) thay collapsible div, submenu hien thi khi hover menu cap 1. Theme: bo sung day du vars cho solarized-light, them 32 override cho light theme components. Score panel: fix tp-bar-body overflow cho bang diem hien thi dung.'
-    },
-    {
-      version: '5.14.0', type: 'patch',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'v5.14.0 Final: Kiem tra toan dien - fix syntax error _formatExercises, AIClient vao bundle (fix CL.require not found), updateProfile -> updateMyProfile (fix API action mismatch), xoa file rac css/c. All JS syntax check: 0 errors.'
-    },
-    {
-      version: '5.14.0', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'v5.14.0: Tái cấu trúc AI API module - Universal AIClient (adapter pattern). Fix bug: test/sinh bai luon goi Anthropic du chon Gemini/OpenAI. AIClient.call(provider, opts) route dung endpoint cho tung provider. Config, ai-generator, prompt-config deu dung AIClient thay vi hardcode.'
-    },
-    {
-      version: '5.13.0', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'v5.13.0: Prompt Templates 2-tang: System Prompt an (chuan CT2018 + JSON schema) + User Template GV chinh (co bien {{bloom}}/{{content}}/{{count}}...). Few-shot tu dong chon 2 bai mau cung type+Bloom tu ngan hang. Tab Prompt AI trong menu Cau hinh voi editor, preview full prompt, token estimate. ai-generator.js dung PromptConfig.buildPrompt() thay vi hardcoded.'
-    },
-    {
-      version: '5.12.0', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'v5.12.0: Cau hinh da AI API trong menu Cau hinh - ho tro Claude/OpenAI/Gemini. Moi provider co card rieng voi: API key (masked), model selection, test connection. Provider mac dinh duoc chon, ai-generator.js tu dong dung key tu Config module.'
-    },
-    {
-      version: '5.11.0', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'v5.11.0: AI Sinh bai tap - Teacher Panel tab moi 🤖. Dung Claude API (Haiku $0.01 hoac Sonnet $0.06/bai). Tinh nang: nhap noi dung SGK, chon lop/bai/Bloom, AI sinh JSON structured, validate Pyodide, review + luu vao ngan hang. API key luu localStorage. Them saveBaiTapRecord endpoint Code.gs.'
-    },
-    {
-      version: '5.10.0', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'N6: Ma tran de live-update khi add/remove cau hoi (debounce 600ms). N5: Trang phu-huynh.html - xem ket qua con chi bang MSHS, Code.gs endpoint getStudentReport (rate-limited, no auth). N7: Export PDF bao cao lop (print-friendly HTML, mo tab moi).'
-    },
-    {
-      version: '5.9.0', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'N2: Ma tran de preview TT26/2022 trong exam creator - Bloom distribution, NL1/NL2/NL3, bang 2 chieu Chu de x Muc do, tu dong cap nhat. N3: Them tc[] cho 45 bai Python (tong 53 bai kich hoat Pyodide grading). N1: GitHub Actions CI auto-rebuild bundle.js khi push JS.'
-    },
-    {
-      version: '5.8.1', type: 'patch',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'Hotfix: F1 mobilePanel() thiếu định nghĩa (crash mobile nav). F2 api.js exports thiếu getItemAnalysis/getExamMatrix/getBaiLamForStudent. F4 analytics NL profile kết hợp cả dữ liệu luyện tập + thi. F5 GRADE_FILE_MAP thêm K12-CTST/K12-KNTT/K11-SQL. F7 CSS 0 duplicate selector còn lại.'
-    },
-    {
-      version: '5.8.0', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'Phase 2+3+4 CT GDPT 2018: Config BLOOM_NL_MAP (Bloom→NL1/NL2/NL3), Registry helpers getNL/getBloomGroup/buildExamMatrix. Analytics v2: Tab Tổng hợp lớp (early warning HS nguy cơ, so sánh lớp bar chart), Tab Năng lực HS (hồ sơ NL1/NL2/NL3 radar, Bloom 6 mức, trend chart, PC3 persistence), Tab Phân tích đề (Item Analysis p/D/r, Cronbach alpha, histogram phân phối, ma trận TT26/2022), Tab Xuất CSV hồ sơ năng lực CT2018.'
-    },
-    {
-      version: '5.7.0', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'Đợt 3 performance: P1 — Bundle 45 JS files → dist/bundle.js (1 HTTP request thay 45). P2 — Lazy load exercise data: 2MB exercise bundle chia thành 3 file, chỉ load khi chọn lớp (K10=784KB, K11=508KB, SQL=699KB). First paint tiết kiệm ~2s trên 3G. Thêm scripts/build.py + index.dev.html cho development workflow.'
-    },
-    {
-      version: '5.6.1', type: 'patch',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'Đợt 2 clean up: Xóa 9 legacy files (3099 dòng dead code). Dedup CSS: 326 rule trùng lặp → tiết kiệm 958 dòng / 43KB. Thêm tc[] test cases cho 8 bài Python mẫu (B1-B6) để kích hoạt Pyodide grading.'
-    },
-    {
-      version: '5.6.0', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'Phase 1 bugs: fix exam mode không kích hoạt (B1), gộp duplicate exercise:selected (B3), fix runCode/await graders (B5/B6), restore UI sau thi (B7), dedup verifyExamCode (B8). Phase 2 multi-year: thêm nam_hoc vào SCORE_H/BAIKT_H/BAILAM_H, LichSuLop schema, HOCSINH_H cập nhật, yearTransition()/importStudents() backend, Admin UI Quản lý năm học với CSV import.'
-    },
-    {
-      version: '5.5.2', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'Ngân hàng bài: Tab Đề bài + Lý thuyết dùng RichText editor (Quill + KaTeX + bảng + upload ảnh). Bỏ Tab Tiêu chí và Hướng dẫn lỗi (xử lý tự động bởi Python grader). Tab Code mẫu giữ nguyên textarea. Lưu về Sheets tương ứng.'
-    },
-    {
-      version: '5.5.1', type: 'patch',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'Hotfix: exam-result-modal hiện ngay khi load trang (CSS display:flex !important override). Fix lsSwitch và mobileRunGrade undefined. Fix null-safe addEventListener trong ui.js. Toàn bộ onclick handlers đã kiểm tra và đủ định nghĩa.'
-    },
-    {
-      version: '5.5.0', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'Canvas LMS-style Rich Editor: Quill 2 + quill-better-table + KaTeX math ($$...$$) + kéo thả ảnh upload Google Drive + dialog chèn ảnh URL/file + dialog công thức LaTeX + dialog chèn bảng + toggle HTML nguồn. Học sinh xem công thức toán tự động render KaTeX.'
-    },
-    {
-      version: '5.4.0', type: 'minor',
-      timestamp: '2026-03-22T00:00:00Z',
-      description: 'Rich editor: thêm nút toggle HTML nguồn (</> HTML). Admin: cho phép sửa MSHS/username. Theme: fix toggle light/dark. Xóa nút Lịch sử phiên bản khỏi sidebar. Giáo viên không có menu Cấu hình. Fix nút Cập nhật user không hoạt động.'
-    },
-    {
-      version: '4.8.0', type: 'minor',
-      timestamp: '2025-03-20T18:00:00Z',
-      description: 'Sửa bug đổi mật khẩu (admin/teacher/student), fix quản lý người dùng race condition, fix adminDeleteAdmin tham số sai, chuẩn hóa màu VS Code, theme toggle, score box interactive (count-up, confetti, glow).'
-    },
-    {
-      version: '4.7.0', type: 'minor',
-      timestamp: '2025-03-20T12:00:00Z',
-      description: 'Thêm tab Quản lý hệ thống cho Admin: CRUD học sinh, giáo viên, admin; reset mật khẩu, khoá/mở tài khoản, xuất CSV bảng điểm.'
-    },
-    {
-      version: '4.6.0', type: 'minor',
-      timestamp: '2025-03-19T10:00:00Z',
-      description: 'Thêm SQL Editor & SQL Grader. Ngân hàng bài tập SQL lớp 11 KNTT. Sidebar 3 cột chuẩn Canvas LMS. Profile panel với avatar.'
-    },
-    {
-      version: '4.5.0', type: 'minor',
-      timestamp: '2025-03-18T08:00:00Z',
-      description: 'HTML Editor & HTML Grader. Syntax highlighting real-time. Exam Mode chống gian lận. Anti-cheat fullscreen + tab-switch detection.'
-    },
-    {
-      version: '4.0.0', type: 'major',
-      timestamp: '2025-03-15T00:00:00Z',
-      description: 'Kiến trúc mô-đun CL.define / CL.require. Auth 2 lớp (Admin/Teacher dùng username, Student dùng MSHS+mật khẩu). Teacher Panel đầy đủ.'
-    },
-    {
-      version: '3.0.0', type: 'major',
-      timestamp: '2025-03-10T00:00:00Z',
-      description: 'Single-file grader v3. Pyodide WebAssembly Python runtime. Test case engine + Rubric engine. Submission queue offline.'
-    },
-  ];
-
-  async function render(el) {
-    el.innerHTML = '<div class="tp-loading">⏳ Đang tải lịch sử...</div>';
-    try {
-      const entries = await _fetchChangelog();
-      _renderList(el, entries);
-    } catch(e) {
-      // Nếu lỗi vẫn còn → render fallback hardcoded
-      _renderList(el, BUILTIN_CHANGELOG);
-    }
-  }
-
-  async function _fetchChangelog() {
-    // Ưu tiên: server → meta tag → hardcoded
-    if (CL.API?.isReady?.()) {
-      try {
-        const rows = await CL.API.getChangelog?.();
-        if (Array.isArray(rows) && rows.length) return rows;
-      } catch {}
-    }
-    // meta tag fallback (nếu build script inject)
-    const meta = document.querySelector('meta[name="cl-changelog"]');
-    if (meta) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(meta.content));
-        if (parsed.length) return parsed;
-      } catch {}
-    }
-    return BUILTIN_CHANGELOG;
-  }
-
-  function _renderList(el, entries) {
-    if (!entries.length) {
-      el.innerHTML = '<div class="tp-empty">📝 Chưa có lịch sử phiên bản.</div>';
-      return;
-    }
-    el.innerHTML = `
-      <div class="cl-header">
-        <h3>📋 Lịch sử phiên bản CodeLab</h3>
-        <span class="cl-count">${entries.length} phiên bản</span>
-      </div>
-      <div class="cl-list">
-        ${entries.map(_entryHtml).join('')}
-      </div>`;
-  }
-
-  function _entryHtml(e, i) {
-    const typeInfo = {
-      major: { icon: '🔴', label: 'Major', cls: 'cl-major' },
-      minor: { icon: '🟡', label: 'Minor', cls: 'cl-minor' },
-      patch: { icon: '🟢', label: 'Patch', cls: 'cl-patch' },
-    }[e.type] || { icon: '🔵', label: e.type||'Update', cls: 'cl-patch' };
-
-    const date = e.timestamp
-      ? new Date(e.timestamp).toLocaleDateString('vi-VN', {
-          day:'2-digit', month:'2-digit', year:'numeric'
-        })
-      : '—';
-
-    const isLatest = i === 0;
-
-    return `
-      <div class="cl-entry ${typeInfo.cls}${isLatest ? ' cl-latest' : ''}">
-        <div class="cl-entry-head">
-          <span class="cl-ver">v${Utils.escHtml(e.version||'?')}${isLatest ? ' <span class="cl-badge-latest">Hiện tại</span>' : ''}</span>
-          <span class="cl-type-badge">${typeInfo.icon} ${typeInfo.label}</span>
-          <span class="cl-date">${date}</span>
-          ${e.prev_version ? `<span class="cl-prev">← v${Utils.escHtml(e.prev_version)}</span>` : ''}
-        </div>
-        <div class="cl-desc">${Utils.escHtml(e.description||'Không có mô tả.')}</div>
-      </div>`;
-  }
-
-  return { render };
-});
 
 // ─── js/features/teacher/ai-client.js ───────────────────────────
 /**
