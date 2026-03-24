@@ -117,7 +117,12 @@
           style="flex-shrink:0">
           🎨
         </button>
-        <div class="tb-ex-bar cl-hidden" id="tb-ex-bar">
+        <!-- User badge -->
+        <div id="user-badge-area"></div>
+      </div>
+    </header>
+
+            <div class="tb-ex-bar ex-bar cl-hidden" id="tb-ex-bar">
           <div class="tb-ex-group">
             <span class="tb-ex-label">Lớp</span>
             <div class="cdd" id="cdd-grade">
@@ -139,6 +144,16 @@
           </div>
           <div class="tb-ex-sep"></div>
           <div class="tb-ex-group">
+            <span class="tb-ex-label">Thang Bloom</span>
+            <div class="cdd cdd-locked" id="cdd-bloom">
+              <button class="cdd-btn tb-cdd-btn" id="cdd-bloom-btn" onclick="cddOpen('bloom')" type="button" disabled>
+                <span id="cdd-bloom-label">— Tất cả —</span>
+                <span class="cdd-arrow">▾</span>
+              </button>
+            </div>
+          </div>
+          <div class="tb-ex-sep"></div>
+          <div class="tb-ex-group">
             <span class="tb-ex-label">Bài tập</span>
             <div class="cdd cdd-locked" id="cdd-ex" style="max-width:260px">
               <button class="cdd-btn tb-cdd-btn" id="cdd-ex-btn" onclick="cddOpen('ex')" type="button" disabled>
@@ -148,10 +163,6 @@
             </div>
           </div>
         </div>
-        <!-- User badge -->
-        <div id="user-badge-area"></div>
-      </div>
-    </header>
 
     <!-- ── CONTENT BAR: Exercise Selectors + Content Tabs ── -->
     <!-- content-bar removed -->

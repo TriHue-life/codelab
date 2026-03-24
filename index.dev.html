@@ -98,7 +98,7 @@
           🎨
         </button>
         <!-- Exercise selector (student/practice view only) -->
-        <div class="tb-ex-bar cl-hidden" id="tb-ex-bar">
+        <div class="tb-ex-bar ex-bar cl-hidden" id="tb-ex-bar">
           <div class="tb-ex-group">
             <span class="tb-ex-label">Lớp</span>
             <div class="cdd" id="cdd-grade">
@@ -114,6 +114,16 @@
             <div class="cdd cdd-locked" id="cdd-chap">
               <button class="cdd-btn tb-cdd-btn" id="cdd-chap-btn" onclick="cddOpen('chap')" type="button" disabled>
                 <span id="cdd-chap-label">—</span>
+                <span class="cdd-arrow">▾</span>
+              </button>
+            </div>
+          </div>
+          <div class="tb-ex-sep"></div>
+          <div class="tb-ex-group">
+            <span class="tb-ex-label">Thang Bloom</span>
+            <div class="cdd cdd-locked" id="cdd-bloom">
+              <button class="cdd-btn tb-cdd-btn" id="cdd-bloom-btn" onclick="cddOpen('bloom')" type="button" disabled>
+                <span id="cdd-bloom-label">— Tất cả —</span>
                 <span class="cdd-arrow">▾</span>
               </button>
             </div>
