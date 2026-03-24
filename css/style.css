@@ -7693,28 +7693,11 @@ body.view-practice  .ex-bar { display: flex; }
 
 /* Flyout container: fixed, appears to the RIGHT of sidebar */
 .sb-flyout {
-  position:      fixed;
-  left:          52px;   /* sidebar collapsed width */
-  top:           0;
-  z-index:       500;
-  background:    var(--surface);
-  border:        1px solid var(--border);
-  border-left:   3px solid var(--accent);
-  border-radius: 0 10px 10px 0;
-  padding:       6px 0 8px;
-  min-width:     200px;
-  max-width:     240px;
-  box-shadow:    4px 4px 24px rgba(0,0,0,.3);
-  pointer-events: none;
-  opacity:       0;
-  transform:     translateX(-8px);
-  transition:    opacity .15s, transform .15s;
-  overflow:      hidden;
+  /* flyout disabled — sidebar always pinned, using accordion mode */
+  display: none;
 }
 .sb-flyout.open {
-  opacity:       1;
-  pointer-events: auto;
-  transform:     translateX(0);
+  display: none; /* ignored in always-pinned mode */
 }
 
 /* Flyout header label */
@@ -8242,12 +8225,7 @@ body.view-practice  .ex-bar { display: flex; }
 }
 
 /* ── ⑤ Sidebar flyout — smoother with CSS-only delay trick ──────── */
-.sb-group:not(:hover) .sb-flyout {
-  transition: opacity .15s .1s, transform .15s .1s !important; /* delay on hide */
-}
-.sb-group:hover .sb-flyout {
-  transition: opacity .12s, transform .12s !important; /* instant on show */
-}
+/* flyout hover transitions removed — always pinned mode */
 
 /* ── Practice score history — compact inline ─────────────────────── */
 .practice-score-history {
@@ -8592,30 +8570,11 @@ body.view-practice  .ex-bar { display: flex; }
 
 /* COLLAPSED/HOVER mode: flyout = fixed popup to the right */
 /* (uses .open class added by JS) */
-.sidebar:not(.pinned) .sb-flyout {
-  position:       fixed !important;
-  display:        block !important;   /* always in DOM, hidden via opacity */
-  opacity:        0 !important;
-  pointer-events: none !important;
-  transform:      translateX(-8px) !important;
-  z-index:        600 !important;
-  transition:     opacity .15s, transform .15s !important;
-  min-width:      200px !important;
-  max-width:      240px !important;
-  max-height:     calc(100dvh - 80px) !important;
-  overflow-y:     auto !important;
-  background:     var(--surface) !important;
-  border:         1px solid var(--border) !important;
-  border-left:    3px solid var(--accent) !important;
-  border-radius:  0 10px 10px 0 !important;
-  box-shadow:     4px 4px 24px rgba(0,0,0,.3) !important;
-  padding:        6px 0 8px !important;
-}
-.sidebar:not(.pinned) .sb-flyout.open {
-  opacity:        1 !important;
-  pointer-events: auto !important;
-  transform:      translateX(0) !important;
-}
+.sidebar:not(.pinned) /* sb-flyout disabled — always pinned, accordion mode only */
+.sb-flyout { display: none !important; }
+.sb-flyout.open { display: none !important; }
+.sidebar.pinned .sb-flyout { display: none !important; }
+.sidebar.pinned .sb-group.expanded .sb-flyout { display: block !important; }
 
 /* Collapsed children in flyout popup */
 .sidebar:not(.pinned) .sb-flyout .sb-child {
