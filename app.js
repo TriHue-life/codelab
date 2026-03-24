@@ -112,9 +112,12 @@ Tải lại trang để về giao diện luyện tập?`)) {
     const exBar = document.getElementById('content-bar');
     if (exBar) exBar.style.display = '';
 
-    // ── FIX: Đảm bảo workspace-view hiển thị đúng sau login ──────
+    // ── Workspace-view: chỉ hiện nếu nav active là editor section
+    // Không force-show vì sidebar.navigate() đã xử lý đúng rồi
     const wv = document.getElementById('workspace-view');
-    if (wv && (!wv.style.display || wv.style.display === 'none')) {
+    const _savedNav = localStorage.getItem('cl_sb_active') || '';
+    const _WORKSPACE_IDS = ['practice','luyen-tap','exam',''];
+    if (wv && _WORKSPACE_IDS.includes(_savedNav) && !wv.style.display) {
       wv.style.display = 'flex';
     }
 
