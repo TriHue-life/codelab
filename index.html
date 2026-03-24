@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+  <!-- Apply saved theme immediately to prevent flash -->
+  <script>
+    (function(){
+      var t = localStorage.getItem('cl_theme') || 'dark-navy';
+      document.documentElement.setAttribute('data-theme', t);
+      // Apply background immediately before CSS loads — prevents black flash
+      var bg = {
+        'dark-navy':'#0a0e1a','light':'#f3f3f3','one-dark':'#21252b',
+        'dracula':'#1e1f29','monokai':'#1e1e1c','github-dark':'#0d1117',
+        'solarized-dark':'#002b36','solarized-light':'#fdf6e3'
+      }[t] || '#0a0e1a';
+      document.documentElement.style.background = bg;
+      document.body && (document.body.style.background = bg);
+    })();
+  </script>
+  <!-- Auth guard: kiểm tra session NGAY trong <head>, trước khi CSS load -->
+  <script>
+    (function(){
+      try {
+        var SESSION_KEY = 'cl_session_v4';
+        var TTL_MS = 8 * 3600 * 1000; // 8 giờ
+        var raw = localStorage.getItem(SESSION_KEY);
+        var hasSession = false;
+        if (raw) {
+          try {
+            var data = JSON.parse(raw);
+            hasSession = data && (Date.now() - (data.createdAt || 0) < TTL_MS);
+          } catch(e) { hasSession = false; }
+        }
+        if (!hasSession) {
+          // Chưa login: thêm class để CSS ẩn app-shell NGAY lập tức
+          document.documentElement.classList.add('auth-required');
+        }
+      } catch(e) {}
+    })();
+  </script>
+
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="mobile-web-app-capable" content="yes">
+<title>CodeLab – Chấm điểm tự động Python · HTML/CSS · SQL</title>
+<meta name="author" content="Trí Huệ">
+  <!-- KaTeX math rendering (lazy-loaded when needed) -->
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<meta name="description" content="Chấm điểm tự động Code cho học sinh THPT. Tác giả: Trí Huệ | trihue.life@gmail.com | github.com/TriHue-life/html_grader">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+
+</head>
+<body class="auth-pending">
+
+<!-- Sidebar overlay (mobile) -->
+<div id="sb-overlay" class="sb-overlay"></div>
+
+<!-- ══════ APP SHELL ══════ -->
+<div id="app-shell">
+
+  <!-- ① LEFT SIDEBAR -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sb-top">
+      <button class="sb-pin-btn" id="sb-pin" title="Ghim/Thu menu"
+        onclick="CL.Features.Sidebar.togglePin()">
+        <span class="sb-pin-icon">▶</span>
+      </button>
+    </div>
+    <nav class="sb-nav" role="navigation" aria-label="Menu chính" id="sb-nav"></nav>
+    <div class="sb-bottom">
+      <button class="sb-item sb-logout" onclick="CL.Auth.UI.logout()" title="Đăng xuất">
+        <span class="sb-icon">↩</span>
+        <span class="sb-label">Đăng xuất</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ② MAIN AREA -->
+  <div class="main-area" id="main-area">
+
+    <!-- TOP BAR -->
+    <header id="topbar">
+      <div class="tb-left">
+        <!-- Mobile menu toggle -->
+        <button class="tb-menu-btn" id="tb-menu" onclick="CL.Features.Sidebar.openMobile()" aria-label="Menu">
+          <span>☰</span>
+        </button>
+        <div class="tb-brand">
+          <span class="tb-brand-icon">🖥️</span>
+          <div>
+            <div class="tb-brand-name">CodeLab</div>
+            <div class="tb-brand-sub" id="breadcrumb-title">Luyện tập</div>
+          </div>
+        </div>
+      </div>
+      <div class="tb-right" id="tb-right">
+        <!-- Theme button - always visible, outside ex-bar -->
+        <button id="theme-picker-btn"
+          title="Đổi giao diện"
+          style="flex-shrink:0">
+          🎨
+        </button>
+        <!-- Exercise selector moved to ex-bar below topbar -->
+        <!-- User badge -->
+        <div id="user-badge-area"></div>
+      </div>
+    </header>
+
+    <!-- ── CONTENT BAR: Exercise Selectors + Content Tabs ── -->
+    <div class="content-bar" id="content-bar">
+      <!-- LEFT: Exercise selectors -->
+      <div class="cb-selectors" id="cb-selectors">
+        <div class="cb-group">
+          <span class="cb-label">📚 Lớp</span>
+          <div class="cdd" id="cdd-grade">
+            <button class="cdd-btn cb-cdd-btn" id="cdd-grade-btn" onclick="cddOpen('grade')" type="button">
+              <span id="cdd-grade-label">— Chọn lớp —</span>
+              <span class="cdd-arrow">▾</span>
+            </button>
+          </div>
+        </div>
+        <div class="cb-sep"></div>
+        <div class="cb-group">
+          <span class="cb-label">📂 Chủ đề</span>
+          <div class="cdd cdd-locked" id="cdd-chap">
+            <button class="cdd-btn cb-cdd-btn" id="cdd-chap-btn" onclick="cddOpen('chap')" type="button" disabled>
+              <span id="cdd-chap-label">— Chủ đề —</span>
+              <span class="cdd-arrow">▾</span>
+            </button>
+          </div>
+        </div>
+        <div class="cb-sep"></div>
+        <div class="cb-group cb-group-ex">
+          <span class="cb-label">📝 Bài tập</span>
+          <div class="cdd cdd-locked" id="cdd-ex">
+            <button class="cdd-btn cb-cdd-btn cb-cdd-btn-ex" id="cdd-ex-btn" onclick="cddOpen('ex')" type="button" disabled>
+              <span id="cdd-ex-label">— Chọn bài tập —</span>
+              <span class="cdd-arrow">▾</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- DIVIDER -->
+      <div class="cb-divider"></div>
+      <!-- RIGHT: Content tabs — Đề bài + Lý thuyết only -->
+      <div class="cb-tabs" id="rp-tabbar">
+        <button class="rp-tab on" id="rp-tab-desc" onclick="window.rpTab('desc')">
+          <span class="dot dot-b"></span>Đề bài
+        </button>
+        <button class="rp-tab" id="rp-tab-theory" onclick="window.rpTab('theory')" data-hide-exam="1">
+          <span class="dot dot-g"></span>Lý thuyết
+        </button>
+        <!-- Kết quả + Phân tích tabs hidden here; they live in grade-panel right column -->
+        <button class="rp-tab" id="rp-tab-result" onclick="window.rpTab('result')" style="display:none">
+          <span class="dot dot-w"></span>Kết quả
+        </button>
+        <button class="rp-tab" id="rp-tab-analysis" onclick="window.rpTab('analysis')" style="display:none">
+          <span class="dot" style="background:#f87171"></span>Phân tích
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content-area" id="content-area" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
+
+      <!-- CDD popup mobile -->
+      <!-- Anti-cheat overlay -->
+      <div id="antitab-overlay">
+        <div id="antitab-box">
+          <div id="antitab-icon">⚠️</div>
+          <div id="antitab-title">Cảnh báo vi phạm!</div>
+          <div id="antitab-msg">Bạn đã rời khỏi trang thi.<br>Hành vi này đã được ghi nhận.</div>
+          <div id="antitab-count"></div>
+          <button id="antitab-btn" onclick="antitabDismiss()">Tiếp tục làm bài</button>
+        </div>
+      </div>
+      <div id="antitab-badge">⚠️ Đã rời tab: <span id="antitab-badge-count">0</span> lần</div>
+
+      <!-- CDD Popup mobile -->
+      <div id="cdd-popup-mobile" style="display:none"></div>
+
+      <!-- Input dialog -->
+      <div class="input-overlay" id="input-overlay">
+        <div class="input-box">
+          <h3>💬 Chương trình yêu cầu nhập dữ liệu</h3>
+          <div class="input-prompt" id="input-prompt"></div>
+          <input class="input-field" id="input-field" type="text" placeholder="Nhập giá trị tại đây..." autocomplete="off">
+          <div class="input-actions">
+            <button class="btn" onclick="submitInput()">✓ Xác nhận</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exam banner (injected by app.js when exam active) -->
+      <div id="exam-banner" style="display:none;align-items:center;justify-content:space-between;
+        padding:8px 16px;background:rgba(251,191,36,.12);border-bottom:2px solid var(--warn);
+        font-size:12px;font-weight:700;color:var(--warn);flex-shrink:0"></div>
+
+      <!-- ═══ WORKSPACE VIEW (editor) ═══ -->
+      <div id="workspace-view">
+
+        <!-- Exercise description panel -->
+        <div class="ex-desc" id="ex-desc">
+          <div class="ex-desc-head">
+            <div class="ex-desc-title" id="ex-desc-title"></div>
+            <div class="ex-desc-badge">
+              <span class="ex-tag" id="ex-desc-grade-tag"></span>
+              <span class="ex-tag" id="ex-desc-chap-tag"></span>
+              <button class="ex-close" onclick="closeDesc()" title="Đóng">✕</button>
+            </div>
+          </div>
+          <div class="ex-desc-body" id="ex-desc-body"></div>
+        </div>
+
+        <div class="workspace" id="workspace">
+          <div id="rs-col" title="Kéo để thay đổi kích thước"></div>
+
+          <!-- CODE EDITOR -->
+          <div class="panel" id="editor-panel" style="position:relative">
+            <div id="rs-row" title="Kéo để thay đổi kích thước"></div>
+            <div class="ph">
+              <div class="ph-l"><span class="dot dot-b"></span><span id="editor-lang-label">Code Editor</span></div>
+              <span id="lc">Ln 1, Col 1</span>
+            </div>
+            <div class="editor-wrap">
+              <div class="lnums" id="lnums"><span class="al">1</span></div>
+              <div class="code-area-wrap">
+                <div id="hl-overlay" aria-hidden="true"></div>
+                <textarea id="code-input" dir="ltr" spellcheck="false" autocomplete="off"
+                  autocorrect="off" autocapitalize="none" inputmode="text"
+                  placeholder="# Nhập code Python của bạn vào đây..."></textarea>
+              </div>
+            </div>
+            <!-- Mobile keyboard shortcut bar (hidden on desktop via CSS) -->
+            <div class="mob-keys" id="mob-keys">
+              <button class="mk" onclick="mkInsert(':')">:</button>
+              <button class="mk" onclick="mkInsert('()')">( )</button>
+              <button class="mk" onclick="mkInsert('[]')">[ ]</button>
+              <button class="mk" onclick="mkInsert('{}')">{}</button>
+              <button class="mk" onclick="mkInsert('=')">=</button>
+              <button class="mk" onclick="mkInsert('==')">==</button>
+              <button class="mk" onclick="mkInsert('!=')">!=</button>
+              <button class="mk" onclick='mkInsert("\"\"")'>&quot;&quot;</button>
+              <button class="mk" onclick="mkInsert("''")">&apos;&apos;</button>
+              <button class="mk" onclick="mkIndent()">⇥ Tab</button>
+              <button class="mk" onclick="mkDedent()">⇤</button>
+              <button class="mk" onclick="mkInsert('#')">#</button>
+            </div>
+
+            <!-- ── TOOLBAR UNIFIED ──────────────────────────────── -->
+            <!-- Practice mode -->
+            <div class="toolbar" id="toolbar-practice">
+              <!-- Primary action group -->
+              <div class="tb-group">
+                <button class="btn tb-btn-run" id="btn-run" onclick="runCode()" title="Chạy code (Ctrl+Enter)">
+                  <span class="tb-icon">▶</span><span class="tb-label">Chạy</span>
+                </button>
+                <div class="tb-sep"></div>
+                <button class="btn tb-btn-grade" id="btn-grade-practice" onclick="gradeCode()" title="Chấm điểm">
+                  <span class="tb-icon">◎</span><span class="tb-label">Chấm</span>
+                </button>
+                <button class="btn tb-btn-rg accent2" onclick="runAndGrade()" title="Chạy và chấm điểm (Ctrl+Shift+Enter)">
+                  <span class="tb-icon">⚡</span><span class="tb-label">Chạy &amp; Chấm</span>
+                </button>
+              </div>
+              <div class="spacer"></div>
+              <!-- Secondary action group -->
+              <div class="tb-group">
+                <button class="btn tb-btn-sec teacher-only" onclick="SheetsDB?.exportToCSV?.()" title="Xuất CSV">
+                  <span class="tb-icon">↑</span><span class="tb-label">CSV</span>
+                </button>
+                <button class="btn tb-btn-sec tb-btn-clear" onclick="clearAll()" title="Xóa code" id="btn-clear">
+                  <span class="tb-icon">✕</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Exam mode toolbar -->
+            <div class="toolbar" id="toolbar-exam" style="display:none">
+              <button class="btn tb-btn-run" onclick="runCode()">
+                <span class="tb-icon">▶</span><span class="tb-label">Chạy thử</span>
+              </button>
+              <div class="spacer"></div>
+              <div class="exam-prog" id="exam-prog">
+                <span id="exam-prog-text">0/0 bài đã làm</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- OUTPUT -->
+          <div class="panel" id="output-panel">
+            <div id="ls-switcher" style="display:none">
+              <button id="ls-btn-out" class="ls-tab on" onclick="lsSwitch('output')">▶ Output</button>
+              <button id="ls-btn-grade" class="ls-tab" onclick="lsSwitch('grade')">📊 Điểm</button>
+            </div>
+            <div class="ph">
+              <div class="ph-l"><span class="dot dot-g"></span>Kết quả thực thi</div>
+              <button class="btn" style="padding:2px 8px;font-size:10px" onclick="clearOut()">Xóa</button>
+            </div>
+            <div id="out"><span class="o-p">// Kết quả sẽ hiển thị tại đây sau khi nhấn Chạy code…</span></div>
+          </div>
+
+          <!-- RIGHT PANEL: score + result tabs -->
+          <div class="panel" id="grade-panel">
+
+            <!-- Right panel internal tab bar: Kết quả + Phân tích -->
+            <div class="rp-inner-tabs" id="rp-inner-tabbar">
+              <button class="rp-inner-tab on" id="rp-tab-result" onclick="window.rpTab('result')">
+                📊 Kết quả
+              </button>
+              <button class="rp-inner-tab" id="rp-tab-analysis" onclick="window.rpTab('analysis')" style="display:none">
+                🔍 Phân tích <span class="tab-badge-err" id="analysis-badge" style="display:none"></span>
+              </button>
+            </div>
+
+            <!-- TAB: ĐỀ BÀI -->
+            <div class="rp-tabpane on" id="rp-pane-desc">
+              <!-- Teacher/Admin edit button -->
+              <div class="rp-edit-bar teacher-only" id="desc-edit-bar">
+                <span class="rp-edit-label" id="desc-ex-title">Chọn bài tập</span>
+                <button class="rp-edit-btn" onclick="window.openRichEditor('desc')" title="Soạn thảo đề bài">✏️ Sửa</button>
+              </div>
+              <div class="rp-content rich-content" id="desc-content">
+                <div class="criteria-empty"><div class="ci-icon">📚</div><div>Chọn bài tập để xem đề bài.</div></div>
+              </div>
+            </div>
+
+            <!-- TAB: LÝ THUYẾT -->
+            <div class="rp-tabpane" id="rp-pane-theory">
+              <div class="rp-edit-bar teacher-only">
+                <span class="rp-edit-label">Lý thuyết</span>
+                <button class="rp-edit-btn" onclick="window.openRichEditor('theory')" title="Soạn thảo lý thuyết">✏️ Sửa</button>
+              </div>
+              <div class="rp-content rich-content" id="theory-content">
+                <div class="theory-empty"><div class="ci-icon">📖</div><div>Chọn bài tập để xem lý thuyết.</div></div>
+              </div>
+            </div>
+
+            <!-- TAB: KẾT QUẢ CHẤM -->
+            <div class="rp-tabpane" id="rp-pane-result">
+              <!-- Score header: ring + stats in one compact row -->
+              <div class="score-header">
+                <div class="score-ring-wrap">
+                  <div class="ring" id="ring-wrap">
+                    <svg width="72" height="72" viewBox="0 0 96 96">
+                      <defs>
+                        <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="var(--accent,#4f9eff)"/>
+                          <stop offset="100%" stop-color="var(--accent2,#34d399)"/>
+                        </linearGradient>
+                      </defs>
+                      <circle class="ring-bg" cx="48" cy="48" r="43" fill="none" stroke-width="7"/>
+                      <circle class="ring-fill" id="ring-fill" cx="48" cy="48" r="43" fill="none" stroke-width="7" stroke-dasharray="270" stroke-dashoffset="270"/>
+                    </svg>
+                    <div class="ring-val" id="rv">—</div>
+                  </div>
+                  <div class="score-meta">
+                    <div class="score-lbl">Điểm / 10</div>
+                    <div class="score-grade" id="sg" style="color:var(--text3)">Chưa chấm</div>
+                  </div>
+                </div>
+                <div class="stats">
+                  <div class="sc"><div class="sn nok" id="sp">—</div><div class="sl">Đúng</div></div>
+                  <div class="sc"><div class="sn ner" id="sf">—</div><div class="sl">Sai</div></div>
+                  <div class="sc"><div class="sn nwn" id="ss">—</div><div class="sl">Bỏ qua</div></div>
+                </div>
+              </div>
+
+              <!-- Practice: grade history badge -->
+              <div class="practice-score-history" id="practice-score-history" style="display:none">
+                <span class="psh-label">Lần tốt nhất:</span>
+                <span class="psh-val" id="psh-best">—</span>
+                <span class="psh-sep">·</span>
+                <span class="psh-label">Lần này:</span>
+                <span class="psh-val" id="psh-current">—</span>
+              </div>
+
+              <div class="sec-t">Chi tiết từng dòng</div>
+              <div class="lr" id="lr">
+                <div class="empty"><div class="empty-i">📋</div>Nhấn <b>Chấm điểm</b> để xem kết quả</div>
+              </div>
+            </div>
+
+            <!-- TAB: PHÂN TÍCH LỖI -->
+            <div class="rp-tabpane" id="rp-pane-analysis">
+              <div class="analysis-header">
+                <span class="analysis-title">🔍 Phân tích lỗi sai</span>
+                <span class="analysis-subtitle" id="analysis-subtitle"></span>
+              </div>
+              <div class="analysis-body" id="analysis-body">
+                <div class="empty"><div class="empty-i">🔍</div>Chấm điểm để xem phân tích lỗi</div>
+              </div>
+              <!-- SQL result table diff -->
+              <div id="sql-diff" style="display:none">
+                <div class="sql-diff-title">📊 So sánh kết quả</div>
+                <div class="sql-diff-wrap">
+                  <div class="sql-diff-col">
+                    <div class="sql-diff-label expected">✅ Kết quả mong đợi</div>
+                    <div id="sql-expected-table"></div>
+                  </div>
+                  <div class="sql-diff-col">
+                    <div class="sql-diff-label actual">📝 Kết quả của bạn</div>
+                    <div id="sql-actual-table"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabs moved to #content-bar above workspace -->
+
+            <!-- EXAM: Submit all & stats modal trigger -->
+            <div class="exam-submit-bar" id="exam-submit-bar" style="display:none">
+              <button class="btn primary exam-submit-all-btn" onclick="window.examSubmitAll()">
+                📤 Nộp bài &amp; Xem điểm
+              </button>
+            </div>
+
+          </div>
+        </div><!-- /workspace -->
+      </div><!-- /workspace-view -->
+
+      <!-- ═══ PANEL VIEW (admin/teacher sections) ═══ -->
+      <div id="panel-view" style="display:none;flex:1;overflow-y:auto;padding:20px">
+        <div class="pv-loading">⏳</div>
+      </div>
+
+    </div><!-- /content-area -->
+
+    <!-- Mobile bottom nav -->
+    <nav class="mobile-nav" id="mobile-nav">
+      <div class="mobile-nav-inner">
+        <button class="mnav-btn on" id="mnav-editor" onclick="mobilePanel('editor')">
+          <span class="mni">✏️</span>Code
+        </button>
+        <button class="mnav-btn mnav-run" id="mnav-run" onclick="mobileRunGrade()">
+          <span class="mni">⚡</span>Chạy&amp;Chấm
+        </button>
+        <button class="mnav-btn" id="mnav-output" onclick="mobilePanel('output')">
+          <span class="mni">💻</span>Output
+        </button>
+        <button class="mnav-btn" id="mnav-grade" onclick="mobilePanel('grade')">
+          <span class="mni">📊</span>Điểm
+        </button>
+      </div>
+    </nav>
+
+  </div><!-- /main-area -->
+  <!-- CDD overlays — at app-shell level to cover full viewport -->
+  <div id="cdd-overlay" onclick="cddClose()" style="display:none;position:fixed;inset:0;z-index:1000"></div>
+  <div id="cdd-popup">
+    <div id="cdd-popup-title"></div>
+    <div id="cdd-popup-list"></div>
+  </div>
+</div><!-- /app-shell -->
+
+<div class="toast" id="toast"></div>
+
+
+<!-- Scripts -->
+<!-- 1. CORE — namespace phải đầu tiên -->
+    <!-- ═══ CODELAB BUNDLE ═══════════════════════════════════════════════
+       dist/bundle.js = all 45 JS modules concatenated (628KB, 1 request)
+       Exercise data lazy-loaded on grade selection:
+         js/exercises.js     ← K10 Python (784KB, loads when K10 selected)
+         js/exercises_k12.js ← K11/K12 Python (508KB, loads when K11/K12 selected)
+         js/exercises_sql.js ← SQL K11 (699KB, loads when SQL selected)
+  ════════════════════════════════════════════════════════════════════ -->
+  <script src="dist/bundle.js"></script>
+  <!-- EXAM RESULT MODAL -->
+  <div id="exam-result-modal" class="exam-modal-overlay" style="display:none">
+    <div class="exam-modal-card">
+      <div class="exam-modal-header">
+        <div class="exam-modal-icon">📊</div>
+        <div class="exam-modal-title">Kết quả kiểm tra</div>
+        <button class="exam-modal-close" onclick="document.getElementById('exam-result-modal').style.display='none'">✕</button>
+      </div>
+      <div class="exam-modal-body" id="exam-modal-body">
+        <!-- Filled by JS -->
+      </div>
+      <div class="exam-modal-footer">
+        <div class="exam-modal-total">
+          Tổng điểm: <strong id="exam-modal-total">—</strong>
+        </div>
+        <button class="btn primary" onclick="document.getElementById('exam-result-modal').style.display='none'">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
