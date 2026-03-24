@@ -17,11 +17,11 @@
 
 // ── Cấu hình: điền Spreadsheet IDs sau khi tạo ──────────────────
 const DB_IDS = {
-  TAIKHOAN: '',   // 01_TaiKhoan.gsheet ID
-  BAITAP:   '',   // 02_BaiTap.gsheet ID
-  KIEMTRA:  '',   // 03_KiemTra.gsheet ID
-  KETQUA:   '',   // 04_KetQua.gsheet ID
-  NHATKY:   '',   // 05_NhatKy.gsheet ID
+  TAIKHOAN: '15OnCggy6VkBxlrZOeazX60L9WiBk0GhIM2Y-J3Wom_M',   // 01_TaiKhoan.gsheet ID
+  BAITAP:   '11E2r82W6shX-V5Za_BxTNhn9dvDbQn9w6SLuo4WaPhQ',   // 02_BaiTap.gsheet ID
+  KIEMTRA:  '1axTBho-UIouommu3jtmq_EjlJmTYxFpBzKVP2rQ6Pvc',   // 03_KiemTra.gsheet ID
+  KETQUA:   '1G_pBJ-vmifRmKTNcNMrYaQGdmLl5U5kO7m6jizeMIVE',   // 04_KetQua.gsheet ID
+  NHATKY:   '1TBe09A0XMKGADxZvVaAqHToQrZML5DURMhJBrAxF5kc',   // 05_NhatKy.gsheet ID
 };
 
 // ── Constants ────────────────────────────────────────────────────
