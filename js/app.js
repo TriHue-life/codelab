@@ -108,9 +108,7 @@ Tải lại trang để về giao diện luyện tập?`)) {
       _loadActiveExam(user);
     }
 
-    // Show/hide exercise bar based on role & view
-    const exBar = document.getElementById('content-bar');
-    if (exBar) exBar.style.display = '';
+    // content-bar visibility: do sidebar.navigate() quyết định (chỉ hiện khi Luyện tập)
 
     // sidebar.navigate() đã xử lý show/hide workspace-view qua _showSection()
     // Không can thiệp thêm ở đây để tránh conflict.
