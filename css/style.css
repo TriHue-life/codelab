@@ -8605,35 +8605,6 @@ body.view-practice  .ex-bar { display: flex; }
   font-weight: 700 !important;
 }
 
-/* ── Auth server config row ─────────────────────────────────── */
-.auth-server-row {
-  margin: 12px 0 4px;
-  font-size: 12px;
-}
-.auth-server-label {
-  display: flex; align-items: center; gap: 6px;
-  cursor: pointer; padding: 4px 2px;
-  color: var(--text3);
-  user-select: none;
-}
-.auth-server-label:hover { color: var(--text2); }
-#auth-server-status { font-size: 11px; }
-.auth-server-input {
-  display: flex; gap: 6px; margin-top: 6px;
-}
-.auth-server-input input {
-  flex: 1; padding: 7px 10px; border-radius: 7px;
-  border: 1px solid var(--border); background: var(--surface2);
-  color: var(--text1); font-size: 11px;
-  outline: none;
-}
-.auth-server-input input:focus { border-color: var(--accent); }
-.auth-server-input button {
-  padding: 7px 14px; border-radius: 7px;
-  background: var(--accent); color: #fff;
-  border: none; cursor: pointer; font-size: 12px; font-weight: 600;
-}
-.auth-server-input button:hover { opacity: .85; }
 
 /* ── Section visibility — dùng class thay vì inline style để override !important ── */
 #workspace-view.cl-hidden,
