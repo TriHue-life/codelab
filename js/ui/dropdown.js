@@ -27,14 +27,16 @@ CL.define('UI.Dropdown', () => {
   const Utils    = CL.require('Utils');
 
   // ── State ─────────────────────────────────────────────────────
-  let _active   = null;   // 'grade' | 'chap' | 'ex'
+  let _active   = null;   // 'grade' | 'chap' | 'bloom' | 'ex'
   let _grade    = '';
   let _chapter  = '';
+  let _bloom    = '';    // '' = tất cả
   let _exId     = '';
 
   const _items = {
     grade: cfg.GRADES.map(g => ({ value: g.value, text: g.text })),
     chap:  [],
+    bloom: [],
     ex:    [],
   };
 
@@ -61,10 +63,10 @@ CL.define('UI.Dropdown', () => {
     const title   = document.getElementById('cdd-popup-title');
     const list    = document.getElementById('cdd-popup-list');
 
-    const labels = { grade: 'Chọn lớp / bộ sách', chap: 'Chọn chủ đề', ex: 'Chọn bài tập' };
+    const labels = { grade: 'Chọn lớp / bộ sách', chap: 'Chọn chủ đề', bloom: 'Thang Bloom', ex: 'Chọn bài tập' };
     title.textContent = labels[which] || '';
 
-    const curVal = { grade: _grade, chap: _chapter, ex: _exId }[which];
+    const curVal = { grade: _grade, chap: _chapter, bloom: _bloom, ex: _exId }[which];
     const items  = _items[which] || [];
 
     list.innerHTML = items.length
@@ -100,6 +102,7 @@ CL.define('UI.Dropdown', () => {
     _close();
     if (which === 'grade') _selectGrade(value);
     if (which === 'chap')  _selectChapter(value);
+    if (which === 'bloom') _selectBloom(value);
     if (which === 'ex')    _selectExercise(value);
   }
 
@@ -136,20 +139,49 @@ CL.define('UI.Dropdown', () => {
 
   function _selectChapter(value) {
     _chapter = value;
+    _bloom   = '';
     _exId    = '';
 
-    _setLabel('chap', value || '— Chọn chủ đề —');
-    _setLabel('ex',   '— Chọn bài —');
+    _setLabel('chap',  value || '— Chọn chủ đề —');
+    _setLabel('bloom', '— Tất cả —');
+    _setLabel('ex',    '— Chọn bài —');
 
-    // Build exercise items grouped by Bloom
+    // Build bloom items from exercises in this chapter
     const exs = Registry.getByChapter(_grade, value);
+    const bloomSet = [...new Set(exs.map(ex => ex.lv).filter(Boolean))];
+    _items.bloom = bloomSet.map(b => ({ value: b, text: b }));
     _items.ex = exs.map(ex => ({
       value: ex.id,
-      text:  `${ex.num} – ${ex.title}`,
+      text:  (ex.lv ? '[' + ex.lv.split('–')[0].trim() + '] ' : '') + ex.num + ' – ' + ex.title,
     }));
 
-    setLocked('ex', !value || !exs.length);
+    setLocked('bloom', !value || bloomSet.length === 0);
+    setLocked('ex',    !value || exs.length === 0);
     Events.emit('exercise:cleared', {});
+  }
+
+  function _selectBloom(value) {
+    _bloom = value;
+    _exId  = '';
+    const label = value
+      ? _items.bloom.find(i => i.value === value)?.text || value
+      : '— Tất cả —';
+    _setLabel('bloom', label);
+    _setLabel('ex', '— Chọn bài —');
+    // Lọc lại bài tập theo bloom
+    _buildExItems();
+    setLocked('ex', false);
+    Events.emit('exercise:cleared', {});
+  }
+
+  function _buildExItems() {
+    const exs = Registry.getByChapter(_grade, _chapter);
+    const filtered = _bloom ? exs.filter(ex => ex.lv === _bloom) : exs;
+    _items.ex = filtered.map(ex => ({
+      value: ex.id,
+      text:  (ex.lv ? '[' + ex.lv.split('–')[0].trim() + '] ' : '') + ex.num + ' – ' + ex.title,
+    }));
+    setLocked('ex', filtered.length === 0);
   }
 
   function _selectExercise(id) {
@@ -179,13 +211,15 @@ CL.define('UI.Dropdown', () => {
   function reset() {
     _grade   = '';
     _chapter = '';
+    _bloom   = '';
     _exId    = '';
-    ['grade','chap','ex'].forEach(w => {
-      _setLabel(w, w === 'grade' ? '— Chọn lớp —' :
-                   w === 'chap' ? '— Chọn chủ đề —' : '— Chọn bài —');
-    });
-    setLocked('chap', true);
-    setLocked('ex',   true);
+    _setLabel('grade', '— Chọn lớp —');
+    _setLabel('chap',  '— Chọn chủ đề —');
+    _setLabel('bloom', '— Tất cả —');
+    _setLabel('ex',    '— Chọn bài —');
+    setLocked('chap',  true);
+    setLocked('bloom', true);
+    setLocked('ex',    true);
     Events.emit('exercise:cleared', {});
   }
 
