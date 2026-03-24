@@ -125,9 +125,9 @@ CL.define('Features.Sidebar', () => {
   function init(role) {
     _role   = role || 'student';
     // Default to pinned=true on first load (better UX: user sees functions immediately)
-    const storedPin = localStorage.getItem('cl_sb_pinned');
-    _pinned = storedPin === null ? true : storedPin === '1';
-    if (storedPin === null) localStorage.setItem('cl_sb_pinned', '1');
+    // Luôn pinned — menu inline, không dùng flyout
+    _pinned = true;
+    localStorage.setItem('cl_sb_pinned', '1');
 
     const sb = document.getElementById('sidebar');
     if (!sb) return;
@@ -233,16 +233,12 @@ CL.define('Features.Sidebar', () => {
         <button class="sb-group-header${hasActive ? ' has-active' : ''}"
           aria-haspopup="true"
           data-gid="${group.id}"
-          onmouseenter="CL.Features.Sidebar._showFlyout('${group.id}', this)"
-          onmouseleave="CL.Features.Sidebar._hideFlyout('${group.id}')"
           onclick="CL.Features.Sidebar.groupHeaderClick('${group.id}')">
           <span class="sb-icon">${group.icon}</span>
           <span class="sb-label">${group.label}</span>
           <span class="sb-group-arrow">›</span>
         </button>
-        <div class="sb-flyout" id="sbf-${group.id}" role="menu"
-          onmouseenter="CL.Features.Sidebar._keepFlyout('${group.id}')"
-          onmouseleave="CL.Features.Sidebar._hideFlyout('${group.id}')">
+        <div class="sb-flyout" id="sbf-${group.id}" role="menu">
           <div class="sb-flyout-label">${group.icon} ${group.label}</div>
           ${group.children.map(c => _childHtml(c)).join('')}
         </div>
