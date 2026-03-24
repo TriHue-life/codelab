@@ -19,7 +19,7 @@ CL.define('Config', () => ({
   // Admin dán URL vào đây một lần duy nhất trước khi phân phối app:
   //   https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec
   // Nếu để trống: app đọc từ localStorage (nhập qua trang Cấu hình)
-  DEPLOY_URL: '',
+  DEPLOY_URL: 'https://script.google.com/macros/s/AKfycbyZBN0-eluSX08_QJXIz5Y7RA-UuJp9GQ5rXaA1OXeXvmNtYQGzLzCJVyDzaw90sday/exec',
 
   // ── CT GDPT 2018 — Năng lực đặc thù Tin học ──────────────────
   // Mapping Bloom Level → Năng lực chính (theo TT32/2018)
