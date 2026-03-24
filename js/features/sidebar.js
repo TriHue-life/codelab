@@ -219,6 +219,8 @@ CL.define('Features.Sidebar', () => {
     navigate(saved, false);
 
     // _showSection() đã xử lý visibility qua classList.cl-hidden
+    // Xong init: bỏ trạng thái loading
+    sb.classList.remove('sb-init-pending');
   }
 
   function _getDefaultId() {
@@ -295,12 +297,12 @@ CL.define('Features.Sidebar', () => {
     const section = item.section;
 
     if (section === 'editor') {
-      _showSection('workspace-view');
+      _showSection('workspace-view', true);  // true = show content-bar
     } else if (section === 'profile') {
       CL.Features.Profile?.open();
       return;
     } else if (section === 'exam') {
-      _showSection('workspace-view');
+      _showSection('workspace-view', false); // exam không cần content-bar
     } else if (section === 'history') {
       _showSection('panel-view');
       _renderStudentHistory();
@@ -399,18 +401,19 @@ CL.define('Features.Sidebar', () => {
     document.querySelectorAll('.sb-flyout.open').forEach(f => f.classList.remove('open'));
   }
 
-  function _showSection(which) {
-    const wv      = document.getElementById('workspace-view');
-    const pv      = document.getElementById('panel-view');
-    const cBar    = document.getElementById('content-bar');
+  function _showSection(which, showExBar = false) {
+    const wv    = document.getElementById('workspace-view');
+    const pv    = document.getElementById('panel-view');
+    const exBar = document.getElementById('tb-ex-bar');
     // Dùng class thay vì inline style để override CSS !important
-    if (wv)   wv.classList.toggle('cl-hidden',   which !== 'workspace-view');
-    if (pv)   pv.classList.toggle('cl-hidden',   which !== 'panel-view');
-    if (cBar) cBar.classList.toggle('cl-hidden', which !== 'workspace-view');
-    // Xoá inline style cũ nếu có (từ các lần trước)
-    if (wv)   wv.style.removeProperty('display');
-    if (pv)   pv.style.removeProperty('display');
-    if (cBar) cBar.style.removeProperty('display');
+    if (wv)    wv.classList.toggle('cl-hidden',    which !== 'workspace-view');
+    if (pv)    pv.classList.toggle('cl-hidden',    which !== 'panel-view');
+    // tb-ex-bar chỉ hiện khi Luyện tập (showExBar = true)
+    if (exBar) exBar.classList.toggle('cl-hidden', !showExBar);
+    // Xoá inline style cũ
+    if (wv)    wv.style.removeProperty('display');
+    if (pv)    pv.style.removeProperty('display');
+    if (exBar) exBar.style.removeProperty('display');
   }
 
   // ══════════════════════════════════════════════════════════════
