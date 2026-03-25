@@ -93,7 +93,9 @@ function doPost(e) {
     }
   } catch (ex) {
     console.error('doPost error:', ex);
-    return err(ex.message);
+    const errMsg = ex.message || String(ex);
+    const errStack = ex.stack ? ex.stack.split('\n')[1] || '' : '';
+    return err(errMsg + (errStack ? ' [' + errStack.trim() + ']' : ''));
   }
 }
 
@@ -126,7 +128,7 @@ function doGet(e) {
       case 'getMyProfile':     return handleGetMyProfile(p);
       case 'adminGetUsers':    return handleAdminGetUsers(p);
       case 'adminGetAdmins':   return handleAdminGetAdmins(p);
-      case 'ping':             return ok({ ts: Date.now(), v: '2.0' });
+      case 'ping':             return ok({ ts: Date.now(), v: '2.1', validateToken: typeof validateToken, verifyToken: typeof verifyToken });
       case 'verifyExamCode':   return handleVerifyExamCode(p);
       case 'getSetupStatus':  return handleGetSetupStatus(p);
       case 'health':          return HtmlService.createHtmlOutput('<ok/>')
@@ -973,11 +975,11 @@ function handleUploadImage(body) {
   const session = verifyToken(body.token);
   if (session.error) return session;
   if (session.role !== 'teacher' && session.role !== 'admin') {
-    return error('Không có quyền upload ảnh');
+    return err('Không có quyền upload ảnh');
   }
 
   const { base64, filename, mimeType } = body;
-  if (!base64) return error('Thiếu dữ liệu ảnh');
+  if (!base64) return err('Thiếu dữ liệu ảnh');
 
   try {
     const bytes  = Utilities.base64Decode(base64);
@@ -994,7 +996,7 @@ function handleUploadImage(body) {
     return ok({ url, fileId, filename: file.getName(), folderUrl });
 
   } catch(e) {
-    return error('Upload thất bại: ' + e.message);
+    return err('Upload thất bại: ' + e.message);
   }
 }
 
@@ -1004,7 +1006,7 @@ function handleUploadImage(body) {
 function handleGetImageConfig(body) {
   const session = verifyToken(body.token);
   if (session.error) return session;
-  if (session.role !== 'admin') return error('Chỉ Admin mới xem cấu hình ảnh');
+  if (session.role !== 'admin') return err('Chỉ Admin mới xem cấu hình ảnh');
 
   const folderId  = PROP.getProperty('IMAGES_FOLDER_ID') || '';
   let folderName  = '';
@@ -1031,7 +1033,7 @@ function handleGetImageConfig(body) {
 function handleSaveImageConfig(body) {
   const session = verifyToken(body.token);
   if (session.error) return session;
-  if (session.role !== 'admin') return error('Chỉ Admin mới thay đổi cấu hình ảnh');
+  if (session.role !== 'admin') return err('Chỉ Admin mới thay đổi cấu hình ảnh');
 
   const { folder_id } = body;
 
@@ -1052,7 +1054,7 @@ function handleSaveImageConfig(body) {
       message:    `Đã cấu hình thư mục: ${folder.getName()}`,
     });
   } catch(e) {
-    return error('ID thư mục không hợp lệ hoặc không có quyền truy cập: ' + e.message);
+    return err('ID thư mục không hợp lệ hoặc không có quyền truy cập: ' + e.message);
   }
 }
 
@@ -1064,13 +1066,13 @@ function handleSubmitPracticeScore(body) {
   if (session.error) return session;
 
   const { bai_id, tieu_de, diem } = body;
-  if (!bai_id || diem === undefined) return error('Thiếu thông tin điểm luyện tập');
+  if (!bai_id || diem === undefined) return err('Thiếu thông tin điểm luyện tập');
 
   const sheet = getSheet('KETQUA', 'DiemLuyenTap', true);
-  if (!sheet) return error('Không tìm thấy sheet DiemLuyenTap');
+  if (!sheet) return err('Không tìm thấy sheet DiemLuyenTap');
 
   const headers = ['id','ts','mshs','ho_ten','lop','bai_id','tieu_de','diem','lan_thu'];
-  ensureHeaders(sheet, headers);
+  _ensureHeaders(sheet, headers);
 
   const data = sheet.getDataRange().getValues();
   const hRow = data[0];
@@ -1116,20 +1118,20 @@ function handleSaveExerciseContent(body) {
   const session = verifyToken(body.token);
   if (session.error) return session;
   if (session.role !== 'teacher' && session.role !== 'admin') {
-    return error('Không có quyền chỉnh sửa nội dung');
+    return err('Không có quyền chỉnh sửa nội dung');
   }
 
   const { bai_id, field, html } = body;
   if (!bai_id || !field || !['desc', 'theory', 'code_rich'].includes(field)) {
-    return error('Tham số không hợp lệ');
+    return err('Tham số không hợp lệ');
   }
-  if (!html && html !== '') return error('Thiếu nội dung');
+  if (!html && html !== '') return err('Thiếu nội dung');
 
   const sheet = getSheet('BAITAP', 'NoiDung', true);
-  if (!sheet) return error('Không tìm thấy sheet NoiDung');
+  if (!sheet) return err('Không tìm thấy sheet NoiDung');
 
   const headers = ['bai_id', 'field', 'html', 'updated_by', 'updated_at'];
-  ensureHeaders(sheet, headers);
+  _ensureHeaders(sheet, headers);
 
   const data = sheet.getDataRange().getValues();
   const hRow   = data[0];
@@ -1426,7 +1428,7 @@ function _deleteRowsWhere(sheet, keyCol, keyVal) {
 function handleSaveBaiTap(body) {
   requireTeacher(body);
   const { id, lop, bo_sach, chuong, muc_bloom, so_bai, tieu_de, type, nguon } = body;
-  if (!id || !tieu_de) return error('Thiếu id hoặc tieu_de');
+  if (!id || !tieu_de) return err('Thiếu id hoặc tieu_de');
 
   const sheet = getSheet('BAITAP', 'BaiTap', true);
   _ensureHeaders(sheet, BAITAP_H);
@@ -1468,20 +1470,20 @@ function handleGetBaiLamForStudent(p) {
  */
 function handleGetStudentReport(p) {
   const mshs = (p.mshs || '').trim();
-  if (!mshs || mshs.length < 5) return error('MSHS không hợp lệ');
+  if (!mshs || mshs.length < 5) return err('MSHS không hợp lệ');
 
   // Rate limit per MSHS: 20 lần/giờ
   const limKey = 'rpt_' + mshs;
   const limVal = parseInt(PROP.getProperty(limKey)||'0');
-  if (limVal > 20) return error('Vui lòng thử lại sau 1 giờ');
+  if (limVal > 20) return err('Vui lòng thử lại sau 1 giờ');
   PROP.setProperty(limKey, String(limVal+1));
 
   // Get student basic info
   const hsSheet = getSheet('TAIKHOAN', 'HocSinh', false);
-  if (!hsSheet) return error('Không tìm thấy dữ liệu');
+  if (!hsSheet) return err('Không tìm thấy dữ liệu');
   const hsRows = sheetData(hsSheet);
   const stu    = hsRows.find(r => String(r.mshs).trim() === mshs);
-  if (!stu) return error('Không tìm thấy học sinh với MSHS: ' + mshs);
+  if (!stu) return err('Không tìm thấy học sinh với MSHS: ' + mshs);
 
   // BaiKT: exam results
   const baiKTSheet = getSheet('KETQUA', 'BaiKT', false);
@@ -1527,7 +1529,7 @@ function handleGetStudentReport(p) {
 function handleGetItemAnalysis(p) {
   requireTeacher(p);
   const kyId = p.ky_id;
-  if (!kyId) return error('Thiếu ky_id');
+  if (!kyId) return err('Thiếu ky_id');
 
   // Lấy tất cả BaiLam của kỳ thi này
   const baiLamSheet = getSheet('KETQUA', 'BaiLam', false);
@@ -1664,7 +1666,7 @@ function handleGetItemAnalysis(p) {
 function handleGetExamMatrix(p) {
   requireTeacher(p);
   const kyId = p.ky_id;
-  if (!kyId) return error('Thiếu ky_id');
+  if (!kyId) return err('Thiếu ky_id');
 
   const btSheet = getSheet('KIEMTRA', 'BaiTapKT', false);
   if (!btSheet) return ok({ matrix: {}, rows: [], cols: [] });
@@ -1735,7 +1737,7 @@ function handleYearTransition(body) {
   const { nam_hoc_moi, ds_hoc_sinh, nam_hoc_cu, preview_only } = body;
 
   if (!nam_hoc_moi || !/^\d{4}-\d{4}$/.test(nam_hoc_moi)) {
-    return error('Định dạng năm học không hợp lệ. Dùng: YYYY-YYYY (VD: 2026-2027)');
+    return err('Định dạng năm học không hợp lệ. Dùng: YYYY-YYYY (VD: 2026-2027)');
   }
 
   const preview = [];
@@ -1743,7 +1745,7 @@ function handleYearTransition(body) {
 
   // ── Validate học sinh list ──────────────────────────────────
   const hsSheet = getSheet('TAIKHOAN', 'HocSinh', false);
-  if (!hsSheet) return error('Không tìm thấy sheet HocSinh');
+  if (!hsSheet) return err('Không tìm thấy sheet HocSinh');
 
   const hsData = hsSheet.getDataRange().getValues();
   const hsHdr  = hsData[0];
@@ -1861,7 +1863,7 @@ function handleYearTransition(body) {
 function handleImportStudents(body) {
   requireAdmin(body);
   const { rows, nam_hoc, reset_password } = body;
-  if (!Array.isArray(rows) || !rows.length) return error('Không có dữ liệu');
+  if (!Array.isArray(rows) || !rows.length) return err('Không có dữ liệu');
 
   const sheet  = getSheet('TAIKHOAN', 'HocSinh', true);
   _ensureHeaders(sheet, HOCSINH_H);
