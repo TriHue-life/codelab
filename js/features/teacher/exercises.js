@@ -21,61 +21,172 @@ CL.define('Teacher.ExEditor', () => {
   // ══════════════════════════════════════════════════════════════
 
   async function render(el) {
-    const allExs = Registry.getAll();
-    const grades = [...new Set(allExs.map(e => e.bo ? `${e.g}-${e.bo}` : e.g))];
+    const Cfg = CL.require('Config');
 
     el.innerHTML = `
-      <div class="tp-edit-toolbar">
-        <select id="ed-g" onchange="CL.Teacher.ExEditor.loadChap()" style="flex:1">
-          <option value="">— Chọn lớp —</option>
-          ${grades.map(g => `<option>${g}</option>`).join('')}
-        </select>
-        <select id="ed-ch" onchange="CL.Teacher.ExEditor.loadList()" style="flex:2">
-          <option value="">— Chọn chủ đề —</option>
-        </select>
+      <div class="ed-selector-bar">
+        <div class="ed-sel-group">
+          <span class="ed-sel-label">Lớp</span>
+          <div class="cdd" id="ed-cdd-grade">
+            <button class="cdd-btn tb-cdd-btn" id="ed-cdd-grade-btn"
+              onclick="CL.Teacher.ExEditor.openCdd('grade')" type="button">
+              <span id="ed-grade-label">— Chọn lớp —</span>
+              <span class="cdd-arrow">▾</span>
+            </button>
+          </div>
+        </div>
+        <div class="ed-sel-sep"></div>
+        <div class="ed-sel-group">
+          <span class="ed-sel-label">Chủ đề</span>
+          <div class="cdd cdd-locked" id="ed-cdd-chap">
+            <button class="cdd-btn tb-cdd-btn" id="ed-cdd-chap-btn"
+              onclick="CL.Teacher.ExEditor.openCdd('chap')" type="button" disabled>
+              <span id="ed-chap-label">—</span>
+              <span class="cdd-arrow">▾</span>
+            </button>
+          </div>
+        </div>
+        <div class="ed-sel-sep"></div>
+        <div class="ed-sel-group">
+          <span class="ed-sel-label">Thang Bloom</span>
+          <div class="cdd cdd-locked" id="ed-cdd-bloom">
+            <button class="cdd-btn tb-cdd-btn" id="ed-cdd-bloom-btn"
+              onclick="CL.Teacher.ExEditor.openCdd('bloom')" type="button" disabled>
+              <span id="ed-bloom-label">— Tất cả —</span>
+              <span class="cdd-arrow">▾</span>
+            </button>
+          </div>
+        </div>
+        <div class="ed-sel-sep"></div>
+        <div class="ed-sel-group" style="flex:1;min-width:180px">
+          <span class="ed-sel-label">Bài tập</span>
+          <div class="cdd cdd-locked" id="ed-cdd-ex">
+            <button class="cdd-btn tb-cdd-btn" id="ed-cdd-ex-btn"
+              onclick="CL.Teacher.ExEditor.openCdd('ex')" type="button" disabled>
+              <span id="ed-ex-label">— Chọn bài —</span>
+              <span class="cdd-arrow">▾</span>
+            </button>
+          </div>
+        </div>
+        <div style="flex-shrink:0;margin-left:auto">
+          <button class="tp-action-btn" onclick="CL.Teacher.ExEditor.syncAll()">
+            🔄 Sync Sheets
+          </button>
+        </div>
       </div>
-      <div id="ed-list" class="tp-edit-list"></div>
-      <div id="ed-form" class="tp-edit-form" style="display:none"></div>
-      <div class="tp-actions" style="padding:8px 14px">
-        <button class="tp-action-btn" onclick="CL.Teacher.ExEditor.syncAll()">
-          🔄 Sync lên Sheets
-        </button>
-      </div>`;
+
+      <div id="ed-cdd-overlay" onclick="CL.Teacher.ExEditor.closeCdd()"
+        style="display:none;position:fixed;inset:0;z-index:999"></div>
+      <div id="ed-cdd-popup"
+        style="display:none;position:fixed;z-index:1000;min-width:200px;max-height:320px;
+               overflow-y:auto;background:var(--surface);border:1px solid var(--border);
+               border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.25);padding:4px 0">
+        <div id="ed-cdd-popup-list"></div>
+      </div>
+
+      <div id="ed-form" class="tp-edit-form" style="display:none"></div>`;
+
+    _edItems.grade = (Cfg.GRADES || []).map(g => ({ value: g.value, text: g.text }));
+    _edGrade = _edChap = _edBloom = '';
   }
 
-  // ══════════════════════════════════════════════════════════════
-  //  LOAD chapters & list
-  // ══════════════════════════════════════════════════════════════
+  // ── CDD state ─────────────────────────────────────────────────
+  let _edGrade = '', _edChap = '', _edBloom = '';
+  let _edItems = { grade: [], chap: [], bloom: [], ex: [] };
+  let _edActiveCdd = null;
 
-  function loadChap() {
-    const gk  = document.getElementById('ed-g')?.value;
-    const chs = Registry.getChapters(gk);
-    const sel = document.getElementById('ed-ch');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">— Chọn chủ đề —</option>' +
-      chs.map(c => `<option>${c}</option>`).join('');
-    document.getElementById('ed-list').innerHTML = '';
-    const form = document.getElementById('ed-form');
-    if (form) form.style.display = 'none';
-    _unmountAll();
+  function openCdd(which) {
+    const btn = document.getElementById('ed-cdd-' + which + '-btn');
+    if (!btn || btn.disabled) return;
+    _edActiveCdd = which;
+    const overlay = document.getElementById('ed-cdd-overlay');
+    const popup   = document.getElementById('ed-cdd-popup');
+    const list    = document.getElementById('ed-cdd-popup-list');
+    if (!popup || !list) return;
+    const items  = _edItems[which] || [];
+    const curVal = { grade:_edGrade, chap:_edChap, bloom:_edBloom, ex:'' }[which] || '';
+    list.innerHTML = items.length
+      ? items.map(it => `<div class="cdd-item${it.value===curVal?' selected':''}"
+          onclick="CL.Teacher.ExEditor.selectCdd('${which}','${Utils.escHtml(it.value)}')"
+          style="padding:9px 14px;cursor:pointer;font-size:13px">${Utils.escHtml(it.text)}</div>`).join('')
+      : '<div style="padding:10px 14px;color:var(--text3)">Không có mục nào</div>';
+    const rect = btn.getBoundingClientRect();
+    popup.style.left  = rect.left + 'px';
+    popup.style.top   = (rect.bottom + 4) + 'px';
+    popup.style.width = Math.max(rect.width, 200) + 'px';
+    popup.style.display = '';
+    if (overlay) overlay.style.display = '';
   }
 
-  function loadList() {
-    const gk  = document.getElementById('ed-g')?.value;
-    const ch  = document.getElementById('ed-ch')?.value;
-    const exs = Registry.getByChapter(gk, ch);
-    const list = document.getElementById('ed-list');
-    if (!list) return;
-    list.innerHTML = exs.map(e => `
-      <div class="ed-item" onclick="CL.Teacher.ExEditor.edit('${Utils.escHtml(e.id)}')">
-        <span class="ed-lv">${(e.lv || '').split('–')[0].trim()}</span>
-        <span class="ed-num">${Utils.escHtml(e.num)}</span>
-        <span class="ed-title">${Utils.escHtml(e.title)}</span>
-        <span class="ed-type-badge ${e.type || 'python'}">${(e.type || 'python').toUpperCase()}</span>
-      </div>`).join('');
+  function closeCdd() {
+    const o = document.getElementById('ed-cdd-overlay');
+    const p = document.getElementById('ed-cdd-popup');
+    if (o) o.style.display = 'none';
+    if (p) p.style.display = 'none';
+    _edActiveCdd = null;
+  }
+
+  async function selectCdd(which, value) {
+    closeCdd();
+    const Registry = CL.require('Exercises.Registry');
+    if (which === 'grade') {
+      _edGrade = value; _edChap = ''; _edBloom = '';
+      const item = _edItems.grade.find(i => i.value === value);
+      _setEdLabel('grade', item?.text || value);
+      await Registry.ensureLoaded(value);
+      const chaps = Registry.getChapters(value);
+      _edItems.chap = chaps.map(c => ({ value: c, text: c }));
+      _edItems.bloom = []; _edItems.ex = [];
+      _setEdLabel('chap', '— Chọn chủ đề —'); _setEdLabel('bloom', '— Tất cả —'); _setEdLabel('ex', '— Chọn bài —');
+      _setEdLocked('chap', !chaps.length); _setEdLocked('bloom', true); _setEdLocked('ex', true);
+      _closeEdForm();
+    } else if (which === 'chap') {
+      _edChap = value; _edBloom = '';
+      _setEdLabel('chap', value || '— Chọn chủ đề —');
+      const exs = Registry.getByChapter(_edGrade, value);
+      const bloomSet = [...new Set(exs.map(e => e.lv).filter(Boolean))];
+      _edItems.bloom = [{ value:'', text:'— Tất cả —' }, ...bloomSet.map(b => ({ value:b, text:b }))];
+      _edItems.ex = exs.map(e => ({
+        value: e.id,
+        text: (e.lv ? '[' + e.lv.split('–')[0].trim() + '] ' : '') + (e.num||'') + ' – ' + (e.title||''),
+      }));
+      _setEdLabel('bloom', '— Tất cả —'); _setEdLabel('ex', '— Chọn bài —');
+      _setEdLocked('bloom', !bloomSet.length); _setEdLocked('ex', !exs.length);
+      _closeEdForm();
+    } else if (which === 'bloom') {
+      _edBloom = value;
+      _setEdLabel('bloom', value || '— Tất cả —');
+      const exs = Registry.getByChapter(_edGrade, _edChap);
+      const filtered = value ? exs.filter(e => e.lv === value) : exs;
+      _edItems.ex = filtered.map(e => ({
+        value: e.id,
+        text: (e.lv ? '[' + e.lv.split('–')[0].trim() + '] ' : '') + (e.num||'') + ' – ' + (e.title||''),
+      }));
+      _setEdLabel('ex', '— Chọn bài —'); _setEdLocked('ex', !filtered.length);
+      _closeEdForm();
+    } else if (which === 'ex') {
+      const ex = Registry.findById(value);
+      if (ex) _setEdLabel('ex', (ex.num||'') + ' – ' + (ex.title||''));
+      await edit(value);
+    }
+  }
+
+  function _setEdLabel(which, text) {
+    const el = document.getElementById('ed-' + which + '-label');
+    if (el) el.textContent = text;
+  }
+
+  function _setEdLocked(which, locked) {
+    const wrap = document.getElementById('ed-cdd-' + which);
+    const btn  = document.getElementById('ed-cdd-' + which + '-btn');
+    if (wrap) wrap.classList.toggle('cdd-locked', locked);
+    if (btn)  btn.disabled = locked;
+  }
+
+  function _closeEdForm() {
+    _unmountAll();
     const form = document.getElementById('ed-form');
     if (form) form.style.display = 'none';
-    _unmountAll();
   }
 
   // ══════════════════════════════════════════════════════════════
@@ -412,5 +523,5 @@ CL.define('Teacher.ExEditor', () => {
     }
   }
 
-  return { render, loadChap, loadList, edit, switchTab, saveField, closeForm, syncAll };
+  return { render, openCdd, closeCdd, selectCdd, edit, switchTab, saveField, closeForm, syncAll };
 });
