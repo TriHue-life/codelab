@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-25 12:07
+/* CodeLab Bundle — built 2026-03-25 12:13
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -13502,12 +13502,34 @@ CL.define('Editors.RichText', () => {
     editorDiv.id = `rte-ql-${containerId}`;
     editorDiv.className = 'rte-editor-area';
 
-    // ── HTML source textarea
+    // ── HTML source editor (textarea + syntax overlay + line numbers)
+    const srcWrap = document.createElement('div');
+    srcWrap.id = `rte-src-wrap-${containerId}`;
+    srcWrap.className = 'rte-src-wrap';
+
+    const srcLnums = document.createElement('div');
+    srcLnums.id = `rte-src-lnums-${containerId}`;
+    srcLnums.className = 'rte-src-lnums';
+    srcLnums.innerHTML = '<span>1</span>';
+
+    const srcInner = document.createElement('div');
+    srcInner.className = 'rte-src-inner';
+
+    const srcHl = document.createElement('div');
+    srcHl.id = `rte-src-hl-${containerId}`;
+    srcHl.className = 'rte-src-hl';
+    srcHl.setAttribute('aria-hidden', 'true');
+
     const srcArea = document.createElement('textarea');
     srcArea.id = `rte-src-${containerId}`;
     srcArea.className = 'rte-source-area';
     srcArea.placeholder = '<!-- Dán hoặc gõ HTML tại đây -->';
     srcArea.spellcheck = false;
+
+    srcInner.appendChild(srcHl);
+    srcInner.appendChild(srcArea);
+    srcWrap.appendChild(srcLnums);
+    srcWrap.appendChild(srcInner);
 
     // ── Bottom actions bar
     const actBar = document.createElement('div');
@@ -13531,7 +13553,7 @@ CL.define('Editors.RichText', () => {
 
     wrapper.appendChild(uploadBar);
     wrapper.appendChild(editorDiv);
-    wrapper.appendChild(srcArea);
+    wrapper.appendChild(srcWrap);
     wrapper.appendChild(actBar);
 
     container.style.display = 'none';
@@ -13667,19 +13689,38 @@ CL.define('Editors.RichText', () => {
       // → HTML source
       const html = inst.quill.root.innerHTML;
       srcEl.value = _prettyHtml(html === '<p><br></p>' ? '' : html);
-      srcEl.style.display = 'block';
+      // Show source wrap
+      const srcWrapEl = document.getElementById(`rte-src-wrap-${containerId}`);
+      if (srcWrapEl) srcWrapEl.style.display = 'flex';
+      srcEl.style.display = '';
       if (qlWrap) qlWrap.style.display = 'none';
       if (qlBar)  qlBar.style.display  = 'none';
       if (togBtn) { togBtn.textContent = '✏️'; togBtn.title = 'Quay lại WYSIWYG'; togBtn.classList.add('on'); }
+      _syncSrcHighlight(containerId);
+      _syncSrcLnums(containerId);
       srcEl.focus();
       inst.showingSource = true;
+      // Bind live update
+      srcEl._rteInput = () => { _syncSrcHighlight(containerId); _syncSrcLnums(containerId); };
+      srcEl._rteScroll = () => {
+        const hl = document.getElementById(`rte-src-hl-${containerId}`);
+        const ln = document.getElementById(`rte-src-lnums-${containerId}`);
+        if (hl) { hl.scrollTop = srcEl.scrollTop; hl.scrollLeft = srcEl.scrollLeft; }
+        if (ln) ln.scrollTop = srcEl.scrollTop;
+      };
+      srcEl.addEventListener('input', srcEl._rteInput);
+      srcEl.addEventListener('scroll', srcEl._rteScroll);
     } else {
       // → WYSIWYG
       inst.quill.root.innerHTML = srcEl.value.trim() || '<p><br></p>';
-      srcEl.style.display = 'none';
+      const srcWrapEl2 = document.getElementById(`rte-src-wrap-${containerId}`);
+      if (srcWrapEl2) srcWrapEl2.style.display = 'none';
+      srcEl.style.display = '';
       if (qlWrap) qlWrap.style.display = '';
       if (qlBar)  qlBar.style.display  = '';
       if (togBtn) { togBtn.innerHTML = '&lt;/&gt;'; togBtn.title = 'Xem/chỉnh HTML nguồn'; togBtn.classList.remove('on'); }
+      if (srcEl._rteInput)  srcEl.removeEventListener('input',  srcEl._rteInput);
+      if (srcEl._rteScroll) srcEl.removeEventListener('scroll', srcEl._rteScroll);
       inst.quill.focus();
       inst.showingSource = false;
     }
@@ -14101,6 +14142,29 @@ CL.define('Editors.RichText', () => {
       }
     });
     return result.trim();
+  }
+
+  // ── Source editor sync helpers ───────────────────────────────
+
+  function _syncSrcHighlight(containerId) {
+    const srcEl = document.getElementById(`rte-src-${containerId}`);
+    const hlEl  = document.getElementById(`rte-src-hl-${containerId}`);
+    if (!srcEl || !hlEl) return;
+    const Syn = typeof CL !== 'undefined' && CL.Editors?.Syntax;
+    const code = srcEl.value;
+    hlEl.innerHTML = (Syn ? Syn.html(code) : _escHtml(code)) + '\n';
+  }
+
+  function _syncSrcLnums(containerId) {
+    const srcEl = document.getElementById(`rte-src-${containerId}`);
+    const lnEl  = document.getElementById(`rte-src-lnums-${containerId}`);
+    if (!srcEl || !lnEl) return;
+    const lines = srcEl.value.split('\n');
+    lnEl.innerHTML = lines.map((_, i) => `<span>${i + 1}</span>`).join('');
+  }
+
+  function _escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
   return { mount, unmount, getHtml, renderMath };
