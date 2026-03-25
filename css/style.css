@@ -9006,3 +9006,8 @@ body.row-resizing * { cursor: row-resize !important; user-select: none !importan
   align-self: flex-end;
   margin-bottom: 2px;
 }
+
+/* ── Toolbar visibility: exam chỉ hiện khi body.mode-exam ─── */
+#toolbar-exam { display: none !important; }
+body.mode-exam #toolbar-exam { display: flex !important; }
+body.mode-exam #toolbar-practice { display: none !important; }
