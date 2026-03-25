@@ -23,7 +23,7 @@ def build():
 
     # Find all <script src="..."> tags
     # Also support dev mode: index.dev.html with individual scripts
-    scripts = re.findall(r'<script src="([^"]+)">', html)
+    scripts = [s.split('?')[0] for s in re.findall(r'<script src="([^"]+)">', html)]
 
     # Filter: skip bundle itself, skip exercise data files (lazy loaded)
     SKIP = {'dist/bundle.js', 'dist/bundle.min.js'}
@@ -44,8 +44,8 @@ def build():
         dev_html_path = os.path.join(ROOT, 'index.dev.html')
         if os.path.exists(dev_html_path):
             dev_html = open(dev_html_path, encoding='utf-8').read()
-            to_bundle = [s for s in re.findall(r'<script src="([^"]+)">', dev_html)
-                         if s not in SKIP and s not in LAZY]
+            to_bundle = [s.split('?')[0] for s in re.findall(r'<script src="([^"]+)">', dev_html)
+                         if s.split('?')[0] not in SKIP and s.split('?')[0] not in LAZY]
             if already_bundled:
                 print("ℹ️  index.html ở bundled mode → đọc module list từ index.dev.html")
         else:
