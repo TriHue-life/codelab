@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-25 11:51
+/* CodeLab Bundle — built 2026-03-25 12:00
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -12295,12 +12295,32 @@ const ci = document.getElementById('code-input');
 const lnEl = document.getElementById('lnums');
 
 function updLN() {
+  if (!ci || !lnEl) return;
   const lines = ci.value.split('\n');
   const cur = ci.value.substring(0, ci.selectionStart).split('\n');
   const curLine = cur.length;
-  document.getElementById('lc').textContent = `Ln ${curLine}, Col ${cur[cur.length-1].length+1}`;
-  lnEl.innerHTML = lines.map((_, i) => `<span${i+1===curLine?' class="al"':''}>${i+1}</span>`).join('');
-  lnEl.scrollTop = ci.scrollTop;
+  const lcEl = document.getElementById('lc');
+  if (lcEl) lcEl.textContent = `Ln ${curLine}, Col ${cur[cur.length-1].length+1}`;
+
+  // Render số dòng — dùng DocumentFragment để nhanh hơn
+  const frag = document.createDocumentFragment();
+  lines.forEach((_, i) => {
+    const span = document.createElement('span');
+    span.textContent = i + 1;
+    if (i + 1 === curLine) span.className = 'al';
+    frag.appendChild(span);
+  });
+  lnEl.innerHTML = '';
+  lnEl.appendChild(frag);
+
+  // Sync scroll NGAY sau khi render
+  requestAnimationFrame(() => { lnEl.scrollTop = ci.scrollTop; });
+
+  // Tự động mở rộng cột số dòng theo số chữ số
+  const digits = String(lines.length).length;
+  const w = Math.max(36, digits * 8 + 16);
+  lnEl.style.width    = w + 'px';
+  lnEl.style.minWidth = w + 'px';
 }
 
 // ── Syntax Highlighting Engine (VSCode Dark+ for Python) ────────────────────
@@ -12582,8 +12602,16 @@ function syncEditorLayout() {
 }
 window.addEventListener('resize', syncEditorLayout);
 window.addEventListener('orientationchange', () => setTimeout(syncEditorLayout, 300));
-// Chạy lại sau khi tất cả fonts/layout đã render xong
-window.addEventListener('load', () => setTimeout(syncEditorLayout, 100));
+// Chạy nhiều lần để đảm bảo fonts/layout render xong
+window.addEventListener('load', () => {
+  syncEditorLayout();
+  setTimeout(syncEditorLayout, 100);
+  setTimeout(syncEditorLayout, 500);
+});
+// Sync ngay khi textarea thay đổi kích thước (ResizeObserver)
+if (typeof ResizeObserver !== 'undefined') {
+  new ResizeObserver(() => { syncEditorLayout(); updLN(); }).observe(ci);
+}
 syncEditorLayout();
 
 updLN(); updateHighlight();
