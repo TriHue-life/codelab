@@ -3813,13 +3813,7 @@ body > header:not(#topbar) { display: none !important; }
   scrollbar-width: thin;
   scrollbar-color: var(--surface3) transparent;
 }
-#grade-panel {
-  grid-column: 2;
-  grid-row: 1 / -1;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--surface3) transparent;
-}
+/* grade-panel rules consolidated below */
 
 /* ══════════════════════════════════════════════════════════════════
    GRADE HINTS — Cần cải thiện section
@@ -7444,11 +7438,7 @@ body.view-practice  .ex-bar { display: flex; }
    ══════════════════════════════════════════════════════════════════ */
 
 /* grade-panel: flex-column, tabbar at flex-end */
-#grade-panel {
-  display:        flex !important;
-  flex-direction: column !important;
-  overflow:       hidden !important;
-}
+/* grade-panel rules consolidated below */
 
 /* All panes fill remaining space */
 .rp-tabpane {
@@ -8767,13 +8757,16 @@ body.view-practice  .ex-bar { display: flex; }
 
 /* ── Grade panel: new layout ─────────────────────────────────── */
 #grade-panel {
+  grid-column: 2;
+  grid-row: 1 / -1;
   display: flex !important;
   flex-direction: column !important;
-  overflow-y: auto !important;   /* 1 scrollbar dọc duy nhất bên phải */
+  overflow-y: auto !important;
   overflow-x: hidden !important;
   min-height: 0;
+  height: 100%;
   scrollbar-width: thin;
-  scrollbar-color: var(--surface3) transparent;
+  scrollbar-color: var(--accent) var(--surface2);
 }
 
 /* Tab bar sticky khi cuộn */
@@ -8784,19 +8777,18 @@ body.view-practice  .ex-bar { display: flex; }
   background: var(--surface);
 }
 
-/* Pane không tự cuộn, để grade-panel cuộn chung */
+/* Pane: fill height, không clip nội dung */
 .rp-tabpane.on {
   display: flex;
   flex-direction: column;
-  flex: 1 0 auto;  /* auto height, không bị cắt */
+  flex: 1 0 auto;
+  min-height: 0;
+  overflow: visible;
+}
+.rp-tabpane.on .rp-content {
+  flex: none;
   overflow: visible;
   min-height: 0;
-}
-
-/* rp-content không scroll riêng */
-.rp-tabpane.on .rp-content {
-  overflow: visible;
-  flex: none;
 }
 
 /* Desc và Theory pane: cho phép scroll toàn bộ nội dung */
@@ -9011,3 +9003,42 @@ body.row-resizing * { cursor: row-resize !important; user-select: none !importan
 #toolbar-exam { display: none !important; }
 body.mode-exam #toolbar-exam { display: flex !important; }
 body.mode-exam #toolbar-practice { display: none !important; }
+
+/* ══════════════════════════════════════════════════════════════════
+   GRADE PANEL — Final override: 1 scrollbar dọc toàn panel
+══════════════════════════════════════════════════════════════════ */
+#grade-panel {
+  grid-column: 2 !important;
+  grid-row: 1 / -1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: var(--accent) var(--surface2) !important;
+}
+
+/* Tab bar sticky cố định khi cuộn */
+#grade-panel #plt-tabbar,
+#grade-panel .plt-tabbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 20 !important;
+  background: var(--surface) !important;
+  flex-shrink: 0 !important;
+}
+
+/* Pane content: tự co giãn theo nội dung, không clip */
+#grade-panel .rp-tabpane { display: none; }
+#grade-panel .rp-tabpane.on {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 0 auto !important;
+  overflow: visible !important;
+}
+#grade-panel .rp-content {
+  overflow: visible !important;
+  flex: none !important;
+}
