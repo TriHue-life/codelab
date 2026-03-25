@@ -5,7 +5,7 @@
   .logo-title{line-height:1.25}
   .badge{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:3px 9px;font-size:11px;font-family:var(--mono);color:var(--text)}
   .badge.offline-badge{color:var(--accent2)}
-  :root{--col-right:370px;--row-top:60vh}
+  :root{--col-right:370px;--row-top:40vh}
   .ph-l{display:flex;align-items:center;gap:7px}
   .dot{width:7px;height:7px;border-radius:50%}
   .dot-b{background:var(--accent)}.dot-g{background:var(--accent2)}.dot-w{background:var(--warn)}
@@ -3567,7 +3567,7 @@ body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; 
   flex: 1;
   display: grid;
   grid-template-columns: 1fr var(--col-right, 370px);
-  grid-template-rows: var(--row-top, 60vh) 1fr;
+  grid-template-rows: var(--row-top, 40vh) 1fr;
   overflow: hidden;
   min-height: 0;
   background: var(--bg);
@@ -7989,7 +7989,7 @@ body.view-practice  .ex-bar { display: flex; }
   flex:                  1 !important;
   display:               grid !important;
   grid-template-columns: 1fr var(--col-right, 380px) !important;
-  grid-template-rows:    var(--row-top, 65vh) 1fr !important;
+  grid-template-rows:    var(--row-top, 40vh) 1fr !important;
   min-height:            0 !important;
   height:                auto !important;      /* let flex parent control */
   max-height:            none !important;      /* cancel all calc() overrides */
@@ -8907,7 +8907,7 @@ body.mode-exam .plt-tabbar::before {
 /* Workspace grid phải nhận --col-right */
 .workspace {
   grid-template-columns: 1fr var(--col-right, 370px) !important;
-  grid-template-rows: var(--row-top, 60vh) 1fr !important;
+  grid-template-rows: var(--row-top, 40vh) 1fr !important;
 }
 
 /* Cursor toàn trang khi đang kéo */
