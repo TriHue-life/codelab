@@ -8797,3 +8797,77 @@ body.mode-exam .plt-tabbar::before {
   .plt-tab-label { display: none; }
   .plt-tab { padding: 9px 10px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   RESIZER — Drag handle giữa editor và grade panel
+══════════════════════════════════════════════════════════════════ */
+#rs-col {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  position: relative;
+  width: 6px;
+  min-width: 6px;
+  cursor: col-resize;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  justify-self: end;
+  align-self: stretch;
+  background: var(--border);
+  opacity: 0.4;
+  transition: opacity .15s, background .15s;
+}
+#rs-col:hover,
+#rs-col.dragging {
+  opacity: 1;
+  background: var(--accent);
+}
+#rs-col::after {
+  content: '';
+  display: block;
+  width: 3px;
+  height: 32px;
+  border-radius: 3px;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(88,166,255,.5);
+}
+
+#rs-row {
+  position: absolute;
+  bottom: -3px;
+  left: 0; right: 0;
+  height: 6px;
+  cursor: row-resize;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  opacity: 0.4;
+  transition: opacity .15s;
+}
+#rs-row:hover,
+#rs-row.dragging {
+  opacity: 1;
+  background: rgba(88,166,255,.05);
+}
+#rs-row::after {
+  content: '';
+  display: block;
+  height: 3px;
+  width: 32px;
+  border-radius: 3px;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(88,166,255,.5);
+}
+
+/* Workspace grid phải nhận --col-right */
+.workspace {
+  grid-template-columns: 1fr var(--col-right, 370px) !important;
+  grid-template-rows: var(--row-top, 60vh) 1fr !important;
+}
+
+/* Cursor toàn trang khi đang kéo */
+body.col-resizing * { cursor: col-resize !important; user-select: none !important; }
+body.row-resizing * { cursor: row-resize !important; user-select: none !important; }
