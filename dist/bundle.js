@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-25 00:26
+/* CodeLab Bundle — built 2026-03-25 04:23
  * 47 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -1522,8 +1522,7 @@ CL.define('Auth.UI', () => {
     btn.textContent = el.type === 'password' ? '👁' : '🙈';
   }
 
-  return { init, logout, setScriptUrl, _switchTab, _submit, _openSetup, _togglePw, _detectType,
-           _toggleServerInput, _saveServerUrl };
+  return { init, logout, setScriptUrl, _switchTab, _submit, _openSetup, _togglePw, _detectType };
 });
 
 // ─── js/exercises/registry.js ───────────────────────────
