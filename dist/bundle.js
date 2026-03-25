@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-25 12:16
+/* CodeLab Bundle — built 2026-03-25 12:24
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -7673,7 +7673,7 @@ CL.define('Teacher.ExEditor', () => {
 
   async function _mountRte(containerId, initialHtml) {
     try {
-      await CL.Editors.RichText.mount(containerId, initialHtml, null);
+      await CL.Editors.RichText.mount(containerId, initialHtml, null, { hideSaveBtn: true });
       // null onSave = manual save via saveField button
     } catch(e) {
       console.warn(`[ExEditor] Cannot mount RTE for ${containerId}:`, e.message);
@@ -13478,7 +13478,7 @@ CL.define('Editors.RichText', () => {
   //  MOUNT
   // ══════════════════════════════════════════════════════════════
 
-  async function mount(containerId, initialHtml, onSave) {
+  async function mount(containerId, initialHtml, onSave, options = {}) {
     await _loadQuill();
 
     const container = document.getElementById(containerId);
@@ -13548,7 +13548,7 @@ CL.define('Editors.RichText', () => {
       <div class="rte-actions-right">
         <span class="rte-hint">Ctrl+S lưu · Kéo thả ảnh để upload</span>
         <button class="rte-btn" id="rte-cancel-${containerId}">Hủy</button>
-        <button class="rte-btn rte-btn-primary" id="rte-save-${containerId}">💾 Lưu</button>
+        ${!options.hideSaveBtn ? '<button class="rte-btn rte-btn-primary" id="rte-save-' + containerId + '">💾 Lưu</button>' : ''}
       </div>`;
 
     wrapper.appendChild(uploadBar);
