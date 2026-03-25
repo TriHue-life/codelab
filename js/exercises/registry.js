@@ -197,13 +197,13 @@ CL.define('Exercises.Registry', () => {
   // ── Lazy loading support ──────────────────────────────────────
   // Map: grade key prefix → JS file path
   const GRADE_FILE_MAP = {
-    'K10':         'js/exercises.js',       // 784KB — Python K10 KNTT
-    'K11':         'js/exercises_k12.js',   // 508KB — Python K11 + K12 HTML
-    'K12':         'js/exercises_k12.js',
-    'K12-CTST':    'js/exercises_k12.js',   // K12 HTML/CSS CTST
-    'K12-KNTT':    'js/exercises_k12.js',   // K12 HTML/CSS KNTT
-    'K11-SQL':     'js/exercises_sql.js',   // 699KB — SQL K11
-    'K11-KNTT':    'js/exercises_sql.js',   // SQL exercises
+    'K10':         'js/exercises.js?v=1080dba6',       // 784KB — Python K10 KNTT
+    'K11':         'js/exercises_k12.js?v=97049c56',   // 508KB — Python K11 + K12 HTML
+    'K12':         'js/exercises_k12.js?v=97049c56',
+    'K12-CTST':    'js/exercises_k12.js?v=97049c56',   // K12 HTML/CSS CTST
+    'K12-KNTT':    'js/exercises_k12.js?v=97049c56',   // K12 HTML/CSS KNTT
+    'K11-SQL':     'js/exercises_sql.js?v=dbb62a5e',   // 699KB — SQL K11
+    'K11-KNTT':    'js/exercises_sql.js?v=dbb62a5e',   // SQL exercises
   };
 
   const _loaded = new Set();  // track which files have been loaded
