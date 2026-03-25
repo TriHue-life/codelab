@@ -108,6 +108,178 @@ sys.stderr = _stderr_buf
       try { _pyodide.runPython('sys.stdout = sys.__stdout__; sys.stderr = sys.__stderr__'); } catch(e) {}
     }
 
-    self.postMessage({ type: 'result', id, ok, stdout, stderr });
+    // Lọc traceback: bỏ đường dẫn nội bộ Pyodide, chỉ giữ dòng lỗi có ích
+    self.postMessage({ type: 'result', id, ok, stdout, stderr: _cleanTraceback(stderr) });
   }
 };
+
+/**
+ * Lọc + dịch traceback Pyodide sang tiếng Việt
+ */
+function _cleanTraceback(raw) {
+  if (!raw) return raw;
+
+  const lines = raw.split('\n');
+  const clean = [];
+  for (const line of lines) {
+    if (line.includes('python311.zip') ||
+        line.includes('_pyodide') ||
+        line.includes('pyodide-') ||
+        line.includes('lib/python3')) continue;
+    clean.push(line);
+  }
+
+  let result = clean.join('\n').trim();
+
+  // Bỏ header "Traceback (most recent call last):"
+  result = result.replace(/^Traceback \(most recent call last\):\n?/, '').trim();
+
+  // Dịch dòng File "<exec>" 
+  result = result.replace(/File "<exec>", line (\d+)/g, '📍 Dòng $1 trong code của bạn');
+  result = result.replace(/File "<string>", line (\d+)/g, '📍 Dòng $1 trong code của bạn');
+
+  // Dịch các loại lỗi phổ biến
+  result = _translateError(result);
+
+  return result;
+}
+
+function _translateError(msg) {
+  // ── NameError ────────────────────────────────────────────────
+  msg = msg.replace(
+    /NameError: name '(.+?)' is not defined/g,
+    "❌ NameError: Tên '$1' chưa được khai báo\n💡 Kiểm tra: viết đúng tên biến/hàm, khai báo trước khi dùng."
+  );
+  // ── SyntaxError ──────────────────────────────────────────────
+  msg = msg.replace(
+    /SyntaxError: invalid syntax/g,
+    "❌ SyntaxError: Sai cú pháp\n💡 Kiểm tra: thiếu dấu ':', ngoặc chưa đóng, hay lỗi thụt lề."
+  );
+  msg = msg.replace(
+    /SyntaxError: EOL while scanning string literal/g,
+    "❌ SyntaxError: Chuỗi chưa được đóng (thiếu dấu ' hoặc ")"
+  );
+  msg = msg.replace(
+    /SyntaxError: unexpected EOF while parsing/g,
+    "❌ SyntaxError: Code chưa hoàn chỉnh (thiếu ngoặc hoặc lệnh)"
+  );
+  msg = msg.replace(
+    /SyntaxError: (.+)/g,
+    "❌ SyntaxError: Lỗi cú pháp — $1\n💡 Kiểm tra dấu :, ngoặc, thụt lề."
+  );
+  // ── IndentationError ─────────────────────────────────────────
+  msg = msg.replace(
+    /IndentationError: unexpected indent/g,
+    "❌ IndentationError: Thụt lề không đúng (thụt vào chỗ không cần)\n💡 Dùng 4 spaces hoặc 1 tab nhất quán."
+  );
+  msg = msg.replace(
+    /IndentationError: expected an indented block/g,
+    "❌ IndentationError: Thân lệnh if/for/while/def phải được thụt lề\n💡 Thêm 4 spaces ở đầu dòng tiếp theo."
+  );
+  msg = msg.replace(
+    /IndentationError: (.+)/g,
+    "❌ IndentationError: Lỗi thụt lề — $1"
+  );
+  // ── TypeError ────────────────────────────────────────────────
+  msg = msg.replace(
+    /TypeError: unsupported operand type\(s\) for (.+?): '(.+?)' and '(.+?)'/g,
+    "❌ TypeError: Không thể dùng toán tử '$1' giữa '$2' và '$3'\n💡 Kiểm tra kiểu dữ liệu, ví dụ: int('5') + 3 → cần int()."
+  );
+  msg = msg.replace(
+    /TypeError: '(.+?)' object is not iterable/g,
+    "❌ TypeError: Không thể duyệt qua '$1' bằng for\n💡 Kiểm tra biến có phải list/tuple/string không."
+  );
+  msg = msg.replace(
+    /TypeError: '(.+?)' object is not subscriptable/g,
+    "❌ TypeError: Kiểu '$1' không hỗ trợ truy cập bằng chỉ số []\n💡 Kiểm tra đây có phải list/dict/string không."
+  );
+  msg = msg.replace(
+    /TypeError: (.+?) takes (.+?) argument\(s\) but (.+?) (was|were) given/g,
+    "❌ TypeError: Hàm nhận $2 tham số nhưng bạn truyền $3\n💡 Kiểm tra số lượng đối số khi gọi hàm."
+  );
+  msg = msg.replace(
+    /TypeError: (.+)/g,
+    "❌ TypeError: Lỗi kiểu dữ liệu — $1\n💡 Kiểm tra kiểu của các biến đang dùng."
+  );
+  // ── ValueError ───────────────────────────────────────────────
+  msg = msg.replace(
+    /ValueError: invalid literal for int\(\) with base 10: '(.+?)'/g,
+    "❌ ValueError: Không thể chuyển '$1' thành số nguyên\n💡 Kiểm tra input() có nhập đúng số không."
+  );
+  msg = msg.replace(
+    /ValueError: could not convert string to float: '(.+?)'/g,
+    "❌ ValueError: Không thể chuyển '$1' thành số thực\n💡 Kiểm tra input() có nhập đúng số không."
+  );
+  msg = msg.replace(
+    /ValueError: (.+)/g,
+    "❌ ValueError: Giá trị không hợp lệ — $1\n💡 Kiểm tra dữ liệu đầu vào."
+  );
+  // ── IndexError ───────────────────────────────────────────────
+  msg = msg.replace(
+    /IndexError: list index out of range/g,
+    "❌ IndexError: Chỉ số vượt quá độ dài danh sách\n💡 Kiểm tra: chỉ số bắt đầu từ 0, và không được >= len(list)."
+  );
+  msg = msg.replace(
+    /IndexError: string index out of range/g,
+    "❌ IndexError: Chỉ số vượt quá độ dài chuỗi\n💡 Kiểm tra chỉ số < len(chuỗi)."
+  );
+  msg = msg.replace(
+    /IndexError: (.+)/g,
+    "❌ IndexError: Lỗi chỉ số — $1"
+  );
+  // ── KeyError ─────────────────────────────────────────────────
+  msg = msg.replace(
+    /KeyError: (.+)/g,
+    "❌ KeyError: Khóa $1 không tồn tại trong dictionary\n💡 Dùng dict.get(key) để tránh lỗi."
+  );
+  // ── ZeroDivisionError ────────────────────────────────────────
+  msg = msg.replace(
+    /ZeroDivisionError: (.+)/g,
+    "❌ ZeroDivisionError: Chia cho 0\n💡 Kiểm tra mẫu số trước khi chia."
+  );
+  // ── RecursionError ───────────────────────────────────────────
+  msg = msg.replace(
+    /RecursionError: (.+)/g,
+    "❌ RecursionError: Đệ quy quá sâu (vòng lặp vô tận?)\n💡 Kiểm tra điều kiện dừng của hàm đệ quy."
+  );
+  // ── AttributeError ───────────────────────────────────────────
+  msg = msg.replace(
+    /AttributeError: '(.+?)' object has no attribute '(.+?)'/g,
+    "❌ AttributeError: Kiểu '$1' không có thuộc tính/phương thức '$2'\n💡 Kiểm tra tên phương thức hoặc kiểu dữ liệu của biến."
+  );
+  msg = msg.replace(
+    /AttributeError: (.+)/g,
+    "❌ AttributeError: $1"
+  );
+  // ── ImportError ──────────────────────────────────────────────
+  msg = msg.replace(
+    /ModuleNotFoundError: No module named '(.+?)'/g,
+    "❌ ImportError: Module '$1' không có sẵn trong môi trường này\n💡 Chỉ dùng thư viện chuẩn Python: math, random, string, datetime..."
+  );
+  msg = msg.replace(
+    /ImportError: (.+)/g,
+    "❌ ImportError: $1\n💡 Chỉ dùng thư viện chuẩn Python."
+  );
+  // ── StopIteration ────────────────────────────────────────────
+  msg = msg.replace(
+    /StopIteration/g,
+    "❌ StopIteration: Vòng lặp kết thúc nhưng vẫn gọi next()\n💡 Kiểm tra điều kiện dừng vòng lặp."
+  );
+  // ── TimeoutError ─────────────────────────────────────────────
+  msg = msg.replace(
+    /Time Limit Exceeded/g,
+    "⏱️ Quá thời gian cho phép\n💡 Code bị vòng lặp vô tận? Kiểm tra điều kiện while."
+  );
+  // ── EOFError ─────────────────────────────────────────────────
+  msg = msg.replace(
+    /EOFError: EOF when reading a line/g,
+    "❌ EOFError: Không đủ dữ liệu input()\n💡 Bài yêu cầu nhập nhiều giá trị hơn bạn cung cấp."
+  );
+  // ── OverflowError ────────────────────────────────────────────
+  msg = msg.replace(
+    /OverflowError: (.+)/g,
+    "❌ OverflowError: Giá trị quá lớn vượt giới hạn số — $1"
+  );
+
+  return msg;
+}
