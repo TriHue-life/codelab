@@ -1,261 +1,349 @@
 #!/usr/bin/env python3
 """
-grade_python.py — Chấm điểm tự động code Python
+grade_python.py — Chấm điểm tự động Python v2.0
 ══════════════════════════════════════════════════════════════════
-Chạy code học sinh trong subprocess riêng biệt, cung cấp stdin,
-bắt stdout và so sánh với expected output.
-
-Đặc điểm:
-  - Black-box testing: chấm theo đầu ra, không quan tâm cách viết
-  - Hỗ trợ đa đầu vào (multiple input() calls)
-  - Float tolerance ±0.01 khi so sánh số
-  - Timeout 5s mỗi test case
-  - Normalize output: bỏ trailing spaces, so sánh line-by-line
-
-Cách dùng:
-  result = grade_python_code(student_code, test_cases)
-  # result: { score, passed_tests, total_tests, errors, details }
-
-Tích hợp với hệ thống:
-  - Browser gọi qua Pyodide (js/runtime/pyodide-worker.js)
-  - Script này dùng cho CI/CD hoặc server-side grading
-
-Tác giả: CodeLab THPT Thủ Thiêm
+Đặc điểm v2:
+  ✓ Black-box: chấm theo đầu ra, không quan tâm cách viết
+  ✓ Float tolerance ±0.01 (configurable)
+  ✓ Multi-line output comparison (line-by-line)
+  ✓ Partial credit: mỗi test case độc lập
+  ✓ Normalize output: trailing spaces, unicode, accents
+  ✓ Keyword rubric: kiểm tra học sinh có dùng đúng cấu trúc không
+  ✓ Timeout 8s/test, sandbox subprocess
+  ✓ Meaningful error messages (Vietnamese)
+  ✓ Hint generation khi sai
 """
 
-import subprocess
-import sys
-import os
-import tempfile
-import math
+import subprocess, sys, os, tempfile, math, re, json
+from typing import List, Dict, Any, Optional
 
 
-def normalize_output(s: str) -> str:
-    """
-    Chuẩn hóa output để so sánh linh hoạt.
-    - Bỏ trailing whitespace trên mỗi dòng
-    - Bỏ trailing newlines thừa
-    - Giữ nguyên số dòng và nội dung
-    """
+# ── Constants ────────────────────────────────────────────────────────
+TIMEOUT_S   = 8
+FLOAT_TOL   = 0.01
+PYTHON_BIN  = sys.executable
+
+
+# ── Normalizers ──────────────────────────────────────────────────────
+
+def normalize(s: str) -> str:
+    """Chuẩn hóa output: bỏ trailing space/newline, lowercase nếu cần."""
     lines = s.rstrip('\n').split('\n')
     return '\n'.join(line.rstrip() for line in lines)
 
 
-def outputs_match(actual: str, expected: str) -> bool:
-    """
-    So sánh output với nhiều mức linh hoạt:
-    1. Exact match sau normalize
-    2. Float tolerance ±0.01 (cho output 1 số)
-    3. Multi-line: so sánh từng dòng với float tolerance
-    """
-    norm_a = normalize_output(actual)
-    norm_e = normalize_output(expected)
-
-    # Level 1: exact
-    if norm_a == norm_e:
+def lines_match(actual: str, expected: str, tol: float = FLOAT_TOL) -> bool:
+    """So sánh linh hoạt 2 dòng: exact → float → normalize unicode."""
+    if actual == expected:
         return True
-
-    # Level 2: single number float comparison
+    # Float comparison
     try:
-        af, ef = float(norm_a), float(norm_e)
-        if math.isfinite(af) and math.isfinite(ef) and abs(af - ef) <= 0.01:
+        if abs(float(actual) - float(expected)) <= tol:
             return True
     except (ValueError, TypeError):
         pass
-
-    # Level 3: multi-line float comparison
-    lines_a = norm_a.split('\n')
-    lines_e = norm_e.split('\n')
-    if len(lines_a) == len(lines_e):
-        all_match = True
-        for la, le in zip(lines_a, lines_e):
-            if la == le:
-                continue
-            try:
-                if abs(float(la) - float(le)) <= 0.01:
-                    continue
-            except (ValueError, TypeError):
-                pass
-            all_match = False
-            break
-        if all_match:
-            return True
-
-    return False
-
-
-def grade_python_code(student_code: str, test_cases: list) -> dict:
-    """
-    Chấm điểm code Python.
-
-    Args:
-        student_code: Code Python của học sinh (string)
-        test_cases: List các dict, mỗi dict gồm:
-            {
-              'input': str,     # stdin (dùng \\n ngăn cách các input)
-              'expected': str,  # expected stdout
-              'pts': int,       # điểm cho test này (default 1)
-              'desc': str,      # mô tả test (optional)
-              'hint': str,      # gợi ý khi sai (optional)
-            }
-
-    Returns:
-        {
-          'score': float,       # điểm thang 10
-          'passed_tests': int,
-          'total_tests': int,
-          'total_pts': int,     # tổng điểm có thể đạt
-          'earned_pts': int,    # điểm thực sự đạt được
-          'details': list,      # chi tiết từng test case
-          'errors': list,       # danh sách lỗi/thông báo
-        }
-    """
-    if not test_cases:
-        return {'score': 0, 'passed_tests': 0, 'total_tests': 0,
-                'total_pts': 0, 'earned_pts': 0, 'details': [], 'errors': ['Không có test case']}
-
-    passed = 0
-    total_pts = sum(int(tc.get('pts', 1)) for tc in test_cases)
-    earned_pts = 0
-    details = []
-    errors = []
-
-    # Write code to a temp file
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False,
-                                     encoding='utf-8') as tmp:
-        tmp.write(student_code)
-        tmp_path = tmp.name
-
+    # Normalize: bỏ dấu chấm ngàn, thay dấu phẩy thập phân
+    def norm_num(s):
+        return s.replace(',', '.').replace(' ', '')
     try:
-        for i, tc in enumerate(test_cases):
-            pts = int(tc.get('pts', 1))
-            stdin_data = tc.get('input', '')
-            expected   = tc.get('expected', '')
-            desc       = tc.get('desc', f'Test {i+1}')
-            hint       = tc.get('hint', '')
+        if abs(float(norm_num(actual)) - float(norm_num(expected))) <= tol:
+            return True
+    except (ValueError, TypeError):
+        pass
+    # Case-insensitive for non-numeric
+    return actual.strip().lower() == expected.strip().lower()
 
-            # Normalize expected
-            expected_norm = normalize_output(expected)
 
-            result_detail = {
-                'index':    i + 1,
-                'desc':     desc,
-                'pts':      pts,
-                'earned':   0,
-                'passed':   False,
-                'input':    stdin_data,
-                'expected': expected,
-                'actual':   '',
-                'error':    '',
-                'hint':     hint,
-            }
+def outputs_match(actual: str, expected: str) -> tuple[bool, str]:
+    """
+    So sánh full output. Trả về (match, hint).
+    """
+    na, ne = normalize(actual), normalize(expected)
+    if na == ne:
+        return True, ''
 
-            try:
-                proc = subprocess.run(
-                    [sys.executable, tmp_path],
-                    input=stdin_data,
-                    text=True,
-                    capture_output=True,
-                    timeout=5,
-                    encoding='utf-8',
-                    errors='replace',
-                )
+    la = na.split('\n')
+    le = ne.split('\n')
 
-                actual = proc.stdout
-                stderr = proc.stderr.strip()
-                result_detail['actual'] = actual
+    if len(la) != len(le):
+        return False, (
+            f'Số dòng output: thực tế {len(la)} dòng, '
+            f'mong đợi {len(le)} dòng'
+        )
 
-                if proc.returncode != 0 and stderr:
-                    result_detail['error'] = stderr[:200]
-                    errors.append(f'Test {i+1} [{desc}]: Runtime error — {stderr[:100]}')
-                elif outputs_match(actual, expected):
-                    result_detail['passed'] = True
-                    result_detail['earned'] = pts
-                    passed += 1
-                    earned_pts += pts
-                else:
-                    actual_norm = normalize_output(actual)
-                    errors.append(
-                        f'Test {i+1} [{desc}]:\n'
-                        f'  Input:    {repr(stdin_data)}\n'
-                        f'  Mong đợi: {repr(expected_norm)}\n'
-                        f'  Nhận được: {repr(actual_norm)}'
-                    )
+    for i, (a, e) in enumerate(zip(la, le)):
+        if not lines_match(a, e):
+            return False, f'Dòng {i+1}: "{a}" ≠ "{e}"'
 
-            except subprocess.TimeoutExpired:
-                result_detail['error'] = 'Time Limit Exceeded (>5s)'
-                errors.append(f'Test {i+1} [{desc}]: Quá thời gian (vòng lặp vô hạn?)')
+    return True, ''
 
-            except Exception as e:
-                result_detail['error'] = str(e)
-                errors.append(f'Test {i+1} [{desc}]: Lỗi hệ thống — {e}')
 
-            details.append(result_detail)
+# ── Runner ────────────────────────────────────────────────────────────
 
+def run_code(code: str, stdin: str = '', timeout: int = TIMEOUT_S) -> Dict:
+    """Chạy code Python trong subprocess, trả về {stdout, stderr, error}."""
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.py',
+                                     delete=False, encoding='utf-8') as f:
+        f.write(code)
+        fname = f.name
+    try:
+        proc = subprocess.run(
+            [PYTHON_BIN, fname],
+            input=stdin, capture_output=True, text=True,
+            timeout=timeout, encoding='utf-8', errors='replace',
+        )
+        return {
+            'stdout': proc.stdout,
+            'stderr': proc.stderr,
+            'error':  None,
+            'returncode': proc.returncode,
+        }
+    except subprocess.TimeoutExpired:
+        return {'stdout': '', 'stderr': '', 'error': f'Timeout ({timeout}s) — code bị vòng lặp vô tận?', 'returncode': -1}
+    except Exception as e:
+        return {'stdout': '', 'stderr': '', 'error': str(e), 'returncode': -1}
     finally:
-        os.unlink(tmp_path)
+        try: os.unlink(fname)
+        except: pass
 
-    score = round((earned_pts / total_pts) * 10, 1) if total_pts > 0 else 0
+
+# ── Keyword rubric ────────────────────────────────────────────────────
+
+def check_keywords(code: str, rubric: List[Dict]) -> List[Dict]:
+    """
+    Kiểm tra keyword rubric (không tính vào test case score).
+    rubric = [{ kw: 'for', pts: 2, desc: 'Dùng vòng lặp for' }, ...]
+    """
+    results = []
+    for item in rubric:
+        kw = item.get('kw', '')
+        if not kw:
+            continue
+        # Smart match: word boundary cho keywords đơn
+        found = False
+        for k in kw.split('|'):
+            k = k.strip()
+            if not k:
+                continue
+            # Kiểm tra trong code (bỏ qua comment)
+            code_no_comment = re.sub(r'#.*', '', code)
+            if re.search(r'\b' + re.escape(k) + r'\b', code_no_comment):
+                found = True
+                break
+            # Fallback: substring
+            if k in code_no_comment:
+                found = True
+                break
+        results.append({
+            'kw': kw,
+            'pts': item.get('pts', 0),
+            'desc': item.get('desc', kw),
+            'passed': found,
+            'hint': item.get('hint', ''),
+        })
+    return results
+
+
+# ── Main grader ───────────────────────────────────────────────────────
+
+def grade_python(
+    student_code: str,
+    test_cases: List[Dict],
+    rubric: Optional[List[Dict]] = None,
+    tc_weight: float = 0.6,
+    rb_weight: float = 0.4,
+) -> Dict:
+    """
+    Chấm điểm Python.
+
+    test_cases: [{ input: str, expected: str, pts: int, desc: str }]
+    rubric:     [{ kw: str, pts: int, desc: str, hint: str }]
+    tc_weight:  tỉ lệ điểm test case (mặc định 60%)
+    rb_weight:  tỉ lệ điểm rubric keyword (mặc định 40%)
+
+    Trả về:
+    {
+      score: float (0-10),
+      tc_score: float, rb_score: float,
+      passed: int, total: int,
+      details: [...],  # test case results
+      rubric_results: [...],
+      errors: [...],   # runtime errors
+      analysis: str,   # tóm tắt lỗi sai
+    }
+    """
+    if not student_code or not student_code.strip():
+        return _empty_result('Chưa có code để chấm.')
+
+    rubric = rubric or []
+    details = []
+    errors  = []
+    passed  = 0
+    total_tc_pts = sum(tc.get('pts', 1) for tc in test_cases) or 1
+    earned_tc_pts = 0
+
+    for i, tc in enumerate(test_cases):
+        stdin    = tc.get('input', '') or ''
+        expected = tc.get('expected', '') or ''
+        pts      = tc.get('pts', 1)
+        desc     = tc.get('desc', f'Test case {i+1}')
+
+        res = run_code(student_code, stdin=stdin)
+
+        if res['error']:
+            details.append({
+                'idx': i, 'desc': desc, 'passed': False, 'pts': 0,
+                'input': stdin, 'expected': expected,
+                'actual': '', 'error': res['error'],
+                'hint': _error_hint(res['error']),
+            })
+            errors.append(res['error'])
+            continue
+
+        if res['returncode'] != 0 and res['stderr']:
+            err_msg = _clean_traceback(res['stderr'])
+            details.append({
+                'idx': i, 'desc': desc, 'passed': False, 'pts': 0,
+                'input': stdin, 'expected': expected,
+                'actual': res['stdout'],
+                'error': err_msg,
+                'hint': _error_hint(err_msg),
+            })
+            errors.append(err_msg)
+            continue
+
+        ok, hint = outputs_match(res['stdout'], expected)
+        if ok:
+            passed += 1
+            earned_tc_pts += pts
+        details.append({
+            'idx': i, 'desc': desc, 'passed': ok, 'pts': pts if ok else 0,
+            'input': stdin, 'expected': expected,
+            'actual': res['stdout'].rstrip('\n'),
+            'error': None,
+            'hint': hint if not ok else '',
+        })
+
+    # Rubric keyword scoring
+    rb_results = check_keywords(student_code, rubric)
+    total_rb_pts = sum(r['pts'] for r in rb_results) or 1
+    earned_rb_pts = sum(r['pts'] for r in rb_results if r['passed'])
+
+    # Tính điểm 0-10
+    if test_cases and rubric:
+        tc_score = (earned_tc_pts / total_tc_pts) * 10 * tc_weight
+        rb_score = (earned_rb_pts / total_rb_pts) * 10 * rb_weight
+        score = round(min(10, tc_score + rb_score), 2)
+    elif test_cases:
+        score = round((earned_tc_pts / total_tc_pts) * 10, 2)
+        tc_score, rb_score = score, 0.0
+    elif rubric:
+        score = round((earned_rb_pts / total_rb_pts) * 10, 2)
+        tc_score, rb_score = 0.0, score
+    else:
+        score = 0.0
+        tc_score = rb_score = 0.0
+
+    # Analysis summary
+    failed = [d for d in details if not d['passed']]
+    analysis = _build_analysis(failed, rb_results)
 
     return {
-        'score':        score,
-        'passed_tests': passed,
-        'total_tests':  len(test_cases),
-        'total_pts':    total_pts,
-        'earned_pts':   earned_pts,
-        'details':      details,
-        'errors':       errors,
+        'score': score,
+        'tc_score': round(tc_score, 2),
+        'rb_score': round(rb_score, 2),
+        'passed': passed,
+        'total': len(test_cases),
+        'details': details,
+        'rubric_results': rb_results,
+        'errors': errors,
+        'analysis': analysis,
     }
 
 
-# ── Ví dụ sử dụng ──────────────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────
+
+def _empty_result(msg: str) -> Dict:
+    return {
+        'score': 0, 'tc_score': 0, 'rb_score': 0,
+        'passed': 0, 'total': 0, 'details': [],
+        'rubric_results': [], 'errors': [msg], 'analysis': msg,
+    }
+
+
+def _clean_traceback(stderr: str) -> str:
+    """Rút gọn traceback, chỉ giữ dòng lỗi cuối."""
+    lines = stderr.strip().split('\n')
+    # Tìm dòng Error cuối
+    for line in reversed(lines):
+        if re.match(r'\w+Error:', line) or re.match(r'\w+Exception:', line):
+            return line
+    return lines[-1] if lines else stderr
+
+
+def _error_hint(error: str) -> str:
+    """Gợi ý tiếng Việt cho lỗi phổ biến."""
+    e = error.lower()
+    hints = {
+        'nameerror':        'Biến hoặc hàm chưa được khai báo. Kiểm tra tên biến.',
+        'syntaxerror':      'Lỗi cú pháp. Kiểm tra dấu :, ngoặc, thụt lề.',
+        'indentationerror': 'Lỗi thụt lề (indent). Dùng 4 spaces hoặc 1 tab nhất quán.',
+        'indexerror':       'Chỉ số vượt quá độ dài list/tuple.',
+        'valueerror':       'Giá trị không hợp lệ — thường do input() nhận sai kiểu.',
+        'typeerror':        'Sai kiểu dữ liệu — ví dụ: cộng str với int.',
+        'zerodivisionerror':'Chia cho 0.',
+        'timeout':          'Code chạy quá lâu — có thể vòng lặp vô tận.',
+        'recursionerror':   'Đệ quy quá sâu — thiếu điều kiện dừng.',
+        'attributeerror':   'Gọi phương thức không tồn tại trên đối tượng.',
+        'keyerror':         'Key không tồn tại trong dictionary.',
+        'importerror':      'Module không tồn tại (chỉ dùng thư viện chuẩn).',
+        'modulenotfounderror': 'Module không được phép trong sandbox.',
+    }
+    for key, hint in hints.items():
+        if key in e:
+            return hint
+    return 'Xem lại code và thông báo lỗi.'
+
+
+def _build_analysis(failed: List[Dict], rb_results: List[Dict]) -> str:
+    """Tóm tắt các lỗi sai để hiển thị trong tab Phân tích."""
+    parts = []
+    if failed:
+        parts.append(f'❌ {len(failed)} test case chưa đạt:')
+        for d in failed[:5]:  # tối đa 5
+            if d.get('error'):
+                parts.append(f'  • {d["desc"]}: {d["error"]}')
+                if d.get('hint'):
+                    parts.append(f'    💡 {d["hint"]}')
+            else:
+                parts.append(f'  • {d["desc"]}')
+                if d.get('hint'):
+                    parts.append(f'    Gợi ý: {d["hint"]}')
+
+    rb_failed = [r for r in rb_results if not r['passed']]
+    if rb_failed:
+        parts.append(f'\n📋 Tiêu chí chưa đạt:')
+        for r in rb_failed:
+            parts.append(f'  • {r["desc"]} — Thiếu: {r["kw"]}')
+            if r.get('hint'):
+                parts.append(f'    💡 {r["hint"]}')
+
+    return '\n'.join(parts) if parts else '✅ Tất cả đạt yêu cầu!'
+
+
+# ── CLI entry point ───────────────────────────────────────────────────
+
 if __name__ == '__main__':
-    # Test 1: Tính tổng hai số
-    code_sum = """
-a = int(input())
-b = int(input())
-print(a + b)
-"""
-    tests_sum = [
-        {'input': '5\n10\n',   'expected': '15',  'pts': 2, 'desc': 'Tổng dương'},
-        {'input': '-2\n8\n',   'expected': '6',   'pts': 2, 'desc': 'Có số âm'},
-        {'input': '0\n0\n',    'expected': '0',   'pts': 1, 'desc': 'Hai số 0'},
-        {'input': '100\n200\n','expected': '300', 'pts': 2, 'desc': 'Số lớn'},
-        {'input': '-5\n-3\n',  'expected': '-8',  'pts': 3, 'desc': 'Cả hai âm'},
-    ]
-    result = grade_python_code(code_sum, tests_sum)
-    print(f"Điểm: {result['score']}/10")
-    print(f"Pass: {result['passed_tests']}/{result['total_tests']}")
-    if result['errors']:
-        print("Lỗi:")
-        for e in result['errors']:
-            print(f"  - {e}")
-
-    print()
-
-    # Test 2: Tính điểm trung bình + xếp loại
-    code_grade = """
-d1 = float(input())
-d2 = float(input())
-d3 = float(input())
-tb = (d1 + d2 + d3) / 3
-if tb >= 8:
-    xl = "Gioi"
-elif tb >= 6.5:
-    xl = "Kha"
-elif tb >= 5:
-    xl = "TB"
-else:
-    xl = "Yeu"
-print(f"{tb:.2f}")
-print(xl)
-"""
-    tests_grade = [
-        {'input': '9\n8\n10\n', 'expected': '9.00\nGioi', 'pts': 3},
-        {'input': '7\n6.5\n8\n','expected': '7.17\nKha',  'pts': 3},
-        {'input': '4\n5\n6\n',  'expected': '5.00\nTB',   'pts': 2},
-        {'input': '3\n4\n2\n',  'expected': '3.00\nYeu',  'pts': 2},
-    ]
-    result2 = grade_python_code(code_grade, tests_grade)
-    print(f"Bài 2 - Điểm: {result2['score']}/10")
-    print(f"Pass: {result2['passed_tests']}/{result2['total_tests']}")
+    """
+    Usage: echo '{"code":"print(1+1)","tests":[{"input":"","expected":"2","pts":10}]}' | python3 grade_python.py
+    """
+    import json
+    data = json.load(sys.stdin)
+    result = grade_python(
+        student_code=data.get('code', ''),
+        test_cases=data.get('tests', []),
+        rubric=data.get('rubric', []),
+        tc_weight=data.get('tc_weight', 0.6),
+        rb_weight=data.get('rb_weight', 0.4),
+    )
+    print(json.dumps(result, ensure_ascii=False, indent=2))

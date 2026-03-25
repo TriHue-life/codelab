@@ -243,8 +243,7 @@
             <!-- Toolbar: Practice mode -->
             <div class="toolbar" id="toolbar-practice">
               <button class="btn primary" onclick="runCode()">▶ Chạy</button>
-              <button class="btn" id="btn-grade-practice" onclick="gradeCode()">📊 Chấm thử</button>
-              <button class="btn accent2" onclick="runAndGrade()">⚡ Chạy &amp; Chấm</button>
+              <button class="btn accent2" id="btn-grade-practice" onclick="runAndGrade()">⚡ Chạy &amp; Chấm</button>
               <div class="spacer"></div>
               <button class="btn danger" onclick="clearAll()">🗑</button>
               <div class="teacher-only" style="display:flex;gap:6px">
@@ -293,6 +292,8 @@
               </button>
             </div>
 
+            <!-- Tab bar được inject bởi PracticeLayout.init() -->
+
             <!-- TAB: ĐỀ BÀI -->
             <div class="rp-tabpane on" id="rp-pane-desc">
               <!-- Teacher/Admin edit button -->
@@ -318,27 +319,32 @@
 
             <!-- TAB: KẾT QUẢ CHẤM -->
             <div class="rp-tabpane" id="rp-pane-result">
-              <div class="score-box">
-                <div class="ring" id="ring-wrap">
-                  <svg width="88" height="88" viewBox="0 0 96 96">
-                    <defs>
-                      <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stop-color="var(--accent,#4f9eff)"/>
-                        <stop offset="100%" stop-color="var(--accent2,#34d399)"/>
-                      </linearGradient>
-                    </defs>
-                    <circle class="ring-bg" cx="48" cy="48" r="43" fill="none" stroke-width="6"/>
-                    <circle class="ring-fill" id="ring-fill" cx="48" cy="48" r="43" fill="none" stroke-width="6" stroke-dasharray="270" stroke-dashoffset="270"/>
-                  </svg>
-                  <div class="ring-val" id="rv">—</div>
+              <!-- Score header: ring + stats in one compact row -->
+              <div class="score-header">
+                <div class="score-ring-wrap">
+                  <div class="ring" id="ring-wrap">
+                    <svg width="72" height="72" viewBox="0 0 96 96">
+                      <defs>
+                        <linearGradient id="ring-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="var(--accent,#4f9eff)"/>
+                          <stop offset="100%" stop-color="var(--accent2,#34d399)"/>
+                        </linearGradient>
+                      </defs>
+                      <circle class="ring-bg" cx="48" cy="48" r="43" fill="none" stroke-width="7"/>
+                      <circle class="ring-fill" id="ring-fill" cx="48" cy="48" r="43" fill="none" stroke-width="7" stroke-dasharray="270" stroke-dashoffset="270"/>
+                    </svg>
+                    <div class="ring-val" id="rv">—</div>
+                  </div>
+                  <div class="score-meta">
+                    <div class="score-lbl">Điểm / 10</div>
+                    <div class="score-grade" id="sg" style="color:var(--text3)">Chưa chấm</div>
+                  </div>
                 </div>
-                <div class="score-lbl">Điểm / 10</div>
-                <div class="score-grade" id="sg" style="color:var(--text3)">Chưa chấm</div>
-              </div>
-              <div class="stats">
-                <div class="sc"><div class="sn nok" id="sp">—</div><div class="sl">✅ Đúng</div></div>
-                <div class="sc"><div class="sn ner" id="sf">—</div><div class="sl">❌ Sai</div></div>
-                <div class="sc"><div class="sn nwn" id="ss">—</div><div class="sl">⏭ Bỏ qua</div></div>
+                <div class="stats">
+                  <div class="sc"><div class="sn nok" id="sp">—</div><div class="sl">Đúng</div></div>
+                  <div class="sc"><div class="sn ner" id="sf">—</div><div class="sl">Sai</div></div>
+                  <div class="sc"><div class="sn nwn" id="ss">—</div><div class="sl">Bỏ qua</div></div>
+                </div>
               </div>
 
               <!-- Practice: grade history badge -->
@@ -380,6 +386,8 @@
                 </div>
               </div>
             </div>
+
+            <!-- Tabs moved to #content-bar above workspace -->
 
             <!-- EXAM: Submit all & stats modal trigger -->
             <div class="exam-submit-bar" id="exam-submit-bar" style="display:none">
@@ -470,6 +478,7 @@
   <script src="js/features/theme.js"></script>
   <script src="js/features/sidebar.js"></script>
   <script src="js/features/changelog-ui.js"></script>
+  <script src="js/features/practice-layout.js"></script>
   <script src="js/app.js"></script>
   <script src="js/features/teacher/ai-client.js"></script>
   <script src="js/features/teacher/dot-kiemtra.js"></script>
