@@ -197,7 +197,7 @@ CL.define('Exercises.Registry', () => {
   // ── Lazy loading support ──────────────────────────────────────
   // Map: grade key prefix → JS file path
   const GRADE_FILE_MAP = {
-    'K10':         'js/exercises.js?v=1080dba6',       // 784KB — Python K10 KNTT
+    'K10':         'js/exercises.js?v=d63513e2',       // 784KB — Python K10 KNTT
     'K11':         'js/exercises_k12.js?v=97049c56',   // 508KB — Python K11 + K12 HTML
     'K12':         'js/exercises_k12.js?v=97049c56',
     'K12-CTST':    'js/exercises_k12.js?v=97049c56',   // K12 HTML/CSS CTST
