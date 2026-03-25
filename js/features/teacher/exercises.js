@@ -335,7 +335,7 @@ CL.define('Teacher.ExEditor', () => {
 
   async function _mountRte(containerId, initialHtml) {
     try {
-      await CL.Editors.RichText.mount(containerId, initialHtml, null);
+      await CL.Editors.RichText.mount(containerId, initialHtml, null, { hideSaveBtn: true });
       // null onSave = manual save via saveField button
     } catch(e) {
       console.warn(`[ExEditor] Cannot mount RTE for ${containerId}:`, e.message);
