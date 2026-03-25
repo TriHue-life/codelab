@@ -349,7 +349,8 @@ CL.define('Editors.RichText', () => {
       if (togBtn) { togBtn.innerHTML = '&lt;/&gt;'; togBtn.title = 'Xem/chỉnh HTML nguồn'; togBtn.classList.remove('on'); }
       if (srcEl._rteInput)  srcEl.removeEventListener('input',  srcEl._rteInput);
       if (srcEl._rteScroll) srcEl.removeEventListener('scroll', srcEl._rteScroll);
-      inst.quill.focus();
+      // Delay focus để Quill DOM settle trước (tránh addRange error)
+      setTimeout(() => { try { inst.quill.focus(); } catch(e) {} }, 50);
       inst.showingSource = false;
     }
   }
