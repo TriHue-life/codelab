@@ -2621,8 +2621,7 @@ sorted(A)      # trả về list mới</pre>`,pseudo:`<pre class="ex-code">## B6
 ĐỌC ĐỀ: Input? Output?
 LẬP KẾ HOẠCH → mã giả
 VIẾT CODE từng bước
-KIỂM THỬ điều kiện biên</pre>`,rb:[{desc:'Tạo 52 lá bài đúng',kw:'for',pts:2,hint:''},{desc:'Xáo Fisher-Yates',kw:'random.randint',pts:3,hint:''},{desc:'Chia đều cho n người',kw:'[i::nguoi],
-  tc:[{input:'',expected:'Người 1 (13 lá): A♠ 5♥ K♦ ...\nNgười 2 (13 lá): 3♣ 8♠ ...',pts:10,desc:'Output đúng'}]',pts:3,hint:''},{desc:'In bài từng người',kw:'print',pts:2,hint:''}],errors:['Chỉ số bắt đầu từ 0, không phải 1','IndexError khi truy cập chỉ số ngoài phạm vi','Nhầm A.append(x) với A = A + [x]']},
+KIỂM THỬ điều kiện biên</pre>`,rb:[{desc:'Tạo 52 lá bài đúng',kw:'for',pts:2,hint:''},{desc:'Xáo Fisher-Yates',kw:'random.randint',pts:3,hint:''},{desc:'Chia đều cho n người',kw:'[i::nguoi]',pts:3,hint:''},{desc:'In bài từng người',kw:'print',pts:2,hint:''}],errors:['Chỉ số bắt đầu từ 0, không phải 1','IndexError khi truy cập chỉ số ngoài phạm vi','Nhầm A.append(x) với A = A + [x]']},
 /* Bài 23: Lệnh với list */
 {id:'k10-23-b1-1_1',g:'K10',ch:'Bài 23: Lệnh với list',lv:'B1 – Nhận biết',num:'1.1',title:'Nhận biết phương thức list',desc:`<b>Đề bài:</b> Cho <code>A=[5,3,8,1,9,2]</code>. Điền kết quả của: <code>len(A)</code>, <code>max(A)</code>, <code>min(A)</code>, <code>sum(A)</code>, <code>A.count(3)</code>, <code>sorted(A)</code>.<br><b>Output:</b><pre class="ex-code">6
 9
