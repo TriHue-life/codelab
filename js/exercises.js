@@ -2345,7 +2345,8 @@ A.sort()       # tăng dần (in-place)
 sorted(A)      # trả về list mới</pre>`,pseudo:`<pre class="ex-code">## B1 – Nhận biết
 ĐỌC code từng dòng
 THEO DÕI giá trị từng biến
-INDIELT kết quả</pre>`,rb:[{desc:'In đúng A[0]=10',kw:'A[0]',pts:2,hint:''},{desc:'In đúng A[-1]=50',kw:'A[-1]',pts:2,hint:''},{desc:'Slicing A[1:3]=[20,30]',kw:'A[1:3]',pts:3,hint:''},{desc:'len(A)=5',kw:'len(A)',pts:2,hint:''},{desc:'30 in A = True',kw:'in A',pts:1,hint:''}],errors:['Chỉ số bắt đầu từ 0, không phải 1','IndexError khi truy cập chỉ số ngoài phạm vi','Nhầm A.append(x) với A = A + [x]']},
+INDIELT kết quả</pre>`,rb:[{desc:'In đúng A[0],
+  tc:[{input:'',expected:'10\n50\n[20, 30]\n5\nTrue',pts:10,desc:'Output đúng'}]=10',kw:'A[0]',pts:2,hint:''},{desc:'In đúng A[-1]=50',kw:'A[-1]',pts:2,hint:''},{desc:'Slicing A[1:3]=[20,30]',kw:'A[1:3]',pts:3,hint:''},{desc:'len(A)=5',kw:'len(A)',pts:2,hint:''},{desc:'30 in A = True',kw:'in A',pts:1,hint:''}],errors:['Chỉ số bắt đầu từ 0, không phải 1','IndexError khi truy cập chỉ số ngoài phạm vi','Nhầm A.append(x) với A = A + [x]']},
 {id:'k10-22-b1-1_2',g:'K10',ch:'Bài 22: Kiểu danh sách',lv:'B1 – Nhận biết',num:'1.2',title:'Nhận biết các thao tác list',desc:`<b>Đề bài:</b> Điền kết quả sau mỗi lệnh:<pre class="ex-code">A = [1, 2, 3]
 A.append(4)      # A = ___
 A.insert(1, 9)   # A = ___
