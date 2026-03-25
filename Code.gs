@@ -129,6 +129,9 @@ function doGet(e) {
       case 'ping':             return ok({ ts: Date.now(), v: '2.0' });
       case 'verifyExamCode':   return handleVerifyExamCode(p);
       case 'getSetupStatus':  return handleGetSetupStatus(p);
+      case 'health':          return HtmlService.createHtmlOutput('<ok/>')
+                                .addMetaTag('viewport','width=device-width')
+                                .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DENY);
       default:                return err('Không rõ action: ' + action);
     }
   } catch (ex) {
@@ -142,6 +145,8 @@ function doGet(e) {
 function ok(data)  { return cors({ ok: true,  data }); }
 function err(msg)  { return cors({ ok: false, error: msg }); }
 function cors(d) {
+  // ContentService không hỗ trợ custom headers (giới hạn của Apps Script)
+  // X-Frame-Options được bảo vệ qua CSP frame-ancestors ở client
   return ContentService
     .createTextOutput(JSON.stringify(d))
     .setMimeType(ContentService.MimeType.JSON);
