@@ -106,7 +106,7 @@ CL.define('Editors.RichText', () => {
   //  MOUNT
   // ══════════════════════════════════════════════════════════════
 
-  async function mount(containerId, initialHtml, onSave) {
+  async function mount(containerId, initialHtml, onSave, options = {}) {
     await _loadQuill();
 
     const container = document.getElementById(containerId);
@@ -176,7 +176,7 @@ CL.define('Editors.RichText', () => {
       <div class="rte-actions-right">
         <span class="rte-hint">Ctrl+S lưu · Kéo thả ảnh để upload</span>
         <button class="rte-btn" id="rte-cancel-${containerId}">Hủy</button>
-        <button class="rte-btn rte-btn-primary" id="rte-save-${containerId}">💾 Lưu</button>
+        ${!options.hideSaveBtn ? '<button class="rte-btn rte-btn-primary" id="rte-save-' + containerId + '">💾 Lưu</button>' : ''}
       </div>`;
 
     wrapper.appendChild(uploadBar);
