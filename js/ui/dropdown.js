@@ -112,10 +112,12 @@ CL.define('UI.Dropdown', () => {
     _exId    = '';
 
     _setLabel('grade', _items.grade.find(i => i.value === value)?.text || '— Chọn lớp —');
-    _setLabel('chap', '⏳ Đang tải...');
-    _setLabel('ex',   '— Chọn bài —');
-    setLocked('chap', true);
-    setLocked('ex',   true);
+    _setLabel('chap',  '⏳ Đang tải...');
+    _setLabel('bloom', '— Tất cả —');
+    _setLabel('ex',    '— Chọn bài —');
+    setLocked('chap',  true);
+    setLocked('bloom', true);
+    setLocked('ex',    true);
 
     // P2: Lazy load exercise bundle for this grade
     try {
@@ -128,6 +130,7 @@ CL.define('UI.Dropdown', () => {
 
     // Build chapter items
     const chapters = Registry.getChapters(value);
+    console.log('[Dropdown] getChapters('+value+'):', chapters.length, 'chapters');
     _items.chap = chapters.map(ch => ({ value: ch, text: ch }));
 
     _setLabel('chap', '— Chọn chủ đề —');
