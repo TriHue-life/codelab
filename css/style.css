@@ -8370,9 +8370,9 @@ body.view-practice  .ex-bar { display: flex; }
 /* lnums: fixed-width gutter, no horizontal scroll */
 .lnums {
   flex-shrink:     0 !important;
-  width:           44px !important;
-  min-width:       44px !important;
-  max-width:       44px !important;
+  width:           auto !important;
+  min-width:       36px !important;
+  max-width:       72px !important;   /* đủ cho dòng 999+ */
   overflow:        hidden !important;
   overflow-y:      hidden !important;  /* scroll synced by JS */
   background:      var(--editor-gutter, var(--editor-bg)) !important;
@@ -9041,4 +9041,89 @@ body.mode-exam #toolbar-practice { display: none !important; }
 #grade-panel .rp-content {
   overflow: visible !important;
   flex: none !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RICH TEXT EDITOR — Source mode with syntax highlight + line nums
+══════════════════════════════════════════════════════════════════ */
+.rte-src-wrap {
+  display: none;          /* shown only in source mode */
+  flex-direction: row;
+  flex: 1;
+  min-height: 240px;
+  max-height: 60vh;
+  overflow: hidden;
+  background: var(--editor-bg, #1e1e1e);
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Line numbers gutter */
+.rte-src-lnums {
+  flex-shrink: 0;
+  width: 48px;
+  min-width: 48px;
+  overflow: hidden;
+  overflow-y: hidden;
+  background: var(--editor-gutter, #1e1e1e);
+  border-right: 1px solid rgba(128,128,128,.15);
+  padding: 12px 0;
+  color: var(--editor-lnum, #858585);
+  text-align: right;
+  user-select: none;
+  pointer-events: none;
+}
+.rte-src-lnums span {
+  display: block;
+  padding: 0 8px 0 0;
+  line-height: 1.6;
+  font-size: 12px;
+}
+
+/* Inner = overlay + textarea stacked */
+.rte-src-inner {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Syntax highlight overlay */
+.rte-src-hl {
+  position: absolute;
+  inset: 0;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: var(--editor-fg, #d4d4d4);
+  background: transparent;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: auto;
+  pointer-events: none;
+  tab-size: 2;
+  border: none;
+}
+
+/* Transparent textarea on top */
+.rte-src-wrap .rte-source-area {
+  display: block !important;
+  position: absolute;
+  inset: 0;
+  padding: 12px 14px;
+  background: transparent !important;
+  color: transparent !important;
+  caret-color: var(--editor-fg, #d4d4d4) !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border: none !important;
+  outline: none !important;
+  resize: none !important;
+  overflow: auto;
+  tab-size: 2;
+  z-index: 1;
 }
