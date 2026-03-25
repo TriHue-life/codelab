@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-25 12:02
+/* CodeLab Bundle — built 2026-03-25 12:07
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -12292,9 +12292,12 @@ document.getElementById('input-field')?.addEventListener('keydown', e => { if (e
 
 // ─── Line numbers ───────────────────────────────────────────
 const ci = document.getElementById('code-input');
-const lnEl = document.getElementById('lnums');
+// Không cache lnEl ở đây — lấy fresh trong mỗi lần gọi để tránh stale reference
+let lnEl = document.getElementById('lnums');
 
 function updLN() {
+  // Re-query nếu reference bị stale
+  if (!lnEl || !lnEl.isConnected) lnEl = document.getElementById('lnums');
   if (!ci || !lnEl) return;
   const lines = ci.value.split('\n');
   const cur = ci.value.substring(0, ci.selectionStart).split('\n');
@@ -12579,12 +12582,12 @@ ci.addEventListener('click', updLN); ci.addEventListener('keyup', updLN);
 
 // ─── Sync editor layout (font/lineheight) ─────────────────────────────────
 function syncEditorLayout() {
-  // hl-overlay now lives inside .code-area-wrap so left:0 = correct — no offset needed
-  // Still sync font/lineheight so overlay matches textarea exactly
+  const _ln = document.getElementById('lnums');
   const cs = window.getComputedStyle(ci);
   const fs = parseFloat(cs.fontSize);
   const lh = parseFloat(cs.lineHeight) || fs * 1.6;
-  lnEl.style.setProperty('--lh', lh + 'px');
+  if (_ln) _ln.style.setProperty('--lh', lh + 'px');
+  lnEl = _ln;  // update cached ref
   if (hlOverlay) {
     hlOverlay.style.fontSize   = cs.fontSize;
     hlOverlay.style.lineHeight = cs.lineHeight;
