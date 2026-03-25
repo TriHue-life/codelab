@@ -120,27 +120,46 @@ function _cleanTraceback(raw) {
   if (!raw) return raw;
 
   const lines = raw.split('\n');
-  const clean = [];
-  for (const line of lines) {
+  const userLines = [];   // chỉ giữ các dòng liên quan đến code người dùng
+  let foundExec = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Bỏ header "Traceback (most recent call last):"
+    if (line.trim() === 'Traceback (most recent call last):') continue;
+
+    // Bỏ đường dẫn nội bộ Pyodide
     if (line.includes('python311.zip') ||
         line.includes('_pyodide') ||
         line.includes('pyodide-') ||
-        line.includes('lib/python3')) continue;
-    clean.push(line);
+        line.includes('/lib/python3')) continue;
+
+    // Dịch dòng File "<exec>" / "<string>"
+    if (line.includes('File "<exec>"') || line.includes('File "<string>"')) {
+      foundExec = true;
+      const translated = line
+        .replace(/File "<exec>",\s*line\s*(\d+),\s*in\s*<module>/g, '📍 Dòng $1 trong code của bạn:')
+        .replace(/File "<exec>",\s*line\s*(\d+)/g, '📍 Dòng $1 trong code của bạn:')
+        .replace(/File "<string>",\s*line\s*(\d+),\s*in\s*<module>/g, '📍 Dòng $1 trong code của bạn:')
+        .replace(/File "<string>",\s*line\s*(\d+)/g, '📍 Dòng $1 trong code của bạn:');
+      userLines.push(translated);
+      // Thêm dòng code tiếp theo (nếu có, là dòng gây lỗi)
+      if (i + 1 < lines.length && !lines[i+1].includes('Error:') && !lines[i+1].includes('  ^')) {
+        userLines.push('    ' + lines[i+1].trim());
+        i++;
+      }
+      continue;
+    }
+
+    // Bỏ dòng ^^^^ (chỉ thị vị trí, không cần thiết)
+    if (/^\s*\^+\s*$/.test(line)) continue;
+
+    userLines.push(line);
   }
 
-  let result = clean.join('\n').trim();
-
-  // Bỏ header "Traceback (most recent call last):"
-  result = result.replace(/^Traceback \(most recent call last\):\n?/, '').trim();
-
-  // Dịch dòng File "<exec>" 
-  result = result.replace(/File "<exec>", line (\d+)/g, '📍 Dòng $1 trong code của bạn');
-  result = result.replace(/File "<string>", line (\d+)/g, '📍 Dòng $1 trong code của bạn');
-
-  // Dịch các loại lỗi phổ biến
+  let result = userLines.join('\n').trim();
   result = _translateError(result);
-
   return result;
 }
 
