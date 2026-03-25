@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-25 04:36
+/* CodeLab Bundle — built 2026-03-25 04:48
  * 47 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -1725,7 +1725,7 @@ CL.define('Exercises.Registry', () => {
   // ── Lazy loading support ──────────────────────────────────────
   // Map: grade key prefix → JS file path
   const GRADE_FILE_MAP = {
-    'K10':         'js/exercises.js',       // 784KB — Python K10 KNTT
+    'K10':         'js/exercises.js?v=2c1c12a2',       // 784KB — Python K10 KNTT
     'K11':         'js/exercises_k12.js',   // 508KB — Python K11 + K12 HTML
     'K12':         'js/exercises_k12.js',
     'K12-CTST':    'js/exercises_k12.js',   // K12 HTML/CSS CTST
