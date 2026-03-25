@@ -312,6 +312,5 @@ CL.define('Auth.UI', () => {
     btn.textContent = el.type === 'password' ? '👁' : '🙈';
   }
 
-  return { init, logout, setScriptUrl, _switchTab, _submit, _openSetup, _togglePw, _detectType,
-           _toggleServerInput, _saveServerUrl };
+  return { init, logout, setScriptUrl, _switchTab, _submit, _openSetup, _togglePw, _detectType };
 });
