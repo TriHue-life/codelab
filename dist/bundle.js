@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-25 11:34
+/* CodeLab Bundle — built 2026-03-25 11:38
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
