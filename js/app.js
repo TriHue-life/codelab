@@ -52,6 +52,8 @@
   // ── Exam mode event wiring ───────────────────────────────────
   Events.on('mode:exam-entered', ({ exam }) => {
     _setExamMode(true);
+    CL.Features.PracticeLayout?.setMode('exam');
+    document.body.classList.add('mode-exam');
     Store.set('currentExamId', exam?.id || '');
     _examScores = {};
     // Hide practice toolbar, show exam toolbar
@@ -64,6 +66,8 @@
 
   Events.on('mode:practice-entered', () => {
     _setExamMode(false);
+    CL.Features.PracticeLayout?.setMode('practice');
+    document.body.classList.remove('mode-exam');
     Store.set('currentExamId', '');
     _examScores = {};
   });
@@ -88,6 +92,9 @@ Tải lại trang để về giao diện luyện tập?`)) {
 
     // Init sidebar navigation (Canvas-style)
     CL.Features.Sidebar?.init(user.role);
+
+    // Init practice layout (tab bar + modes)
+    CL.Features.PracticeLayout?.init();
 
     // Update user badge in topbar
     const area = document.getElementById('user-badge-area');
@@ -254,20 +261,17 @@ Tải lại trang để về giao diện luyện tập?`)) {
     document.getElementById('cdd-popup')?.classList.remove('show');
   };
 
-  // ── Tab system (new v2) ──────────────────────────────────────
+  // ── Tab system: delegate to PracticeLayout ──────────────────
   window.rpTab = function(tab) {
-    // Update content-bar tabs (desc, theory)
-    document.querySelectorAll('#rp-tabbar .rp-tab').forEach(t => t.classList.remove('on'));
-    // Update inner grade-panel tabs (result, analysis)
-    document.querySelectorAll('.rp-inner-tab').forEach(t => t.classList.remove('on'));
-    // Update all tabpanes
-    document.querySelectorAll('.rp-tabpane').forEach(p => p.classList.remove('on'));
-
-    const tabEl  = document.getElementById('rp-tab-' + tab);
-    const paneEl = document.getElementById('rp-pane-' + tab);
-    if (tabEl)  tabEl.classList.add('on');
-    if (paneEl) paneEl.classList.add('on');
-  };;
+    if (CL.Features?.PracticeLayout) {
+      CL.Features.PracticeLayout.activateTab(tab);
+    } else {
+      // Fallback nếu PracticeLayout chưa init
+      document.querySelectorAll('.rp-tabpane').forEach(p => p.classList.remove('on'));
+      const paneEl = document.getElementById('rp-pane-' + tab);
+      if (paneEl) paneEl.classList.add('on');
+    }
+  };
 
   // Backward compat
   window.rpToggle = window.rpExpand = function(section) {
@@ -343,6 +347,12 @@ Tải lại trang để về giao diện luyện tập?`)) {
           _updatePracticeHistory(exId, result.score);
         }
       }
+
+      // Thông báo PracticeLayout cập nhật tabs + badges
+      const errCount = (result.results||[]).filter(r => !r.passed).length;
+      CL.Features.PracticeLayout?.showResultBadge(result.score);
+      if (errCount > 0) CL.Features.PracticeLayout?.showAnalysisTab(errCount);
+      else CL.Features.PracticeLayout?.activateTab('result');
 
       // Show analysis tab badge if there are errors
       const hasFails = result.results?.some(r => !r.passed) || false;
@@ -487,6 +497,8 @@ Tải lại trang để về giao diện luyện tập?`)) {
   // B1 FIX: Connect ModeManager → app grading context
   Events.on('mode:exam-entered', ({ exam }) => {
     _setExamMode(true);
+    CL.Features.PracticeLayout?.setMode('exam');
+    document.body.classList.add('mode-exam');
     _examScores = {};                         // reset per-exam scores
     Store.set('currentExamId', exam?.id || '');
     // Hide theory tab during exam
@@ -513,6 +525,8 @@ Tải lại trang để về giao diện luyện tập?`)) {
 
   Events.on('mode:practice-entered', () => {
     _setExamMode(false);
+    CL.Features.PracticeLayout?.setMode('practice');
+    document.body.classList.remove('mode-exam');
     _examScores = {};
   });
 
