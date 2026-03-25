@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
   <!-- Security headers -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'none'">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <!-- Apply saved theme immediately to prevent flash -->
   <script>
@@ -102,7 +102,12 @@
           🎨
         </button>
         <!-- Exercise selector (student/practice view only) -->
-        <div class="tb-ex-bar ex-bar cl-hidden" id="tb-ex-bar">
+        <!-- User badge -->
+        <div id="user-badge-area"></div>
+      </div>
+    </header>
+
+    <div class="tb-ex-bar ex-bar cl-hidden" id="tb-ex-bar">
           <div class="tb-ex-group">
             <span class="tb-ex-label">Lớp</span>
             <div class="cdd" id="cdd-grade">
@@ -143,10 +148,6 @@
             </div>
           </div>
         </div>
-        <!-- User badge -->
-        <div id="user-badge-area"></div>
-      </div>
-    </header>
 
     <!-- CONTENT -->
     <div class="content-area" id="content-area" style="display:flex;flex-direction:column;flex:1;overflow:hidden">
