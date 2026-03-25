@@ -45,7 +45,7 @@ CL.define('UI.Resizer', () => {
 
       const ws = document.querySelector('.workspace');
       const colRight = parseInt(
-        getComputedStyle(ws).getPropertyValue('--col-right') || '370', 10
+        getComputedStyle(ws).getPropertyValue('--col-right') || '480', 10
       );
       startX    = e.clientX;
       startColW = colRight;
@@ -86,7 +86,7 @@ CL.define('UI.Resizer', () => {
     handle.addEventListener('dblclick', () => {
       const ws = document.querySelector('.workspace');
       if (ws) {
-        ws.style.setProperty('--col-right', '370px');
+        ws.style.setProperty('--col-right', '480px');
         try { localStorage.removeItem(LS_COL); } catch {}
       }
     });
@@ -174,7 +174,7 @@ CL.define('UI.Resizer', () => {
   function reset() {
     const ws = document.querySelector('.workspace');
     if (!ws) return;
-    ws.style.setProperty('--col-right', '370px');
+    ws.style.setProperty('--col-right', '480px');
     ws.style.setProperty('--row-top', '60vh');
     try {
       localStorage.removeItem(LS_COL);
