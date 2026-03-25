@@ -93,6 +93,9 @@ Tải lại trang để về giao diện luyện tập?`)) {
     // Init sidebar navigation (Canvas-style)
     CL.Features.Sidebar?.init(user.role);
 
+    // Init panel resizers (drag to resize)
+    CL.UI.Resizer?.init();
+
     // Init practice layout (tab bar + modes)
     CL.Features.PracticeLayout?.init();
 
