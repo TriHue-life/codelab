@@ -380,6 +380,12 @@ Tải lại trang để về giao diện luyện tập?`)) {
 
   // ── Rich editor integration ───────────────────────────────────
   window.openRichEditor = async function(field) {
+    // Chỉ teacher/admin mới được edit
+    const user = Store.get('currentUser');
+    if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
+      Toast.warn('Chỉ giáo viên/admin mới có thể chỉnh sửa nội dung');
+      return;
+    }
     const exId = Store.get('currentExId');
     if (!exId) { Toast.warn('Chọn bài tập trước'); return; }
 
