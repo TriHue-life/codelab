@@ -369,6 +369,17 @@ CL.define('Teacher.ExEditor', () => {
   // ══════════════════════════════════════════════════════════════
 
   async function saveField(id, field) {
+    // Guard: chỉ teacher/admin
+    const user = CL.require('Auth.Session')?.get();
+    if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
+      CL.require('UI.Toast')?.warn('Không có quyền lưu nội dung');
+      return;
+    }
+    if (!CL.API.isReady()) {
+      CL.require('UI.Toast')?.warn('Chưa kết nối server. Kiểm tra cấu hình URL.');
+      return;
+    }
+
     const msgId = `ed-msg-${field === 'code' ? 'code' : field === 'desc' ? 'desc' : 'theory'}`;
     const msgEl = document.getElementById(msgId);
     if (msgEl) msgEl.textContent = '⏳ Đang lưu...';
