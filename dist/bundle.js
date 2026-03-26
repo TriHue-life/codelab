@@ -1,4 +1,4 @@
-/* CodeLab Bundle — built 2026-03-25 12:24
+/* CodeLab Bundle — built 2026-03-26 07:37
  * 49 modules bundled
  * Exercise data lazy-loaded on grade selection
  */
@@ -7707,6 +7707,17 @@ CL.define('Teacher.ExEditor', () => {
   // ══════════════════════════════════════════════════════════════
 
   async function saveField(id, field) {
+    // Guard: chỉ teacher/admin
+    const user = CL.require('Auth.Session')?.get();
+    if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
+      CL.require('UI.Toast')?.warn('Không có quyền lưu nội dung');
+      return;
+    }
+    if (!CL.API.isReady()) {
+      CL.require('UI.Toast')?.warn('Chưa kết nối server. Kiểm tra cấu hình URL.');
+      return;
+    }
+
     const msgId = `ed-msg-${field === 'code' ? 'code' : field === 'desc' ? 'desc' : 'theory'}`;
     const msgEl = document.getElementById(msgId);
     if (msgEl) msgEl.textContent = '⏳ Đang lưu...';
@@ -16049,6 +16060,12 @@ Tải lại trang để về giao diện luyện tập?`)) {
 
   // ── Rich editor integration ───────────────────────────────────
   window.openRichEditor = async function(field) {
+    // Chỉ teacher/admin mới được edit
+    const user = Store.get('currentUser');
+    if (!user || (user.role !== 'teacher' && user.role !== 'admin')) {
+      Toast.warn('Chỉ giáo viên/admin mới có thể chỉnh sửa nội dung');
+      return;
+    }
     const exId = Store.get('currentExId');
     if (!exId) { Toast.warn('Chọn bài tập trước'); return; }
 
